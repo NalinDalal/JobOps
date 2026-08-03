@@ -1,0 +1,39 @@
+name: "Your Name"
+email: "your@email.com"
+phone: "+91-XXXXXXXXXX"
+location: "India"
+
+targetRoles:
+  - Software Engineer
+  - Backend Engineer
+  - Full Stack Developer
+
+targetLocations:
+  - Remote
+  - India
+  - United States
+  - Europe
+  - Canada
+
+skills:
+  - JavaScript
+  - TypeScript
+  - Node.js
+  - React
+  - Python
+  - SQL
+  - Git
+  - Docker
+  - AWS
+
+experience: []
+education: []
+
+preferences:
+  remoteOnly: false
+  minSalary: 0
+  industries:
+    - Technology
+    - AI/ML
+    - Fintech
+  dealbreakers: []

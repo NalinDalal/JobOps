@@ -1,0 +1,9 @@
+Dear Hiring Manager at Endeavor IT Solutions,
+
+I'm excited to apply for the Software Developer position at Endeavor IT Solutions in Indore, Madhya Pradesh. With a strong foundation in computer science and a passion for building scalable architectures, I'm confident that my skills and experience make me an ideal fit for this role.
+
+As a full-stack developer with hands-on experience in JavaScript, Node.js, React.js, and PostgreSQL, I've developed a solid understanding of designing real-time APIs, event queues, and background jobs. My experience with MonoRepo and Prisma has also given me a unique perspective on building efficient and scalable systems. For instance, I built and deployed a full-stack blogging platform using React, TypeScript, Prisma, and PostgreSQL, which showcased my ability to work with a range of technologies.
+
+I'm particularly drawn to this role because of the opportunity to work on challenging projects and collaborate with a talented team. My strong competitive programming background and open-source contributions demonstrate my ability to work independently and contribute to complex projects. I'm excited about the prospect of bringing my skills and experience to Endeavor IT Solutions and contributing to the company's success.
+
+I'd love the opportunity to discuss my application and how my skills align with the requirements of this role. Please feel free to contact me at +91 7440620675 or [nalindalal2004@gmail.com](mailto:nalindalal2004@gmail.com) to arrange a conversation. I look forward to the opportunity to contribute to Endeavor IT Solutions and grow as a software developer.

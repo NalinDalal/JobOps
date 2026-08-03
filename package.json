@@ -1,0 +1,15 @@
+{
+  "name": "jobops",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "scan": "node scripts/scan.mjs",
+    "evaluate": "node scripts/evaluate.mjs",
+    "tailor": "node scripts/tailor.mjs",
+    "tracker": "node scripts/tracker.mjs",
+    "doctor": "node scripts/doctor.mjs"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

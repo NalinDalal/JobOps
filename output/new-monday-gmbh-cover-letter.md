@@ -1,0 +1,9 @@
+Dear Hiring Manager at New Monday GmbH,
+
+I'm excited to apply for the Fullstack-Entwickler mit Schwerpunkt Frontend position, where I can leverage my passion for frontend development to drive innovative solutions. With a strong foundation in JavaScript, React.js, and TypeScript, I'm confident in my ability to design and implement scalable, user-centric interfaces.
+
+As a full-stack developer with experience in Node.js, PostgreSQL, and Prisma, I've developed a keen sense of how to integrate frontend and backend components seamlessly. My experience in designing real-time APIs, event queues, and background jobs has equipped me with the skills to handle complex architectures. For instance, in my Full-Stack Blogging Platform project, I utilized React, TypeScript, Prisma, and PostgreSQL to build a scalable and efficient platform.
+
+I'm impressed by New Monday GmbH's commitment to innovation and customer satisfaction. As someone with a strong competitive programming background and open-source contributions, I appreciate the company's emphasis on staying up-to-date with industry trends and best practices. My proficiency in Docker, Kubernetes, and AWS will enable me to make a significant contribution to the company's DevOps and CI/CD efforts.
+
+I'd love the opportunity to discuss how my skills and experience align with the requirements of this role. Please feel free to contact me at +91 7440620675 or [nalindalal2004@gmail.com](mailto:nalindalal2004@gmail.com) to arrange a conversation. I'm excited about the prospect of joining the New Monday GmbH team and contributing to the company's success.

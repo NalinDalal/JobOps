@@ -1,0 +1,54 @@
+# JobOps Portal Configuration
+# Configure which job boards to scan and what to search for.
+
+# ─── Search Filters ────────────────────────────────────────────
+title_filter:
+  positive:
+    - Software Engineer
+    - Full Stack
+    - Backend
+    - Frontend
+    - SWE
+    - Developer
+  negative:
+    - Intern
+    - Junior
+    - Lead
+    - Manager
+    - Director
+    - VP
+
+# ─── Portals ───────────────────────────────────────────────────
+portals:
+  - name: RemoteOK
+    enabled: true
+    url: https://remoteok.com/api
+    type: api
+    
+  - name: Arbeitnow
+    enabled: true
+    url: https://www.arbeitnow.com/api/job-board-api
+    type: api
+    
+  - name: Findwork
+    enabled: true
+    url: https://findwork.dev/api/jobs/
+    type: api
+
+# ─── Custom Search Queries ────────────────────────────────────
+# Add specific searches here
+search_queries:
+  - name: "React Developer Remote"
+    query: "react developer"
+    location: "Remote"
+    enabled: true
+    
+  - name: "Node.js Backend"
+    query: "nodejs backend"
+    location: "Remote"
+    enabled: true
+    
+  - name: "TypeScript Full Stack"
+    query: "typescript full stack"
+    location: "Remote"
+    enabled: true

@@ -1,0 +1,65 @@
+# JobOps Profile
+# This file is your source of truth. All evaluations reference it.
+
+candidate:
+  name: "Nalin Dalal"
+  email: "nalindalal2004@gmail.com"
+  phone: "+91 7440620675"
+  location: "Bhopal, India"
+  linkedin: "linkedin.com/in/nalin-dalal/"
+  github: "github.com/NalinDalal"
+  leetcode: "leetcode.com/Nalindalal2004/"
+  codeforces: "codeforces.com/profile/nalindalal2004"
+
+skills:
+  languages:
+    - C++
+    - TypeScript
+    - JavaScript
+    - Rust
+    - SQL
+  frameworks:
+    - React
+    - Next.js
+    - Node.js
+    - Tailwind CSS
+  databases:
+    - PostgreSQL
+    - Prisma
+    - MongoDB
+  devops:
+    - Docker
+    - Kubernetes
+    - AWS
+    - Vercel
+  tools:
+    - Git
+    - Neovim
+    - LazyGit
+
+target_roles:
+  - Software Engineer
+  - Full Stack Developer
+  - Backend Engineer
+
+target_locations:
+  - India
+  - Remote
+  - US
+  - Europe
+  - Canada
+
+experience:
+  level: "Junior/Entry"
+  years: "0-2"
+  open_source: true
+  competitive_programming: true
+
+preferences:
+  remote: true
+  salary_range: "Negotiable"
+  company_size: "Any"
+  company_type:
+    - Startup
+    - Mid-size
+    - Big Tech

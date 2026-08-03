@@ -1,0 +1,9 @@
+Dear Hiring Manager,
+
+I'm excited to apply for the Software Engineer, Machine Learning Platform, New Grad position at Quora, where I can leverage my passion for distributed systems and machine learning to drive business impact. With a strong foundation in computer science and a proven track record of building scalable architectures, I'm confident in my ability to contribute to Quora's mission.
+
+As a full-stack developer with experience in designing real-time APIs, event queues, and background jobs, I'm well-equipped to build and maintain core ML platform infrastructure. My experience with MonoRepo and Next.js has taught me the importance of efficient and reliable systems, and I'm eager to apply this knowledge to distributed systems for ML model serving. Additionally, my competitive programming background has honed my problem-solving skills, and I'm excited to optimize GPU model serving and work on PyTorch standardization.
+
+I'm particularly drawn to Quora's emphasis on ML engineer enablement and cost efficiency. In my previous projects, such as my full-stack blogging platform, I've demonstrated my ability to balance business impact with technical considerations. I'm impressed by Quora's use of PyTorch, Kubernetes, and AWS, and I'm excited to work with these technologies to drive innovation.
+
+I'd love the opportunity to discuss how my skills and experience align with Quora's needs. Please feel free to contact me at +91 7440620675 or [nalindalal2004@gmail.com](mailto:nalindalal2004@gmail.com) to schedule a conversation. I've attached my resume and look forward to the opportunity to contribute to Quora's mission.
