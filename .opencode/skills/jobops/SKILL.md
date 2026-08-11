@@ -12,7 +12,7 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 ## Pipeline
 
 ```
-1. SEARCH    → node scripts/scan.mjs "query"
+1. SEARCH    → node scripts/scan.mjs "query" ["location"]
 2. EVALUATE  → node scripts/evaluate.mjs '{job data}'
 3. TAILOR    → node scripts/tailor.mjs '{job data}'
 4. TRACK     → node scripts/tracker.mjs add "Company" "Role"
@@ -22,12 +22,16 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 
 | User says | You do |
 |-----------|--------|
-| `find me [role] jobs` | Run scan.mjs, present results |
-| `evaluate job #N` | Run evaluate.mjs with job data |
-| `tailor my CV for #N` | Run tailor.mjs with job data |
-| `show tracker` | Run tracker.mjs list |
-| `add [company]` | Run tracker.mjs add |
-| paste a URL | Fetch it, extract job, evaluate |
+| `find me [role] jobs` / `scan for [role]` | Run scan.mjs, present results |
+| `evaluate job #N` / paste JD or URL | Run evaluate.mjs with job data |
+| `tailor my CV for job #N` | Run tailor.mjs with job data |
+| `show my tracker` / `show tracker report` | Run tracker.mjs list, optionally generate report |
+| `mark interview for [Company]` | Run tracker.mjs interview "Company" "stage" ["date"] |
+| `record outcome for [Company]` | Run tracker.mjs outcome "Company" "result" |
+| `add follow-up for [Company]` | Run tracker.mjs followup "Company" "note" ["date"] |
+| `export tracker` | Run tracker.mjs export |
+| `add [company] [role]` | Run tracker.mjs add |
+| paste a URL | Fetch it, extract job, evaluate, optionally tailor |
 
 ## Rules
 
@@ -39,8 +43,9 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 
 ## Scripts
 
-- `scripts/scan.mjs "query"` — Search job boards
-- `scripts/evaluate.mjs '{json}'` — Score a job (Cloudflare AI)
-- `scripts/tailor.mjs '{json}'` — Generate CV + cover letter
-- `scripts/tracker.mjs list|add|update` — Manage applications
+- `scripts/scan.mjs "query" ["location"]` — Search 8+ job boards
+- `scripts/evaluate.mjs '{json}'` — Score a job (5-dimension AI)
+- `scripts/tailor.mjs '{json}'` — Generate ATS-optimized CV + cover letter
+- `scripts/tracker.mjs list|add|update|interview|outcome|followup|export|report` — Manage applications
+- `scripts/html-report.mjs` — Generate self-contained HTML dashboard
 - `scripts/doctor.mjs` — Health check

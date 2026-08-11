@@ -11,6 +11,7 @@ User says: "tailor my CV for [job]", "generate CV for this role", "create cover 
 Either:
 - Job title + company + description (from evaluation or paste)
 - Reference to a previous evaluation (e.g., "tailor for the Stripe job")
+- Job URL (fetched and parsed automatically)
 
 ## Steps
 
@@ -28,7 +29,7 @@ Either:
 - Avoid tables, columns, images, headers/footers
 - Single-column layout for ATS parsing
 
-## CV Output Format
+## Output Format
 
 ```markdown
 # [Name]

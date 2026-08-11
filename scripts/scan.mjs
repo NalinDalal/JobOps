@@ -1,17 +1,86 @@
 #!/usr/bin/env node
 
 /**
- * scan.mjs — Job portal scanner
- * Searches RemoteOK, Arbeitnow, and other free APIs for matching jobs.
- * 
+ * scan.mjs — Multi-portal job scanner
+ * Searches RemoteOK, Arbeitnow, Findwork, Remotive, freehire,
+ * Greenhouse, Lever, Ashby for matching jobs.
+ *
  * Usage: node scripts/scan.mjs "software engineer" "Remote"
  * Output: JSON array of job listings
  */
+
+import { readFileSync, existsSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, '..');
 
 const query = process.argv[2] || 'software engineer';
 const location = process.argv[3] || 'Remote';
 
 const jobs = [];
+const blacklist = new Set();
+const whitelist = new Set();
+let blacklistEnabled = true;
+let whitelistEnabled = false;
+
+// ─── Load config ───────────────────────────────────────────────
+function loadConfig() {
+  try {
+    const portalsPath = resolve(ROOT, 'config/portals.yml');
+    if (!existsSync(portalsPath)) return;
+    const content = readFileSync(portalsPath, 'utf-8');
+
+    const blacklistMatch = content.match(/blacklist:[\s\S]*?enabled:\s*(true|false)/);
+    if (blacklistMatch) {
+      blacklistEnabled = blacklistMatch[1] === 'true';
+    }
+
+    const companiesMatch = content.match(/blacklist:[\s\S]*?companies:\s*\[([\s\S]*?)\]/);
+    if (companiesMatch) {
+      const companies = companiesMatch[1].match(/"([^"]+)"/g);
+      if (companies) {
+        companies.forEach(c => blacklist.add(c.replace(/"/g, '').toLowerCase()));
+      }
+    }
+
+    const whitelistEnabledMatch = content.match(/whitelist:[\s\S]*?enabled:\s*(true|false)/);
+    if (whitelistEnabledMatch) {
+      whitelistEnabled = whitelistEnabledMatch[1] === 'true';
+    }
+
+    const whitelistMatch = content.match(/whitelist:[\s\S]*?companies:\s*\[([\s\S]*?)\]/);
+    if (whitelistMatch) {
+      const companies = whitelistMatch[1].match(/"([^"]+)"/g);
+      if (companies) {
+        companies.forEach(c => whitelist.add(c.replace(/"/g, '').toLowerCase()));
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load portal config:', e.message);
+  }
+}
+
+function isBlacklisted(company) {
+  if (!blacklistEnabled) return false;
+  const lower = company.toLowerCase();
+  if (whitelistEnabled && whitelist.size > 0) {
+    return !Array.from(whitelist).some(w => lower.includes(w));
+  }
+  return Array.from(blacklist).some(b => lower.includes(b));
+}
+
+function matchesSearch(text) {
+  const searchLower = query.toLowerCase();
+  const textLower = text.toLowerCase();
+
+  // Check for negative keywords first
+  const hasNegative = blacklistEnabled && Array.from(blacklist).some(b => textLower.includes(b));
+  if (hasNegative) return false;
+
+  return textLower.includes(searchLower);
+}
 
 // ─── RemoteOK ──────────────────────────────────────────────────
 async function scanRemoteOK() {
@@ -20,14 +89,13 @@ async function scanRemoteOK() {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
     });
     const data = await res.json();
-    
     if (!Array.isArray(data)) return;
-    
-    const searchLower = query.toLowerCase();
+
     for (const item of data.slice(1)) {
       if (!item.position || !item.company) continue;
-      const text = `${item.position} ${item.company} ${(item.tags || []).join(' ')}`.toLowerCase();
-      if (text.includes(searchLower)) {
+      if (isBlacklisted(item.company)) continue;
+      const text = `${item.position} ${item.company} ${(item.tags || []).join(' ')}`;
+      if (matchesSearch(text)) {
         jobs.push({
           id: jobs.length + 1,
           title: item.position,
@@ -37,6 +105,7 @@ async function scanRemoteOK() {
           source: 'remoteok',
           tags: item.tags || [],
           snippet: (item.description || '').replace(/<[^>]*>/g, '').substring(0, 300),
+          posted: item.epoch ? new Date(item.epoch * 1000).toISOString().split('T')[0] : 'Unknown',
         });
       }
     }
@@ -50,13 +119,12 @@ async function scanArbeitnow() {
   try {
     const res = await fetch('https://www.arbeitnow.com/api/job-board-api');
     const data = await res.json();
-    
     if (!data.data) return;
-    
-    const searchLower = query.toLowerCase();
+
     for (const item of data.data) {
-      const text = `${item.title} ${item.company_name} ${(item.tags || []).join(' ')}`.toLowerCase();
-      if (text.includes(searchLower)) {
+      if (isBlacklisted(item.company_name)) continue;
+      const text = `${item.title} ${item.company_name} ${(item.tags || []).join(' ')}`;
+      if (matchesSearch(text)) {
         jobs.push({
           id: jobs.length + 1,
           title: item.title,
@@ -66,6 +134,7 @@ async function scanArbeitnow() {
           source: 'arbeitnow',
           tags: item.tags || [],
           snippet: (item.description || '').replace(/<[^>]*>/g, '').substring(0, 300),
+          posted: item.created_at ? (typeof item.created_at === 'string' ? item.created_at.split('T')[0] : new Date(item.created_at).toISOString().split('T')[0]) : 'Unknown',
         });
       }
     }
@@ -81,13 +150,12 @@ async function scanFindwork() {
       headers: { 'Content-Type': 'application/json' },
     });
     const data = await res.json();
-    
     if (!data.results) return;
-    
-    const searchLower = query.toLowerCase();
+
     for (const item of data.results) {
-      const text = `${item.role} ${item.company_name} ${(item.keywords || []).join(' ')}`.toLowerCase();
-      if (text.includes(searchLower)) {
+      if (isBlacklisted(item.company_name)) continue;
+      const text = `${item.role} ${item.company_name} ${(item.keywords || []).join(' ')}`;
+      if (matchesSearch(text)) {
         jobs.push({
           id: jobs.length + 1,
           title: item.role,
@@ -97,6 +165,7 @@ async function scanFindwork() {
           source: 'findwork',
           tags: item.keywords || [],
           snippet: (item.text || '').replace(/<[^>]*>/g, '').substring(0, 300),
+          posted: item.date_posted || 'Unknown',
         });
       }
     }
@@ -105,16 +174,231 @@ async function scanFindwork() {
   }
 }
 
+// ─── Remotive ──────────────────────────────────────────────────
+async function scanRemotive() {
+  try {
+    const res = await fetch(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (!data.jobs) return;
+
+    for (const item of data.jobs) {
+      if (isBlacklisted(item.company_name)) continue;
+      const text = `${item.title} ${item.company_name} ${(item.tags || []).join(' ')}`;
+      if (matchesSearch(text)) {
+        jobs.push({
+          id: jobs.length + 1,
+          title: item.title,
+          company: item.company_name,
+          location: item.candidate_required_location || 'Remote',
+          url: item.url,
+          source: 'remotive',
+          tags: item.tags || [],
+          snippet: (item.description || '').replace(/<[^>]*>/g, '').substring(0, 300),
+          posted: item.publication_date ? item.publication_date.split('T')[0] : 'Unknown',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(`Remotive error: ${e.message}`);
+  }
+}
+
+// ─── freehire ──────────────────────────────────────────────────
+async function scanFreehire() {
+  try {
+    const res = await fetch(`https://freehire.me/api/v1/jobs?q=${encodeURIComponent(query)}&remote=true`);
+    const data = await res.json();
+    if (!data.jobs) return;
+
+    for (const item of data.jobs) {
+      if (isBlacklisted(item.company)) continue;
+      const text = `${item.title} ${item.company} ${(item.skills || []).join(' ')}`;
+      if (matchesSearch(text)) {
+        jobs.push({
+          id: jobs.length + 1,
+          title: item.title,
+          company: item.company,
+          location: item.remote ? 'Remote' : (item.location || 'Not specified'),
+          url: item.url || `https://freehire.me/jobs/${item.id}`,
+          source: 'freehire',
+          tags: item.skills || [],
+          snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+          posted: item.posted_at ? item.posted_at.split('T')[0] : 'Unknown',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(`freehire error: ${e.message}`);
+  }
+}
+
+// ─── Greenhouse ────────────────────────────────────────────────
+async function scanGreenhouse(slug) {
+  try {
+    const res = await fetch(`https://api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
+    const data = await res.json();
+    if (!data.jobs) return;
+
+    for (const item of data.jobs) {
+      if (isBlacklisted(item.company_name || item.company || '')) continue;
+      const text = `${item.title} ${item.company_name || item.company || ''} ${(item.tags || []).join(' ')}`;
+      if (matchesSearch(text)) {
+        jobs.push({
+          id: jobs.length + 1,
+          title: item.title,
+          company: item.company_name || item.company || slug,
+          location: item.location ? item.location.name : 'Not specified',
+          url: item.absolute_url || item.url || `https://boards.greenhouse.io/${slug}/jobs/${item.id}`,
+          source: `greenhouse:${slug}`,
+          tags: item.tags || [],
+          snippet: item.content ? item.content.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+          posted: item.updated_at ? item.updated_at.split('T')[0] : 'Unknown',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(`Greenhouse ${slug} error: ${e.message}`);
+  }
+}
+
+// ─── Lever ─────────────────────────────────────────────────────
+async function scanLever(slug) {
+  try {
+    const res = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+
+    for (const item of data) {
+      if (isBlacklisted(item.company || '')) continue;
+      const categories = item.categories || {};
+      const text = `${item.text} ${item.title} ${categories.commitment || ''} ${categories.team || ''} ${categories.location || ''}`;
+      if (matchesSearch(text)) {
+        jobs.push({
+          id: jobs.length + 1,
+          title: item.text || item.title,
+          company: item.company || slug,
+          location: categories.location || 'Not specified',
+          url: item.hostedUrl || `https://jobs.lever.co/${slug}/${item.id}`,
+          source: `lever:${slug}`,
+          tags: [categories.team, categories.commitment, categories.location].filter(Boolean),
+          snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+          posted: item.createdAt ? item.createdAt.split('T')[0] : 'Unknown',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(`Lever ${slug} error: ${e.message}`);
+  }
+}
+
+// ─── Ashby ─────────────────────────────────────────────────────
+async function scanAshby(slug) {
+  try {
+    const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
+    const data = await res.json();
+    if (!data.jobs) return;
+
+    for (const item of data.jobs) {
+      const company = item.organization || item.company || slug;
+      if (isBlacklisted(company)) continue;
+      const text = `${item.title} ${company} ${(item.tags || []).join(' ')} ${item.location || ''}`;
+      if (matchesSearch(text)) {
+        jobs.push({
+          id: jobs.length + 1,
+          title: item.title,
+          company: company,
+          location: item.location || 'Not specified',
+          url: item.jobUrl || `https://jobs.ashbyhq.com/${slug}`,
+          source: `ashby:${slug}`,
+          tags: item.tags || [],
+          snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+          posted: item.publishedDate ? item.publishedDate.split('T')[0] : 'Unknown',
+        });
+      }
+    }
+  } catch (e) {
+    console.error(`Ashby ${slug} error: ${e.message}`);
+  }
+}
+
+// ─── Load Greenhouse boards ────────────────────────────────────
+async function scanAllGreenhouse() {
+  try {
+    const portalsPath = resolve(ROOT, 'config/portals.yml');
+    const content = readFileSync(portalsPath, 'utf-8');
+    const greenhouseMatch = content.match(/greenhouse:[\s\S]*?boards:[\s\S]*?(\n\w|\n#)/);
+    if (!greenhouseMatch) return;
+
+    const boardsMatch = content.match(/greenhouse:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?lever:/);
+    if (!boardsMatch) return;
+
+    const slugMatches = boardsMatch[1].match(/slug:\s*(\S+)/g);
+    if (!slugMatches) return;
+
+    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
+    await Promise.all(slugs.map(slug => scanGreenhouse(slug)));
+  } catch (e) {
+    console.error(`Greenhouse config error: ${e.message}`);
+  }
+}
+
+// ─── Load Lever boards ────────────────────────────────────────
+async function scanAllLever() {
+  try {
+    const portalsPath = resolve(ROOT, 'config/portals.yml');
+    const content = readFileSync(portalsPath, 'utf-8');
+    const leverMatch = content.match(/lever:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?ashby:/);
+    if (!leverMatch) return;
+
+    const slugMatches = leverMatch[1].match(/slug:\s*(\S+)/g);
+    if (!slugMatches) return;
+
+    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
+    await Promise.all(slugs.map(slug => scanLever(slug)));
+  } catch (e) {
+    console.error(`Lever config error: ${e.message}`);
+  }
+}
+
+// ─── Load Ashby boards ────────────────────────────────────────
+async function scanAllAshby() {
+  try {
+    const portalsPath = resolve(ROOT, 'config/portals.yml');
+    const content = readFileSync(portalsPath, 'utf-8');
+    const ashbyMatch = content.match(/ashby:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?# ─── Custom/);
+    if (!ashbyMatch) return;
+
+    const slugMatches = ashbyMatch[1].match(/slug:\s*(\S+)/g);
+    if (!slugMatches) return;
+
+    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
+    await Promise.all(slugs.map(slug => scanAshby(slug)));
+  } catch (e) {
+    console.error(`Ashby config error: ${e.message}`);
+  }
+}
+
 // ─── Main ──────────────────────────────────────────────────────
 async function main() {
+  loadConfig();
   console.log(`Scanning for: "${query}" in "${location}"...`);
-  
+  if (whitelistEnabled) {
+    console.log(`  Whitelist mode: only ${whitelist.size} companies`);
+  } else if (blacklistEnabled) {
+    console.log(`  Blacklist mode: ${blacklist.size} companies excluded`);
+  }
+
   await Promise.all([
     scanRemoteOK(),
     scanArbeitnow(),
     scanFindwork(),
+    scanRemotive(),
+    scanFreehire(),
+    scanAllGreenhouse(),
+    scanAllLever(),
+    scanAllAshby(),
   ]);
-  
+
   // Deduplicate by title+company
   const seen = new Set();
   const unique = jobs.filter(j => {
@@ -123,15 +407,15 @@ async function main() {
     seen.add(key);
     return true;
   });
-  
+
   // Re-number
   unique.forEach((j, i) => j.id = i + 1);
-  
+
   // Filter by location if specified
-  const filtered = location.toLowerCase() === 'any' 
-    ? unique 
+  const filtered = location.toLowerCase() === 'any'
+    ? unique
     : unique.filter(j => j.location.toLowerCase().includes(location.toLowerCase()) || j.location === 'Remote');
-  
+
   console.log(`\nFound ${filtered.length} jobs:\n`);
   console.log(JSON.stringify(filtered, null, 2));
 }

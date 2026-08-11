@@ -18,37 +18,134 @@ title_filter:
     - Director
     - VP
 
+# ─── Company Filters ───────────────────────────────────────────
+# Blacklist: skip jobs from these companies
+blacklist:
+  enabled: true
+  companies: []
+
+# Whitelist: ONLY scan jobs from these companies (overrides blacklist if set)
+whitelist:
+  enabled: false
+  companies: []
+
 # ─── Portals ───────────────────────────────────────────────────
 portals:
   - name: RemoteOK
     enabled: true
     url: https://remoteok.com/api
     type: api
-    
+
   - name: Arbeitnow
     enabled: true
     url: https://www.arbeitnow.com/api/job-board-api
     type: api
-    
+
   - name: Findwork
     enabled: true
     url: https://findwork.dev/api/jobs/
     type: api
 
+  - name: Remotive
+    enabled: true
+    url: https://remotive.com/api/remote-jobs
+    type: api
+
+  - name: freehire
+    enabled: true
+    url: https://freehire.me/api/v1/jobs
+    type: api
+
+  - name: Greenhouse
+    enabled: true
+    type: greenhouse
+
+  - name: Lever
+    enabled: true
+    type: lever
+
+  - name: Ashby
+    enabled: true
+    type: ashby
+
+# ─── Greenhouse Companies ─────────────────────────────────────
+greenhouse:
+  boards:
+    - name: Stripe
+      slug: stripe
+    - name: Notion
+      slug: notion
+    - name: Figma
+      slug: figma
+    - name: Datadog
+      slug: datadog
+    - name: Cloudflare
+      slug: cloudflare
+    - name: Supabase
+      slug: supabase
+    - name: Vercel
+      slug: vercel
+    - name: Linear
+      slug: linear
+    - name: Railway
+      slug: railway
+    - name: Retool
+      slug: retool
+
+# ─── Lever Companies ──────────────────────────────────────────
+lever:
+  boards:
+    - name: Netflix
+      slug: netflix
+    - name: Shopify
+      slug: shopify
+    - name: Spotify
+      slug: spotify
+    - name: Reddit
+      slug: reddit
+    - name: Twitch
+      slug: twitch
+    - name: Slack
+      slug: slack
+    - name: Pinterest
+      slug: pinterest
+    - name: Lyft
+      slug: lyft
+
+# ─── Ashby Companies ──────────────────────────────────────────
+ashby:
+  boards:
+    - name: Anthropic
+      slug: anthropic
+    - name: OpenAI
+      slug: openai
+    - name: Cohere
+      slug: cohere
+    - name: Mistral
+      slug: mistral
+    - name: Hugging Face
+      slug: huggingface
+    - name: Scale AI
+      slug: scaleai
+
 # ─── Custom Search Queries ────────────────────────────────────
-# Add specific searches here
 search_queries:
   - name: "React Developer Remote"
     query: "react developer"
     location: "Remote"
     enabled: true
-    
+
   - name: "Node.js Backend"
     query: "nodejs backend"
     location: "Remote"
     enabled: true
-    
+
   - name: "TypeScript Full Stack"
     query: "typescript full stack"
+    location: "Remote"
+    enabled: true
+
+  - name: "Python Engineer"
+    query: "python engineer"
     location: "Remote"
     enabled: true
