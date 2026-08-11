@@ -2,13 +2,17 @@
   "name": "jobops",
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "jobops": "./cli.mjs"
+  },
   "scripts": {
-    "scan": "node scripts/scan.mjs",
-    "evaluate": "node scripts/evaluate.mjs",
-    "tailor": "node scripts/tailor.mjs",
-    "tracker": "node scripts/tracker.mjs",
-    "report": "node scripts/html-report.mjs",
-    "doctor": "node scripts/doctor.mjs"
+    "scan": "node cli.mjs scan",
+    "evaluate": "node cli.mjs evaluate",
+    "tailor": "node cli.mjs tailor",
+    "tracker": "node cli.mjs tracker",
+    "report": "node cli.mjs report",
+    "doctor": "node cli.mjs doctor",
+    "dev": "node cli.mjs scan"
   },
   "devDependencies": {
     "@types/bun": "latest"
