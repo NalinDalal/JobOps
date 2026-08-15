@@ -371,9 +371,10 @@ async function main() {
   const location = process.argv[3] || 'Remote';
 
   const queries = query.toLowerCase() === 'auto'
-    ? autoQueries().length > 0
-      ? autoQueries()
-      : [query]
+    ? (() => {
+        const merged = [...autoQueries(), ...searchQueries].map(q => q.trim().toLowerCase()).filter(Boolean);
+        return [...new Set(merged)];
+      })()
     : [query];
 
   if (whitelistEnabled) {

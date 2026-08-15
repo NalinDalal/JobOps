@@ -146,9 +146,14 @@ node scripts/doctor.mjs
 
 ```bash
 node scripts/scan.mjs "software engineer" "Remote"
+
+# or scan for every target role in your profile automatically:
+node scripts/scan.mjs auto "Remote"
 ```
 
-You should see JSON output with matching jobs from multiple boards.
+`auto` reads `target_roles` from `config/profile.yml`, merges them with `search_queries` from `config/portals.yml` (deduped), scans one query per entry, and merges + dedups results. The daily digest uses `auto` by default, so the emails you get are always aligned with your resume.
+
+**Source of truth:** `config/profile.yml` = who you are (roles, skills); `config/portals.yml` = how/where to search (queries, boards, title filter).
 
 ### 8. Evaluate a job
 
@@ -200,7 +205,7 @@ Flags:
 node scripts/digest.mjs --mode daily             # email + mark jobs as seen
 node scripts/digest.mjs --max 10                 # cap jobs in the email
 node scripts/digest.mjs --evaluate 0             # skip AI scoring (no Cloudflare keys)
-node scripts/digest.mjs --query "backend"        # custom scan query
+node scripts/digest.mjs --query "backend"        # custom scan query (default: auto from profile.yml)
 ```
 
 **Activate the scheduled email (needs GitHub):**
@@ -288,7 +293,7 @@ npm run doctor
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/scan.mjs "query" ["location"]` | Search all enabled job boards. Location filter is optional. |
+| `node scripts/scan.mjs "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your profile. Location filter is optional. |
 
 ### Job Evaluation
 
