@@ -33,7 +33,7 @@ function argVal(name, fallback) {
   return args[idx + 1];
 }
 const MODE = argVal('mode', 'preview');
-const MAX_JOBS = parseInt(argVal('max', '20'), 10) || 20;
+const MAX_JOBS = parseInt(argVal('max', '50'), 10) || 50;
 const EVAL_TOP = parseInt(argVal('evaluate', '5'), 10) || 0;
 const QUERY = argVal('query', 'auto');
 

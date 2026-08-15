@@ -13,7 +13,7 @@ on:
       max:
         description: 'Max jobs in email'
         required: false
-        default: '20'
+        default: '50'
 
 permissions:
   contents: read
@@ -46,4 +46,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL }}
         run: |
-          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'auto' }}" --max "${{ github.event.inputs.max || '20' }}"
+          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'auto' }}" --max "${{ github.event.inputs.max || '50' }}"
