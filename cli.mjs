@@ -71,6 +71,7 @@ Commands:
   tracker export                  Export tracker as CSV
   tracker report                  Generate HTML dashboard
   report                          Generate HTML dashboard
+  digest [--mode preview|daily]   Daily digest (scan+eval+outreach+email)
   doctor                          Run health check
   help                            Show this help
 
@@ -101,6 +102,9 @@ switch (command) {
     break;
   case 'doctor':
     runScript('doctor.mjs', args);
+    break;
+  case 'digest':
+    runScript('digest.mjs', args);
     break;
   case 'help':
   case '--help':

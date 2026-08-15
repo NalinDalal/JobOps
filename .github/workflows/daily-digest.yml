@@ -1,0 +1,49 @@
+name: Daily Job Digest
+
+on:
+  schedule:
+    # 06:30 UTC = 12:00 IST
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Scan query'
+        required: false
+        default: 'software engineer'
+      max:
+        description: 'Max jobs in email'
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache seen-jobs DB
+        uses: actions/cache@v4
+        with:
+          path: data/digest-seen.json
+          key: digest-seen-1
+          restore-keys: |
+            digest-seen-
+
+      - name: Run daily digest
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL }}
+        run: |
+          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'software engineer' }}" --max "${{ github.event.inputs.max || '20' }}"

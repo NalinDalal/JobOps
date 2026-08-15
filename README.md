@@ -16,7 +16,7 @@ An autonomous job hunting agent that combines the best of three open-source tool
 | Feature | Description |
 |---------|-------------|
 | **8+ Job Sources** | RemoteOK, Arbeitnow, Findwork, Remotive, freehire, Greenhouse, Lever, Ashby |
-| **Company Career Pages** | 10+ Greenhouse boards (Stripe, Notion, Figma, Datadog…), 8 Lever boards (Netflix, Shopify, Spotify…), 6 Ashby boards (Anthropic, OpenAI, Mistral…) |
+| **Company Career Pages** | 14 Greenhouse boards (Stripe, Notion, Figma, Datadog, Ramp, Replit, ClickHouse, Hasura…), 13 Lever boards (Netflix, Shopify, Spotify, Mercury, PostHog, Vanta…), 6 Ashby boards (Anthropic, OpenAI, Mistral…) |
 | **5-Dimension AI Scoring** | Role Fit, Location Fit, Growth Potential, Compensation Fit, Culture Fit + red flags |
 | **ATS-Optimized Tailoring** | Mirrors JD keywords into your CV, generates cover letters |
 | **Application Tracker** | Track status, interview stages, outcomes, follow-up dates and notes |
@@ -55,6 +55,16 @@ CLOUDFLARE_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast
 ```
 
 Get free credentials at [Cloudflare Workers AI](https://dash.cloudflare.com/).
+
+For the daily email digest you also need a [SendGrid](https://sendgrid.com) account:
+
+```
+SENDGRID_API_KEY=your_sendgrid_api_key_here
+MAIL_FROM=your@email.com
+MAIL_TO=your@email.com
+```
+
+Create a SendGrid API Key (Full Access) and verify a Single Sender for `MAIL_FROM`.
 
 ### 3. Configure your profile
 
@@ -172,6 +182,40 @@ node scripts/tracker.mjs report
 npm run report
 ```
 
+### 11. Daily digest (optional push — GitHub Actions cron)
+
+JobOps can email you a daily digest of fresh matches at **12:00 PM IST** — scan, dedup against previously seen jobs, AI-score the top candidates, and a LinkedIn outreach blurb per role.
+
+**Preview locally** (prints instead of emailing):
+
+```bash
+node scripts/digest.mjs
+# or
+npm run digest
+```
+
+Flags:
+
+```bash
+node scripts/digest.mjs --mode daily             # email + mark jobs as seen
+node scripts/digest.mjs --max 10                 # cap jobs in the email
+node scripts/digest.mjs --evaluate 0             # skip AI scoring (no Cloudflare keys)
+node scripts/digest.mjs --query "backend"        # custom scan query
+```
+
+**Activate the scheduled email (needs GitHub):**
+
+1. Push this repo to GitHub: `git push origin main`
+2. Go to **Settings → Secrets and variables → Actions → New repository secret** and add:
+   - `SENDGRID_API_KEY` — Full Access SendGrid key
+   - `MAIL_FROM` — your verified sender (e.g. `nalindalal2004@gmail.com`)
+   - `MAIL_TO` — the address to receive digests
+   - `CLOUDFLARE_API_KEY` *(optional)* — enables AI scoring in CI
+   - `CLOUDFLARE_ACCOUNT_ID` *(optional)* — enables AI scoring in CI
+3. The workflow `.github/workflows/daily-digest.yml` runs automatically at `30 6 * * *` UTC (**12:00 IST**). You can also trigger it manually: **Actions → Daily Job Digest → Run workflow**.
+
+Freshness is tracked in `data/digest-seen.json` (cached across CI runs); already-seen jobs are never re-emailed.
+
 ## Usage
 
 ### Agent Mode (OpenCode / Kilo)
@@ -234,6 +278,7 @@ npm run evaluate
 npm run tailor
 npm run tracker
 npm run report
+npm run digest
 npm run doctor
 ```
 
@@ -288,7 +333,8 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 | `config/cv.md` | Your base CV in markdown. Used as source for tailoring. |
 | `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries |
 | `config/companies.yml` | Company whitelist/blacklist with career pages |
-| `.env` | Cloudflare API credentials |
+| `.env` | Cloudflare + SendGrid credentials (git-ignored; see `.env.example`) |
+| `data/digest-seen.json` | Seen-jobs database for the daily digest (git-ignored) |
 
 ## Job Boards
 
@@ -306,8 +352,8 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 
 | Provider | Companies |
 |----------|-----------|
-| Greenhouse | Stripe, Notion, Figma, Datadog, Cloudflare, Supabase, Vercel, Linear, Railway, Retool |
-| Lever | Netflix, Shopify, Spotify, Reddit, Twitch, Slack, Pinterest, Lyft |
+| Greenhouse | Stripe, Notion, Figma, Datadog, Cloudflare, Supabase, Vercel, Linear, Railway, Retool, Ramp, Replit, ClickHouse, Hasura |
+| Lever | Netflix, Shopify, Spotify, Reddit, Twitch, Slack, Pinterest, Lyft, Mercury, PostHog, Vanta, Puzzle, Sourcegraph |
 | Ashby | Anthropic, OpenAI, Cohere, Mistral, Hugging Face, Scale AI |
 
 Configure additional boards in `config/portals.yml`.
@@ -350,8 +396,11 @@ career-apply-jobs/
 │   ├── evaluate.mjs             # 5-dimension AI job evaluator
 │   ├── tailor.mjs               # ATS-optimized CV + cover letter generator
 │   ├── tracker.mjs              # Application tracker with interview/outcome/follow-up support
+│   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach blurb → email
 │   ├── html-report.mjs          # Self-contained HTML dashboard generator
 │   └── doctor.mjs               # System health check
+├── .github/workflows/
+│   └── daily-digest.yml         # Cron: digest email at 12:00 IST (SendGrid)
 ├── data/
 │   └── applications.md          # Application tracker data
 ├── output/                      # Generated tailored CVs and cover letters

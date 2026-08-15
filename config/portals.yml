@@ -91,6 +91,14 @@ greenhouse:
       slug: railway
     - name: Retool
       slug: retool
+    - name: Ramp
+      slug: ramp
+    - name: Replit
+      slug: replit
+    - name: ClickHouse
+      slug: clickhouse
+    - name: Hasura
+      slug: hasura
 
 # ─── Lever Companies ──────────────────────────────────────────
 lever:
@@ -111,6 +119,16 @@ lever:
       slug: pinterest
     - name: Lyft
       slug: lyft
+    - name: Mercury
+      slug: mercury
+    - name: PostHog
+      slug: posthog
+    - name: Vanta
+      slug: vanta
+    - name: Puzzle
+      slug: puzzle
+    - name: Sourcegraph
+      slug: sourcegraph
 
 # ─── Ashby Companies ──────────────────────────────────────────
 ashby:

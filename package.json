@@ -11,6 +11,7 @@
     "tailor": "node cli.mjs tailor",
     "tracker": "node cli.mjs tracker",
     "report": "node cli.mjs report",
+    "digest": "node cli.mjs digest",
     "doctor": "node cli.mjs doctor",
     "dev": "node cli.mjs scan"
   },

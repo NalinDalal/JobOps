@@ -73,6 +73,7 @@ User request
 | `scripts/tailor.mjs` | CV tailor (ATS-optimized via Cloudflare AI) |
 | `scripts/tracker.mjs` | Application tracker with interview stages, outcomes, follow-ups |
 | `scripts/html-report.mjs` | Self-contained HTML dashboard generator |
+| `scripts/digest.mjs` | Daily digest (scan → dedup → AI score → outreach → email) |
 | `scripts/doctor.mjs` | System health check |
 
 ## Rules
@@ -97,6 +98,7 @@ User request
 - `scripts/tracker.mjs export` — Export tracker as CSV
 - `scripts/tracker.mjs report` — Generate HTML dashboard
 - `scripts/html-report.mjs` — Generate HTML dashboard directly
+- `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → SendGrid email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
 - `scripts/doctor.mjs` — System health check
 
 ## When user pastes a LinkedIn/Greenhouse/etc URL
