@@ -74,7 +74,7 @@ Formula: **Accomplished [X] as measured by [Y] by doing [Z].**
 
 ## 5. Recommended edits (safe = real data only)
 
-1. **Add repo links to CoDraw / PlayMesh / Modheshwari** in the Projects section (Blind already has one). [needs: repo URLs from user]
+1. **Repo links added** — CoDraw and Modheshwari now carry GitHub links; PlayMesh dropped from the CV at the user's request. [resolved 2026-08-16]
 2. **Headstarter bullet**: replace "optimized RESTful API performance" (no evidence) with the *mechanism* if you did something concrete (caching, batching, indexing) — e.g. "...using [Z]". [needs: which mechanism]
 3. **Blind bullet**: add a real Y if known (e.g. "cut initial payload 40%", "p95 under 200ms"). [needs: real number]
 4. **Do NOT add** Python/Java/Scala/Go/observability → the fabrication guard in `tailor.mjs` will (correctly) flag any tailored CV that tries.

@@ -27,11 +27,15 @@ skills:
     - PostgreSQL
     - Prisma
     - MongoDB
+    - Redis
+    - Kafka
+    - Elasticsearch
   devops:
     - Docker
     - Kubernetes
     - AWS
     - Vercel
+    - Nginx
     - GitHub Actions CI/CD
   tools:
     - Git

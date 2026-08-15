@@ -33,11 +33,12 @@ contributions**](https://github.com/NalinDalal/NalinDalal/blob/main/prs.md).
 ::: itemize
 **Languages**: **C++**, TypeScript, JavaScript, Rust, Solidity, SQL\
 **Frameworks & Libraries**: React, Next.js, Node.js, Tailwind CSS,
-MonoRepo\
-**Database & ORM**: PostgreSQL, **Prisma**, MongoDB, NeonDB\
-**DevOps & CI/CD**: **Docker**, **Kubernetes**, **AWS**, Vercel, **YAML
-Files**\
-**Tools**: Git, Jest, Bash/Zsh, LazyGit, Neovim
+MonoRepo, Elysia\
+**Database & ORM**: PostgreSQL, **Prisma**, MongoDB, NeonDB, Redis,
+Kafka, Elasticsearch\
+**DevOps & CI/CD**: **Docker**, **Kubernetes**, **AWS**, Vercel, Nginx,
+**GitHub Actions**, **YAML Files**\
+**Tools**: Git, Bun, Jest, Bash/Zsh, LazyGit, Neovim
 :::
 
 # Projects
@@ -62,35 +63,33 @@ Files**\
     -    Implemented **cursor-based pagination** and lightweight
         latest-post syncing for high performance.
 
--   ------------------------------------------------------------ ----------
-      **CoDraw** $|$ *MonoRepo, React, Node.js*     Jan 2025
-      ------------------------------------------------------------ ----------
-
-    -    Created a collaborative canvas supporting real-time drawing and
-        shape synchronization via WebSockets, using **diff-based sync**
-        for efficient state updates.
-
-    -    Demonstrated proficiency with monorepo setup, state management,
-        and canvas APIs.
-
 -   ------------------------------------------------------------ -----------------------
-      **PlayMesh** $|$ *multiplayer game platform*      2025 -- Present
+      [**CoDraw**](https://github.com/nerdev-co/codraw) $|$ *Turborepo, React, Node.js, WebSockets*    Jan 2025 -- Present
       ------------------------------------------------------------ -----------------------
 
-    -    Multiplayer game platform covering **Chess, Ludo, Snake &
-        Ladder, and Tic-Tac-Toe** with **reconnection semantics** and a
-        **delta buffer protocol** for reliable state sync.
+    -    Self-hostable real-time collaborative whiteboard with
+        **diff-based WebSocket sync** (shape deltas instead of full
+        state) and server-authoritative reconnection.
 
-    -    Designed **versioned game state** and a **game-agnostic engine
-        abstraction** shared across game modes.
+    -    Used **optimistic concurrency**, debounced persistence, and
+        dirty-rect rendering; deployed on **AWS EC2** with Nginx, PM2,
+        and Neon PostgreSQL via **GitHub Actions CI/CD**.
 
 -   ------------------------------------------------------------ ----------
-      **Modheshwari** $|$ *AWS, Docker*      2025
+      [**Modheshwari**](https://github.com/nerdev-co/modheshwari) $|$ *Next.js, Bun, PostgreSQL*      2025 -- Present
       ------------------------------------------------------------ ----------
 
-    -    Deployed a **multi-container application on AWS** with Docker,
-        managing container orchestration, networking, and
-        environment configuration.
+    -    Community management platform (role-based access, events,
+        resource approvals) built as a **Turborepo monorepo** with
+        Next.js, Bun/Elysia, and a WebSocket service.
+
+    -    Built reliability infrastructure: **transactional outbox**
+        pattern with Kafka + Elasticsearch relay, outbox dead-letter
+        queue, consumer idempotency, and durable WebSocket messages with
+        paginated sync.
+
+    -    Multi-container deployment on **AWS** with Docker Compose,
+        Nginx, and GitHub Actions; monitored via Prometheus/Grafana.
 
 # Experience
 
