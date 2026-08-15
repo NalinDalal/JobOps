@@ -221,6 +221,26 @@ node scripts/digest.mjs --query "backend"        # custom scan query (default: a
 
 Freshness is tracked in `data/digest-seen.json` (cached across CI runs); already-seen jobs are never re-emailed.
 
+### 12. Automation philosophy — who decides what
+
+The system runs on a **three-way split of authority**:
+
+> **Automation informs. The agent executes. The human approves.**
+
+| Stage | Runs how | Decides what |
+|---|---|---|
+| Discovery (scan → dedup → top-N score → email) | Automatically, 12:00 IST cron | *What might be relevant* — a notification filter, nothing more |
+| Evaluation, tailoring, tracking | On request, via the agent (JobOps skill) | *What it means* — deep scoring, CV variants, pipeline state |
+| Applying, accepting, sending | Human only, manually | *What happens* — final call on every application |
+
+Key implications:
+
+1. **Push discovery, pull decisions.** The cron flipped the trigger from "ask the agent" to "the system notifies you" — but authority never moved. The automation has no judgment and no accountability; it can't tell you a JD is a stretch, it only scores and emails. Anything that changes your application state still requires you + the agent.
+2. **`digest-seen.json` expiry is automatic, not a human skip.** Jobs marked seen by the cron expire from future digests *without you ever looking at them*. This is accepted: scans are cheap and continuously surface new postings. For judgment calls on the same data, run the agent locally (`node scripts/scan.mjs auto`) — the database only affects the daily email.
+3. **Deliberate non-goal: no unattended action stages.** Automating discovery was a conscious, reviewable line. Auto-tailoring on digest hits, auto-adding to the tracker, or auto-applying are *not* wired in and should only ever be added as an explicit design decision — never by accident. Rule #1 in [Rules](#rules) ("Never auto-submit applications") applies to every code path, including CI.
+
+If the automation ever does more than *inform*, this section is the first thing to update.
+
 ## Usage
 
 ### Agent Mode (OpenCode / Kilo)
