@@ -11,13 +11,15 @@
  *   node scripts/digest.mjs --mode daily             — email digest, marks jobs as seen
  *   node scripts/digest.mjs --max 10                 — limit email to N jobs
  *   node scripts/digest.mjs --evaluate 0             — disable AI scoring
- *   node scripts/digest.mjs --query "backend"        — custom scan query
+ *   node scripts/digest.mjs --query "backend"        — custom scan query (default: auto from profile.yml)
+ *   node scripts/digest.mjs --query auto             — scan each target_role from config/profile.yml
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { load as yamlLoad } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -33,7 +35,7 @@ function argVal(name, fallback) {
 const MODE = argVal('mode', 'preview');
 const MAX_JOBS = parseInt(argVal('max', '20'), 10) || 20;
 const EVAL_TOP = parseInt(argVal('evaluate', '5'), 10) || 0;
-const QUERY = argVal('query', 'software engineer');
+const QUERY = argVal('query', 'auto');
 
 // ─── Env ───────────────────────────────────────────────────────
 const envPath = resolve(ROOT, '.env');
@@ -48,24 +50,25 @@ const HAS_KEYS = (process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_T
 
 // ─── Profile ───────────────────────────────────────────────────
 function loadProfile() {
-  const profilePath = resolve(ROOT, 'config/profile.yml');
   let name = 'Nalin';
   let skills = 'TypeScript, React, Node.js, Go';
   let github = '';
   let linkedin = '';
   let experience = 'junior';
+  const profilePath = resolve(ROOT, 'config/profile.yml');
   if (existsSync(profilePath)) {
-    const content = readFileSync(profilePath, 'utf-8');
-    const nameMatch = content.match(/name:\s*"([^"]+)"/);
-    const skillsMatch = content.match(/target_roles:[\s\S]*?$|skills:[\s\S]*?(?=\n\w)/m);
-    const githubMatch = content.match(/github:\s*(\S+)/);
-    const linkedinMatch = content.match(/linkedin:\s*(\S+)/);
-    const expMatch = content.match(/level:\s*"([^"]+)"/);
-    if (nameMatch) name = nameMatch[1];
-    if (skillsMatch) skills = skillsMatch[0].replace(/skills:\s*\n?\s*/m, '').replace(/^\s*-\s*/gm, '').replace(/\n/g, ', ').substring(0, 200);
-    if (githubMatch) github = githubMatch[1];
-    if (linkedinMatch) linkedin = linkedinMatch[1];
-    if (expMatch) experience = expMatch[1].toLowerCase();
+    try {
+      const p = yamlLoad(readFileSync(profilePath, 'utf-8')) || {};
+      const s = p.skills || {};
+      const cat = (...keys) => keys.flatMap(k => s[k] || []).filter(Boolean);
+      if (p.candidate?.name) name = p.candidate.name;
+      if (p.skills) skills = cat('languages', 'frameworks', 'databases', 'devops', 'tools').join(', ').substring(0, 200);
+      if (p.candidate?.github) github = p.candidate.github;
+      if (p.candidate?.linkedin) linkedin = p.candidate.linkedin;
+      if (p.experience?.level) experience = String(p.experience.level).toLowerCase();
+    } catch (e) {
+      console.warn(`Could not parse profile.yml: ${e.message}`);
+    }
   }
   return { name, skills, github, linkedin, experience };
 }

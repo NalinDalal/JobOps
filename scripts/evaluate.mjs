@@ -10,6 +10,7 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { load as yamlLoad } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -64,7 +65,6 @@ function parseJSON(raw, fallback) {
 }
 
 function loadProfile() {
-  const profilePath = resolve(ROOT, 'config/profile.yml');
   let profile = {
     skills: '',
     targetRoles: '',
@@ -73,20 +73,24 @@ function loadProfile() {
     experience: '',
   };
 
-  if (existsSync(profilePath)) {
-    const content = readFileSync(profilePath, 'utf-8');
+  const profilePath = resolve(ROOT, 'config/profile.yml');
+  if (!existsSync(profilePath)) return profile;
 
-    const skillsMatch = content.match(/skills:[\s\S]*?(?=\n\w|\n$)/);
-    const rolesMatch = content.match(/target_roles:[\s\S]*?(?=\n\w|\n$)/);
-    const locMatch = content.match(/target_locations:[\s\S]*?(?=\n\w|\n$)/);
-    const salaryMatch = content.match(/salary_range:[\s\S]*?(?=\n\w|\n$)/);
-    const expMatch = content.match(/experience:[\s\S]*?(?=\n\w|\n$)/);
-
-    if (skillsMatch) profile.skills = skillsMatch[0].replace(/skills:\s*\n?\s*-\s*/g, '').replace(/\n/g, ', ');
-    if (rolesMatch) profile.targetRoles = rolesMatch[0].replace(/target_roles:\s*\n?\s*-\s*/g, '').replace(/\n/g, ', ');
-    if (locMatch) profile.targetLocations = locMatch[0].replace(/target_locations:\s*\n?\s*-\s*/g, '').replace(/\n/g, ', ');
-    if (salaryMatch) profile.salary = salaryMatch[0].replace(/salary_range:\s*/, '').trim();
-    if (expMatch) profile.experience = expMatch[0].replace(/experience:\s*\n?\s*-\s*/g, '').replace(/\n/g, ', ');
+  try {
+    const p = yamlLoad(readFileSync(profilePath, 'utf-8')) || {};
+    const skills = p.skills || {};
+    const cat = (...keys) => keys.flatMap(k => skills[k] || []).filter(Boolean);
+    const join = arr => arr.map(String).join(', ');
+    if (p.skills) profile.skills = join(cat('languages', 'frameworks', 'databases', 'devops', 'tools'));
+    if (p.target_roles) profile.targetRoles = join(p.target_roles);
+    if (p.target_locations) profile.targetLocations = join(p.target_locations);
+    if (p.preferences?.salary_range) profile.salary = String(p.preferences.salary_range);
+    if (p.experience) {
+      const yrs = p.experience.years ? ` (${p.experience.years} years)` : '';
+      profile.experience = `${p.experience.level || ''}${yrs}`.trim();
+    }
+  } catch (e) {
+    console.warn(`Could not parse profile.yml: ${e.message}`);
   }
 
   return profile;

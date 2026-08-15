@@ -6,12 +6,14 @@
  * Greenhouse, Lever, Ashby for matching jobs.
  *
  * Usage: node scripts/scan.mjs "software engineer" "Remote"
+ *        node scripts/scan.mjs auto "Remote"   — derive queries from config/profile.yml target_roles
  * Output: JSON array of job listings
  */
 
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { load as yamlLoad } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -24,42 +26,43 @@ const blacklist = new Set();
 const whitelist = new Set();
 let blacklistEnabled = true;
 let whitelistEnabled = false;
+let titleFilter = { positive: [], negative: [] };
+let searchQueries = [];
+let greenhouseBoards = [];
+let leverBoards = [];
+let ashbyBoards = [];
 
-// ─── Load config ───────────────────────────────────────────────
-function loadConfig() {
+// ─── Load config (real YAML, not regex) ────────────────────────
+function loadYaml(path) {
   try {
-    const portalsPath = resolve(ROOT, 'config/portals.yml');
-    if (!existsSync(portalsPath)) return;
-    const content = readFileSync(portalsPath, 'utf-8');
-
-    const blacklistMatch = content.match(/blacklist:[\s\S]*?enabled:\s*(true|false)/);
-    if (blacklistMatch) {
-      blacklistEnabled = blacklistMatch[1] === 'true';
-    }
-
-    const companiesMatch = content.match(/blacklist:[\s\S]*?companies:\s*\[([\s\S]*?)\]/);
-    if (companiesMatch) {
-      const companies = companiesMatch[1].match(/"([^"]+)"/g);
-      if (companies) {
-        companies.forEach(c => blacklist.add(c.replace(/"/g, '').toLowerCase()));
-      }
-    }
-
-    const whitelistEnabledMatch = content.match(/whitelist:[\s\S]*?enabled:\s*(true|false)/);
-    if (whitelistEnabledMatch) {
-      whitelistEnabled = whitelistEnabledMatch[1] === 'true';
-    }
-
-    const whitelistMatch = content.match(/whitelist:[\s\S]*?companies:\s*\[([\s\S]*?)\]/);
-    if (whitelistMatch) {
-      const companies = whitelistMatch[1].match(/"([^"]+)"/g);
-      if (companies) {
-        companies.forEach(c => whitelist.add(c.replace(/"/g, '').toLowerCase()));
-      }
-    }
+    if (!existsSync(path)) return {};
+    return yamlLoad(readFileSync(path, 'utf-8')) || {};
   } catch (e) {
-    console.warn('Could not load portal config:', e.message);
+    console.warn(`Could not parse ${path}: ${e.message}`);
+    return {};
   }
+}
+
+function loadConfig() {
+  const cfg = loadYaml(resolve(ROOT, 'config/portals.yml'));
+
+  const bl = cfg.blacklist || {};
+  blacklistEnabled = bl.enabled !== false;
+  for (const c of (bl.companies || [])) blacklist.add(String(c).toLowerCase());
+
+  const wl = cfg.whitelist || {};
+  whitelistEnabled = wl.enabled === true;
+  for (const c of (wl.companies || [])) whitelist.add(String(c).toLowerCase());
+
+  titleFilter = cfg.title_filter || { positive: [], negative: [] };
+
+  searchQueries = (cfg.search_queries || [])
+    .filter(q => q && q.query && q.enabled !== false)
+    .map(q => q.query);
+
+  greenhouseBoards = (cfg.greenhouse?.boards || []).map(b => b.slug).filter(Boolean);
+  leverBoards = (cfg.lever?.boards || []).map(b => b.slug).filter(Boolean);
+  ashbyBoards = (cfg.ashby?.boards || []).map(b => b.slug).filter(Boolean);
 }
 
 function isBlacklisted(company) {
@@ -71,8 +74,16 @@ function isBlacklisted(company) {
   return Array.from(blacklist).some(b => lower.includes(b));
 }
 
+// ─── Auto queries from profile.yml target_roles ────────────────
+function autoQueries() {
+  const profile = loadYaml(resolve(ROOT, 'config/profile.yml'));
+  const roles = (profile.target_roles || []).map(r => String(r).trim().toLowerCase()).filter(Boolean);
+  return roles;
+}
+
 function matchesSearch(text) {
-  const searchLower = query.toLowerCase();
+  const activeQuery = globalThis.__query || query;
+  const searchLower = activeQuery.toLowerCase();
   const textLower = text.toLowerCase();
 
   // Check for negative keywords first
@@ -323,71 +334,23 @@ async function scanAshby(slug) {
 
 // ─── Load Greenhouse boards ────────────────────────────────────
 async function scanAllGreenhouse() {
-  try {
-    const portalsPath = resolve(ROOT, 'config/portals.yml');
-    const content = readFileSync(portalsPath, 'utf-8');
-    const greenhouseMatch = content.match(/greenhouse:[\s\S]*?boards:[\s\S]*?(\n\w|\n#)/);
-    if (!greenhouseMatch) return;
-
-    const boardsMatch = content.match(/greenhouse:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?lever:/);
-    if (!boardsMatch) return;
-
-    const slugMatches = boardsMatch[1].match(/slug:\s*(\S+)/g);
-    if (!slugMatches) return;
-
-    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
-    await Promise.all(slugs.map(slug => scanGreenhouse(slug)));
-  } catch (e) {
-    console.error(`Greenhouse config error: ${e.message}`);
-  }
+  await Promise.all(greenhouseBoards.map(slug => scanGreenhouse(slug)));
 }
 
 // ─── Load Lever boards ────────────────────────────────────────
 async function scanAllLever() {
-  try {
-    const portalsPath = resolve(ROOT, 'config/portals.yml');
-    const content = readFileSync(portalsPath, 'utf-8');
-    const leverMatch = content.match(/lever:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?ashby:/);
-    if (!leverMatch) return;
-
-    const slugMatches = leverMatch[1].match(/slug:\s*(\S+)/g);
-    if (!slugMatches) return;
-
-    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
-    await Promise.all(slugs.map(slug => scanLever(slug)));
-  } catch (e) {
-    console.error(`Lever config error: ${e.message}`);
-  }
+  await Promise.all(leverBoards.map(slug => scanLever(slug)));
 }
 
 // ─── Load Ashby boards ────────────────────────────────────────
 async function scanAllAshby() {
-  try {
-    const portalsPath = resolve(ROOT, 'config/portals.yml');
-    const content = readFileSync(portalsPath, 'utf-8');
-    const ashbyMatch = content.match(/ashby:[\s\S]*?boards:[\s\S]*?\[([\s\S]*?)\][\s\S]*?# ─── Custom/);
-    if (!ashbyMatch) return;
-
-    const slugMatches = ashbyMatch[1].match(/slug:\s*(\S+)/g);
-    if (!slugMatches) return;
-
-    const slugs = slugMatches.map(s => s.replace('slug:', '').trim());
-    await Promise.all(slugs.map(slug => scanAshby(slug)));
-  } catch (e) {
-    console.error(`Ashby config error: ${e.message}`);
-  }
+  await Promise.all(ashbyBoards.map(slug => scanAshby(slug)));
 }
 
 // ─── Main ──────────────────────────────────────────────────────
-async function main() {
-  loadConfig();
-  console.log(`Scanning for: "${query}" in "${location}"...`);
-  if (whitelistEnabled) {
-    console.log(`  Whitelist mode: only ${whitelist.size} companies`);
-  } else if (blacklistEnabled) {
-    console.log(`  Blacklist mode: ${blacklist.size} companies excluded`);
-  }
-
+async function scanOnce(q) {
+  globalThis.__query = q;
+  jobs.length = 0;
   await Promise.all([
     scanRemoteOK(),
     scanArbeitnow(),
@@ -398,10 +361,38 @@ async function main() {
     scanAllLever(),
     scanAllAshby(),
   ]);
+  const results = jobs.slice();
+  jobs.length = 0;
+  return results;
+}
+
+async function main() {
+  loadConfig();
+  const location = process.argv[3] || 'Remote';
+
+  const queries = query.toLowerCase() === 'auto'
+    ? autoQueries().length > 0
+      ? autoQueries()
+      : [query]
+    : [query];
+
+  if (whitelistEnabled) {
+    console.log(`  Whitelist mode: only ${whitelist.size} companies`);
+  } else if (blacklistEnabled) {
+    console.log(`  Blacklist mode: ${blacklist.size} companies excluded`);
+  }
+
+  let all = [];
+  for (const q of queries) {
+    console.log(`Scanning for: "${q}" in "${location}"...`);
+    const results = await scanOnce(q);
+    console.log(`  -> ${results.length} raw matches`);
+    all = all.concat(results);
+  }
 
   // Deduplicate by title+company
   const seen = new Set();
-  const unique = jobs.filter(j => {
+  const unique = all.filter(j => {
     const key = `${j.title.toLowerCase()}|${j.company.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
