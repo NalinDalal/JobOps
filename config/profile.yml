@@ -32,8 +32,10 @@ skills:
     - Kubernetes
     - AWS
     - Vercel
+    - GitHub Actions CI/CD
   tools:
     - Git
+    - Bun
     - Neovim
     - LazyGit
 

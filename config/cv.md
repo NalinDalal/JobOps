@@ -63,14 +63,34 @@ Files**\
         latest-post syncing for high performance.
 
 -   ------------------------------------------------------------ ----------
-      **Interactive Drawing App** $|$ *MonoRepo, React, Node.js*     Jan 2025
+      **CoDraw** $|$ *MonoRepo, React, Node.js*     Jan 2025
       ------------------------------------------------------------ ----------
 
     -    Created a collaborative canvas supporting real-time drawing and
-        shape synchronization via WebSockets.
+        shape synchronization via WebSockets, using **diff-based sync**
+        for efficient state updates.
 
     -    Demonstrated proficiency with monorepo setup, state management,
         and canvas APIs.
+
+-   ------------------------------------------------------------ -----------------------
+      **PlayMesh** $|$ *multiplayer game platform*      2025 -- Present
+      ------------------------------------------------------------ -----------------------
+
+    -    Multiplayer game platform covering **Chess, Ludo, Snake &
+        Ladder, and Tic-Tac-Toe** with **reconnection semantics** and a
+        **delta buffer protocol** for reliable state sync.
+
+    -    Designed **versioned game state** and a **game-agnostic engine
+        abstraction** shared across game modes.
+
+-   ------------------------------------------------------------ ----------
+      **Modheshwari** $|$ *AWS, Docker*      2025
+      ------------------------------------------------------------ ----------
+
+    -    Deployed a **multi-container application on AWS** with Docker,
+        managing container orchestration, networking, and
+        environment configuration.
 
 # Experience
 
@@ -110,6 +130,10 @@ Files**\
     through extensive documentation study.
 
 -    Active open-source contributor
+
+-    Troubleshot and resolved **Docker socket permission** issues that
+    had **3 services crash-looping**, restoring a healthy
+    multi-container deployment.
 
 # Mini Projects (CLI & Utility Tools **30+**)
 
