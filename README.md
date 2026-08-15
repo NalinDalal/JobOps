@@ -56,15 +56,15 @@ CLOUDFLARE_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast
 
 Get free credentials at [Cloudflare Workers AI](https://dash.cloudflare.com/).
 
-For the daily email digest you also need a [SendGrid](https://sendgrid.com) account:
+For the daily email digest you also need a [Resend](https://resend.com) account:
 
 ```
-SENDGRID_API_KEY=your_sendgrid_api_key_here
-MAIL_FROM=your@email.com
+RESEND_API_KEY=re_your_api_key_here
+MAIL_FROM=onboarding@resend.dev   # or your verified domain
 MAIL_TO=your@email.com
 ```
 
-Create a SendGrid API Key (Full Access) and verify a Single Sender for `MAIL_FROM`.
+**Note:** before scheduled emails reach your inbox, verify a domain in Resend (Settings → Domains) and use it as `MAIL_FROM`, or use the `onboarding@resend.dev` sender for testing (it can only send to your own address).
 
 ### 3. Configure your profile
 
@@ -207,8 +207,8 @@ node scripts/digest.mjs --query "backend"        # custom scan query
 
 1. Push this repo to GitHub: `git push origin main`
 2. Go to **Settings → Secrets and variables → Actions → New repository secret** and add:
-   - `SENDGRID_API_KEY` — Full Access SendGrid key
-   - `MAIL_FROM` — your verified sender (e.g. `nalindalal2004@gmail.com`)
+   - `RESEND_API_KEY` — your `re_...` key from Resend
+   - `MAIL_FROM` — your verified sender (e.g. `digest@yourdomain.com`)
    - `MAIL_TO` — the address to receive digests
    - `CLOUDFLARE_API_KEY` *(optional)* — enables AI scoring in CI
    - `CLOUDFLARE_ACCOUNT_ID` *(optional)* — enables AI scoring in CI
@@ -333,7 +333,7 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 | `config/cv.md` | Your base CV in markdown. Used as source for tailoring. |
 | `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries |
 | `config/companies.yml` | Company whitelist/blacklist with career pages |
-| `.env` | Cloudflare + SendGrid credentials (git-ignored; see `.env.example`) |
+| `.env` | Cloudflare + Resend credentials (git-ignored; see `.env.example`) |
 | `data/digest-seen.json` | Seen-jobs database for the daily digest (git-ignored) |
 
 ## Job Boards
@@ -400,7 +400,7 @@ career-apply-jobs/
 │   ├── html-report.mjs          # Self-contained HTML dashboard generator
 │   └── doctor.mjs               # System health check
 ├── .github/workflows/
-│   └── daily-digest.yml         # Cron: digest email at 12:00 IST (SendGrid)
+│   └── daily-digest.yml         # Cron: digest email at 12:00 IST (Resend)
 ├── data/
 │   └── applications.md          # Application tracker data
 ├── output/                      # Generated tailored CVs and cover letters

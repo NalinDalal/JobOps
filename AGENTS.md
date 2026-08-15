@@ -98,7 +98,7 @@ User request
 - `scripts/tracker.mjs export` — Export tracker as CSV
 - `scripts/tracker.mjs report` — Generate HTML dashboard
 - `scripts/html-report.mjs` — Generate HTML dashboard directly
-- `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → SendGrid email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
+- `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → Resend email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
 - `scripts/doctor.mjs` — System health check
 
 ## When user pastes a LinkedIn/Greenhouse/etc URL

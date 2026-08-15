@@ -4,7 +4,7 @@
  * digest.mjs — Daily job digest (push mode for JobOps)
  * Scans all portals, filters fresh jobs, optionally scores the top N
  * with Cloudflare AI, generates a LinkedIn outreach blurb per role,
- * and emails the digest via SendGrid.
+ * and emails the digest via Resend.
  *
  * Usage:
  *   node scripts/digest.mjs                          — preview to console (no email)
@@ -156,7 +156,7 @@ async function evaluateTop(fresh, limit) {
   });
 }
 
-// ─── Email via SendGrid ────────────────────────────────────────
+// ─── Email via Resend ─────────────────────────────────────────
 function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
@@ -206,31 +206,23 @@ function buildText(jobs, dateStr, freshCount) {
 }
 
 async function sendEmail(subject, text, html) {
-  const key = process.env.SENDGRID_API_KEY;
+  const key = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
   const to = process.env.MAIL_TO;
   if (!key || !from || !to) {
-    console.log('\n[email] No SENDGRID_API_KEY/MAIL_FROM/MAIL_TO — printing digest instead.\n');
+    console.log('\n[email] No RESEND_API_KEY/MAIL_FROM/MAIL_TO — printing digest instead.\n');
     console.log(`Subject: ${subject}\n`);
     console.log(text);
     return false;
   }
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: from },
-      subject,
-      content: [
-        { type: 'text/plain', value: text },
-        { type: 'text/html', value: html },
-      ],
-    }),
+    body: JSON.stringify({ from, to, subject, text, html }),
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`SendGrid ${res.status}: ${body.substring(0, 300)}`);
+    throw new Error(`Resend ${res.status}: ${body.substring(0, 300)}`);
   }
   console.log(`Email sent to ${to}`);
   return true;
@@ -273,7 +265,7 @@ async function main() {
   const digestFile = resolve(reportsDir, `digest-${ist.toISOString().split('T')[0]}.md`);
   writeFileSync(digestFile, `# JobOps Digest — ${dateStr}\n\n${text}\n`);
   console.log(`\nDigest saved to: ${digestFile}`);
-  console.log(sent ? 'Done.' : 'Preview only — run with SENDGRID env vars to email.');
+  console.log(sent ? 'Done.' : 'Preview only — run with RESEND env vars to email.');
 }
 
 main().catch(e => {
