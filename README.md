@@ -337,7 +337,6 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 | `config/profile.yml` | Your candidate profile: skills, target roles, locations, preferences |
 | `config/cv.md` | Your base CV in markdown. Used as source for tailoring. |
 | `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries |
-| `config/companies.yml` | Company whitelist/blacklist with career pages |
 | `.env` | Cloudflare + Resend credentials (git-ignored; see `.env.example`) |
 | `data/digest-seen.json` | Seen-jobs database for the daily digest (git-ignored) |
 
@@ -395,7 +394,6 @@ career-apply-jobs/
 │   ├── profile.example.yml      # Profile template
 │   ├── cv.md                    # Base CV (markdown)
 │   ├── portals.yml              # Job board config + filters
-│   └── companies.yml            # Company whitelist/blacklist
 ├── scripts/
 │   ├── scan.mjs                 # Multi-portal job scanner
 │   ├── evaluate.mjs             # 5-dimension AI job evaluator

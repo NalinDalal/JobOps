@@ -64,7 +64,6 @@ User request
 | `config/profile.yml` | Your skills, preferences, target roles |
 | `config/cv.md` | Your base CV (markdown) |
 | `config/portals.yml` | Job board configuration, blacklists, search queries |
-| `config/companies.yml` | Company whitelist/blacklist |
 | `data/applications.md` | Application tracker |
 | `output/` | Generated tailored CVs and cover letters |
 | `reports/` | Evaluation reports and HTML dashboard |

@@ -30,7 +30,6 @@ JobOps is an AI job hunting agent that turns this CLI into a full job search com
 | `config/profile.yml` | Your profile, skills, preferences |
 | `config/cv.md` | Your base CV (markdown) |
 | `config/portals.yml` | Job board configurations, blacklists, whitelists |
-| `config/companies.yml` | Company whitelist/blacklist with career pages |
 | `data/applications.md` | Application tracker |
 | `modes/*.md` | Workflow definitions |
 | `scripts/*.mjs` | Executable tools |
