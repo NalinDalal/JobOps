@@ -26,7 +26,7 @@ if (existsSync(envPath)) {
 
 const CF_TOKEN = process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN;
 const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_MODEL = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct';
+const CF_MODEL = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 async function cfAI(prompt) {
   const res = await fetch(

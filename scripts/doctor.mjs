@@ -37,13 +37,21 @@ const envPath = resolve(ROOT, '.env');
 check('.env file exists', existsSync(envPath), 'Copy .env.example to .env and fill in your keys');
 
 // 3. Cloudflare credentials
+let activeModel = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 if (existsSync(envPath)) {
   const env = readFileSync(envPath, 'utf-8');
   const hasKey = env.includes('CLOUDFLARE_API_KEY=') && !env.includes('CLOUDFLARE_API_KEY=your_');
   const hasAccount = env.includes('CLOUDFLARE_ACCOUNT_ID=') && !env.includes('CLOUDFLARE_ACCOUNT_ID=your_');
   check('Cloudflare API key set', hasKey, 'Set CLOUDFLARE_API_KEY in .env');
   check('Cloudflare account ID set', hasAccount, 'Set CLOUDFLARE_ACCOUNT_ID in .env');
+
+  // Report the model that is actually active on every run
+  const modelMatch = env.match(/^CLOUDFLARE_MODEL=(.*)$/m);
+  if (modelMatch && modelMatch[1].trim() && !modelMatch[1].includes('your_')) {
+    activeModel = modelMatch[1].trim();
+  }
 }
+console.log(`\n  Active Cloudflare model: ${activeModel}`);
 
 // 4. Profile
 const profilePath = resolve(ROOT, 'config/profile.yml');
