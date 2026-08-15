@@ -11,6 +11,8 @@ title_filter:
     - SWE
     - Developer
   negative:
+    - Senior
+    - Staff
     - Intern
     - Junior
     - Lead

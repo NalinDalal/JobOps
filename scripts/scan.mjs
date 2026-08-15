@@ -399,16 +399,28 @@ async function main() {
     return true;
   });
 
+  // Title filter (positive/negative) — enforce what portals.yml declares
+  const pos = (titleFilter.positive || []).map(t => String(t).toLowerCase()).filter(Boolean);
+  const neg = (titleFilter.negative || []).map(t => String(t).toLowerCase()).filter(Boolean);
+  if (neg.length > 0) console.log(`  Title filter: ${pos.length} positive, ${neg.length} negative terms`);
+
+  const filtered = unique.filter(j => {
+    const title = String(j.title).toLowerCase();
+    if (neg.some(t => title.includes(t))) return false;
+    if (pos.length > 0 && !pos.some(t => title.includes(t))) return false;
+    return true;
+  });
+
   // Re-number
-  unique.forEach((j, i) => j.id = i + 1);
+  filtered.forEach((j, i) => j.id = i + 1);
 
   // Filter by location if specified
-  const filtered = location.toLowerCase() === 'any'
-    ? unique
-    : unique.filter(j => j.location.toLowerCase().includes(location.toLowerCase()) || j.location === 'Remote');
+  const located = location.toLowerCase() === 'any'
+    ? filtered
+    : filtered.filter(j => j.location.toLowerCase().includes(location.toLowerCase()) || j.location === 'Remote');
 
-  console.log(`\nFound ${filtered.length} jobs:\n`);
-  console.log(JSON.stringify(filtered, null, 2));
+  console.log(`\nFound ${located.length} jobs:\n`);
+  console.log(JSON.stringify(located, null, 2));
 }
 
 main();
