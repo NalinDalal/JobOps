@@ -144,11 +144,12 @@ ${(job.description || '').substring(0, 2000)}
 
 Rules (non-negotiable):
 1. Only reference skills and experience that appear in CANDIDATE above. Do NOT add any technology, language, or framework not already present, even if the JD requests it. If a requirement isn't met, omit it — do not imply it.
-2. Under 300 words.
-3. Professional but personal tone.
-4. Reference specific JD requirements.
-5. Include concrete examples from experience.
-6. End with call to action.
+2. Every accomplishment must follow the Google XYZ formula: "Accomplished [X] as measured by [Y] by doing [Z]" — an action verb, a quantifiable outcome ([Y] must be a real metric that exists in CANDIDATE, e.g. 550+ LeetCode problems, 830+ Codeforces, 30+ CLI tools), and the method ([Z]).
+3. If no real metric exists for a claim, state the action without inventing a number.
+4. Under 300 words.
+5. Professional but personal tone.
+6. Reference specific JD requirements.
+7. End with call to action.
 
 Return ONLY the cover letter text. No preamble, no notes, no explanation, no "Dear hiring team" meta-commentary beyond the letter itself. The first character of your response must be the letter content itself.`;
 
