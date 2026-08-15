@@ -3,9 +3,12 @@ dist
 .mastra
 .env
 .env.*
-!.env.example
 *.db
 *.db-*
 *.duckdb
 *.duckdb.wal
 data/digest-seen.json
+# Generated outputs — audit trail lives on disk, not in git
+reports/digest-*.md
+reports/*-*.md
+reports/tracker-dashboard.html
