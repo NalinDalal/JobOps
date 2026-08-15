@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       query:
-        description: 'Scan query'
+        description: 'Scan query (auto = from profile.yml target_roles)'
         required: false
-        default: 'software engineer'
+        default: 'auto'
       max:
         description: 'Max jobs in email'
         required: false
@@ -46,4 +46,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL }}
         run: |
-          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'software engineer' }}" --max "${{ github.event.inputs.max || '20' }}"
+          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'auto' }}" --max "${{ github.event.inputs.max || '20' }}"
