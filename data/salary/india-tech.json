@@ -1,0 +1,10 @@
+{
+  "region": "India",
+  "roles": [
+    { "title": "Software Engineer", "min": 600000, "max": 1800000, "median": 1200000, "currency": "INR", "source": "levels.fyi" },
+    { "title": "Backend Engineer", "min": 700000, "max": 2000000, "median": 1400000, "currency": "INR", "source": "levels.fyi" },
+    { "title": "Full Stack Developer", "min": 650000, "max": 1900000, "median": 1300000, "currency": "INR", "source": "levels.fyi" },
+    { "title": "Frontend Engineer", "min": 600000, "max": 1700000, "median": 1200000, "currency": "INR", "source": "levels.fyi" },
+    { "title": "DevOps Engineer", "min": 800000, "max": 2200000, "median": 1500000, "currency": "INR", "source": "levels.fyi" }
+  ]
+}

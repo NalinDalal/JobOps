@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
+import { loadActiveProfile, getProfileTargetRoles, getProfileTargetLocations } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -74,10 +75,10 @@ function isBlacklisted(company) {
   return Array.from(blacklist).some(b => lower.includes(b));
 }
 
-// ─── Auto queries from profile.yml target_roles ────────────────
+// ─── Auto queries from active profile ──────────────────────────
 function autoQueries() {
-  const profile = loadYaml(resolve(ROOT, 'config/profile.yml'));
-  const roles = (profile.target_roles || []).map(r => String(r).trim().toLowerCase()).filter(Boolean);
+  const profile = loadActiveProfile();
+  const roles = getProfileTargetRoles(profile);
   return roles;
 }
 

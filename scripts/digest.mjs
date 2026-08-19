@@ -20,6 +20,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { load as yamlLoad } from 'js-yaml';
+import { loadActiveProfile, getProfileCandidate, getProfileSkills, getProfileExperience, getProfileOutreach, getProfileTargetLocations } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -49,39 +50,31 @@ if (existsSync(envPath)) {
 const HAS_KEYS = (process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN) && process.env.CLOUDFLARE_ACCOUNT_ID;
 
 // ─── Profile ───────────────────────────────────────────────────
-function loadProfile() {
-  let name = 'Nalin';
-  let skills = 'TypeScript, React, Node.js, Go';
-  let github = '';
-  let linkedin = '';
-  let experience = 'junior';
-  const profilePath = resolve(ROOT, 'config/profile.yml');
-  if (existsSync(profilePath)) {
-    try {
-      const p = yamlLoad(readFileSync(profilePath, 'utf-8')) || {};
-      const s = p.skills || {};
-      const cat = (...keys) => keys.flatMap(k => s[k] || []).filter(Boolean);
-      if (p.candidate?.name) name = p.candidate.name;
-      if (p.skills) skills = cat('languages', 'frameworks', 'databases', 'devops', 'tools').join(', ').substring(0, 200);
-      if (p.candidate?.github) github = p.candidate.github;
-      if (p.candidate?.linkedin) linkedin = p.candidate.linkedin;
-      if (p.experience?.level) experience = String(p.experience.level).toLowerCase();
-    } catch (e) {
-      console.warn(`Could not parse profile.yml: ${e.message}`);
-    }
-  }
-  return { name, skills, github, linkedin, experience };
-}
-
-const profile = loadProfile();
+const profile = loadActiveProfile();
+const candidate = getProfileCandidate(profile);
+const outreach = getProfileOutreach(profile);
 
 function outreachFor(job) {
-  const lines = [
-    `Hi {Name}, I'm ${profile.name} — a ${profile.experience} engineer focused on ${profile.skills}.`,
-    `I'm excited about ${job.company}'s work and this ${job.title} role. I build production-style projects (tests, CI, DevOps-friendly) and can share concise repos${profile.github ? ` (${profile.github})` : ''}.`,
-    'Would you be open to a quick chat or pointing me to the best next step? Thanks!',
-  ];
-  return lines.join('\n');
+  const name = candidate.name || 'Candidate';
+  const experience = getProfileExperience(profile);
+  const skills = getProfileSkills(profile);
+  const templates = outreach.short_dm || outreach.long_dm || '';
+  let text = templates
+    .replace(/\{Name\}/g, 'Hiring Manager')
+    .replace(/\{candidate_name\}/g, name)
+    .replace(/\{experience_level\}/g, experience || 'software')
+    .replace(/\{skills\}/g, skills)
+    .replace(/\{role\}/g, job.title)
+    .replace(/\{company\}/g, job.company);
+  if (!text) {
+    const lines = [
+      `Hi Hiring Manager, I'm ${name} — a ${experience || 'software'} engineer focused on ${skills}.`,
+      `I'm excited about ${job.company}'s work and this ${job.title} role. I build production-style projects (tests, CI, DevOps-friendly) and can share concise repos${candidate.github ? ` (${candidate.github})` : ''}.`,
+      'Would you be open to a quick chat or pointing me to the best next step? Thanks!',
+    ];
+    text = lines.join('\n');
+  }
+  return text;
 }
 
 // ─── Seen database (dedup) ─────────────────────────────────────
@@ -172,6 +165,8 @@ function buildHTML(jobs, dateStr, freshCount) {
       ? `<p style="color:#b91c1c;">⚠ ${esc(j.evaluation.redFlags.join(' • '))}</p>`
       : '';
     const outreach = esc(outreachFor(j)).replace(/<br>/g, '\n').replace(/\n/g, '<br>');
+    const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
+    const linkedinUrls = linkedinTitles.map(t => `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`).map(url => `<a href="${url}" style="font-size:12px;">${url}</a>`).join('<br>');
     return `
   <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;">
     <h3 style="margin:0 0 4px;">${score}&nbsp; <a href="${j.url}" style="color:#111;">${esc(j.title)}</a></h3>
@@ -182,6 +177,8 @@ function buildHTML(jobs, dateStr, freshCount) {
     <details style="margin-top:8px;">
       <summary style="cursor:pointer;color:#2563eb;font-size:14px;">LinkedIn outreach draft</summary>
       <pre style="white-space:pre-wrap;background:#f9fafb;border-radius:6px;padding:10px;font-family:sans-serif;font-size:13px;">${outreach}</pre>
+      <p style="font-size:12px;color:#555;margin-top:8px;">LinkedIn people search:</p>
+      <div style="font-size:12px;">${linkedinUrls}</div>
     </details>
   </div>`;
   }).join('\n');

@@ -10,6 +10,7 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { loadActiveProfile, getProfileCandidate, getProfileSkills, getProfileExperience } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -101,6 +102,56 @@ function warnFabricatedSkills(tailored, baseCv) {
   }
 }
 
+function verifyATS(cvText, candidate) {
+  const issues = [];
+  const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const phoneRe = /\+?[\d\s()]{7,}/;
+  if (!emailRe.test(cvText)) issues.push('Email address not found in CV');
+  if (!phoneRe.test(cvText)) issues.push('Phone number not found in CV');
+  const headers = ['experience', 'skills', 'education', 'projects', 'summary', 'profile'];
+  const lower = cvText.toLowerCase();
+  const hasHeader = headers.some(h => lower.includes(h));
+  if (!hasHeader) issues.push('No standard section header found (Experience, Skills, Education, etc.)');
+  const tableRows = (cvText.match(/^\|.+\|$/gm) || []).length;
+  if (tableRows > 5) issues.push('Markdown tables detected — some ATS parsers struggle with tables');
+  if (cvText.split('\n').some(line => line.includes('  '))) issues.push('Double-spaced lines detected — may indicate multi-column layout');
+  if (issues.length === 0) {
+    console.log('✅ ATS source check passed.');
+  } else {
+    console.warn('⚠️  ATS source check flagged issues:');
+    issues.forEach(i => console.warn(`   - ${i}`));
+  }
+  return issues;
+}
+
+function verifyFacts(tailored, baseCv, candidate) {
+  const issues = [];
+  const baseLower = baseCv.toLowerCase();
+  const tailoredLower = tailored.toLowerCase();
+  if (candidate.email && !tailoredLower.includes(candidate.email.toLowerCase())) {
+    issues.push(`Profile email "${candidate.email}" not found in CV`);
+  }
+  if (candidate.phone && !tailoredLower.includes(candidate.phone)) {
+    issues.push(`Profile phone "${candidate.phone}" not found in CV`);
+  }
+  if (candidate.name && !tailoredLower.includes(candidate.name.toLowerCase())) {
+    issues.push(`Candidate name "${candidate.name}" not found in CV`);
+  }
+  const metrics = tailored.match(/\b\d+\+?\s*(years|months|projects|tools|problems|clients|users|repos|leetcodes|codeforces)\b/gi) || [];
+  for (const metric of metrics.slice(0, 5)) {
+    if (!baseLower.includes(metric.toLowerCase())) {
+      issues.push(`Metric "${metric}" not found in base CV — verify before sending`);
+    }
+  }
+  if (issues.length === 0) {
+    console.log('✅ Verified-facts check passed: contact details and key metrics anchor in base CV.');
+  } else {
+    console.warn('⚠️  Verified-facts check flagged issues:');
+    issues.forEach(i => console.warn(`   - ${i}`));
+  }
+  return issues;
+}
+
 async function main() {
   const input = process.argv[2];
   if (!input) {
@@ -159,6 +210,9 @@ Return ONLY the cover letter text. No preamble, no notes, no explanation, no "De
   const clClean = stripMetaCommentary(clResult);
   warnFabricatedSkills(cvClean, baseCv);
   warnFabricatedSkills(clClean, baseCv);
+  const candidate = getProfileCandidate(loadActiveProfile());
+  verifyATS(cvClean, candidate);
+  verifyFacts(cvClean, baseCv, candidate);
 
   // Save outputs
   const outputDir = resolve(ROOT, 'output');

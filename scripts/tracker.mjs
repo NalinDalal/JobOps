@@ -15,16 +15,18 @@
  *   node scripts/tracker.mjs report                  — Generate HTML dashboard
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { load as yamlLoad } from 'js-yaml';
+import { loadActiveProfile, getProfileAutonomyLevel } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const TRACKER_PATH = resolve(ROOT, 'data/applications.md');
 
-const VALID_STATUSES = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Withdrawn'];
+const VALID_STATUSES = ['Saved', 'Attention', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Withdrawn'];
 const INTERVIEW_STAGES = ['Phone Screen', 'Technical', 'Onsite', 'Final Round', 'HR Round', 'Offer', 'Other'];
 const OUTCOMES = ['Applied', 'Interviewing', 'Offer Received', 'Offer Accepted', 'Offer Declined', 'Rejected', 'Ghosted', 'Withdrawn'];
 
@@ -76,6 +78,79 @@ function writeTracker(rows) {
   writeFileSync(TRACKER_PATH, content);
 }
 
+function listAttention() {
+  const rows = readTracker();
+  const attention = rows.filter(r => r.status === 'Attention');
+  if (attention.length === 0) {
+    console.log('Attention queue is empty.');
+    return;
+  }
+  console.log('\n## Attention Queue\n');
+  console.log('| # | Company | Role | Score | Last Update |');
+  console.log('|---|---------|------|-------|-------------|');
+  for (const row of attention) {
+    console.log(`| ${row.num} | ${row.company} | ${row.role} | ${row.score} | ${row.lastUpdate} |`);
+  }
+}
+
+function outcomeReview() {
+  const rows = readTracker();
+  const withOutcome = rows.filter(r => r.outcome !== '—');
+  if (withOutcome.length === 0) {
+    console.log('No outcomes recorded yet. Record outcomes first with: node scripts/tracker.mjs outcome "Company" "Result"');
+    return;
+  }
+  const counts = {};
+  for (const row of withOutcome) {
+    counts[row.outcome] = (counts[row.outcome] || 0) + 1;
+  }
+  const offers = withOutcome.filter(r => r.outcome === 'Offer Accepted' || r.outcome === 'Offer Received');
+  const rejected = withOutcome.filter(r => r.outcome === 'Rejected' || r.outcome === 'Ghosted');
+  console.log(`\n## Outcome Review (${withOutcome.length} applications)\n`);
+  console.log('### Outcome Distribution');
+  for (const [outcome, count] of Object.entries(counts)) {
+    console.log(`- ${outcome}: ${count}`);
+  }
+  if (offers.length > 0) {
+    console.log('\n### Success Patterns');
+    for (const row of offers) {
+      console.log(`- ${row.company} — ${row.role} (Score: ${row.score})`);
+    }
+  }
+  if (rejected.length > 0) {
+    console.log('\n### Rejection Patterns');
+    const rejectedCompanies = rejected.map(r => r.company);
+    console.log(`- Companies: ${rejectedCompanies.join(', ')}`);
+    const rejectedRoles = rejected.map(r => r.role);
+    console.log(`- Roles: ${[...new Set(rejectedRoles)].join(', ')}`);
+  }
+  console.log('\n### Suggestions');
+  if (offers.length >= 2) {
+    console.log('- You have multiple offers. Consider negotiating or declining politely.');
+  }
+  if (rejected.length >= 3) {
+    console.log('- Multiple rejections detected. Consider reviewing your CV or lowering target seniority.');
+  }
+  const attentionCount = rows.filter(r => r.status === 'Attention').length;
+  if (attentionCount > 0) {
+    console.log(`- ${attentionCount} application(s) in attention queue need review before applying.`);
+  }
+}
+
+function autonomyStatus() {
+  const profile = loadActiveProfile();
+  const level = getProfileAutonomyLevel(profile);
+  console.log(`\nAutonomy level: ${level}`);
+  console.log(`Source: ${profile.source}${profile.slug ? ` (${profile.slug})` : ''}`);
+  if (level === 'review-each') {
+    console.log('Behavior: All new applications go to Attention queue. You must approve each one before it moves to Saved/Applied.');
+  } else if (level === 'routine-auto') {
+    console.log('Behavior: Applications bypass Attention queue and go directly to Saved. Use with caution.');
+  } else {
+    console.log('Unknown level. Valid values: review-each, routine-auto');
+  }
+}
+
 function list() {
   const rows = readTracker();
   if (rows.length === 0) {
@@ -125,13 +200,20 @@ function list() {
 
 function add(company, role) {
   const rows = readTracker();
-  const num = rows.length + 1;
   const today = new Date().toISOString().split('T')[0];
+  const dup = rows.find(r => r.company.toLowerCase() === company.toLowerCase() && r.role.toLowerCase() === role.toLowerCase());
+  if (dup) {
+    console.log(`Duplicate detected: ${company} — ${role} already exists (#${dup.num}, status: ${dup.status}). Skipping add.`);
+    return;
+  }
+  const num = rows.length + 1;
+  const autonomy = getProfileAutonomyLevel(loadActiveProfile());
+  const initialStatus = autonomy === 'routine-auto' ? 'Saved' : 'Attention';
   rows.push({
     num: String(num),
     company,
     role,
-    status: 'Saved',
+    status: initialStatus,
     applied: '—',
     score: '—',
     lastUpdate: today,
@@ -141,7 +223,11 @@ function add(company, role) {
     followupNote: '—',
   });
   writeTracker(rows);
-  console.log(`Added: ${company} — ${role} (Status: Saved)`);
+  if (initialStatus === 'Attention') {
+    console.log(`Added: ${company} — ${role} (Status: Attention — review required before applying)`);
+  } else {
+    console.log(`Added: ${company} — ${role} (Status: Saved)`);
+  }
 }
 
 function update(company, status) {
@@ -303,6 +389,18 @@ switch (command) {
   case 'report':
     generateReport();
     break;
+  case 'attention':
+    listAttention();
+    break;
+  case 'review':
+    outcomeReview();
+    break;
+  case 'autonomy':
+    autonomyStatus();
+    break;
+  case 'reset':
+    handleReset();
+    break;
   default:
     console.log('Usage:');
     console.log('  node scripts/tracker.mjs list');
@@ -310,7 +408,53 @@ switch (command) {
     console.log('  node scripts/tracker.mjs update "Company" "status"');
     console.log('  node scripts/tracker.mjs interview "Company" "stage" ["date"]');
     console.log('  node scripts/tracker.mjs outcome "Company" "result"');
-    console.log('  node scripts/tracker.mjs followup "Company" "note" ["date"]');
-    console.log('  node scripts/tracker.mjs export');
-    console.log('  node scripts/tracker.mjs report');
+  console.log('  node scripts/tracker.mjs followup "Company" "note" ["date"]');
+  console.log('  node scripts/tracker.mjs export');
+  console.log('  node scripts/tracker.mjs report');
+  console.log('  node scripts/tracker.mjs attention              — Show attention queue');
+  console.log('  node scripts/tracker.mjs review                — Outcome review + suggestions');
+  console.log('  node scripts/tracker.mjs autonomy              — Show autonomy level');
+  console.log('  node scripts/tracker.mjs reset <mode>          — Reset tracker (profile|documents|all)');
+}
+
+function handleReset() {
+  const mode = process.argv[3];
+  if (!['profile', 'documents', 'all'].includes(mode)) {
+    console.error('Invalid reset mode. Use: profile, documents, all');
+    process.exit(1);
+  }
+
+  console.log(`\n⚠️  This will reset: ${mode}`);
+  console.log('   - profile: clears all tracker rows (keeps header)');
+  console.log('   - documents: deletes archived application folders under data/applications/');
+  console.log('   - all: both of the above');
+  console.log('\nType RESET to confirm:');
+
+  process.stdin.setEncoding('utf8');
+  process.stdin.once('data', (chunk) => {
+    const answer = String(chunk).trim();
+    if (answer !== 'RESET') {
+      console.log('Aborted.');
+      process.exit(0);
+    }
+
+    if (mode === 'profile' || mode === 'all') {
+      const rows = readTracker();
+      writeTracker([]);
+      console.log('Tracker rows cleared.');
+    }
+
+    if (mode === 'documents' || mode === 'all') {
+      const appsDir = resolve(ROOT, 'data/applications');
+      if (existsSync(appsDir)) {
+        for (const entry of readdirSync(appsDir)) {
+          rmSync(resolve(appsDir, entry), { recursive: true, force: true });
+        }
+        console.log('Archived applications deleted.');
+      }
+    }
+
+    console.log('Done.');
+    process.exit(0);
+  });
 }

@@ -70,6 +70,14 @@ Commands:
   tracker followup <company> <note> [date] Add follow-up
   tracker export                  Export tracker as CSV
   tracker report                  Generate HTML dashboard
+  tracker attention               Show attention queue
+  tracker review                  Outcome review + suggestions
+  tracker autonomy                Show autonomy level
+  tracker reset <mode>            Reset tracker (profile|documents|all)
+  rank <query> [location]         Batch score all scraped jobs
+  interview <company> [stage]     Generate interview prep pack
+  upskill [--query <q>] [--limit N] Skill gap analysis + learning plan
+  salary "<title>" [region]       Salary lookup from local data
   report                          Generate HTML dashboard
   digest [--mode preview|daily]   Daily digest (scan+eval+outreach+email)
   doctor                          Run health check
@@ -102,6 +110,18 @@ switch (command) {
     break;
   case 'doctor':
     runScript('doctor.mjs', args);
+    break;
+  case 'rank':
+    runScript('rank.mjs', args);
+    break;
+  case 'interview':
+    runScript('interview.mjs', args);
+    break;
+  case 'upskill':
+    runScript('upskill.mjs', args);
+    break;
+  case 'salary':
+    runScript('salary.mjs', args);
     break;
   case 'digest':
     runScript('digest.mjs', args);

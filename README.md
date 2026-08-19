@@ -9,6 +9,10 @@ An autonomous job hunting agent that combines the best of three open-source tool
 2. EVALUATE  → Score each job 1-5 across 5 AI dimensions
 3. TAILOR    → Generate ATS-optimized CV + cover letter
 4. TRACK     → Manage applications with interview stages, outcomes, follow-ups
+5. RANK      → Batch-score all scraped jobs into a ranked shortlist
+6. PREP      → Generate interview prep packs from tracker entries
+7. UPSKILL   → Analyze skill gaps and generate learning plans
+8. DIGEST    → Daily email with fresh jobs + AI scores + LinkedIn outreach blurbs
 ```
 
 ## Features
@@ -18,17 +22,28 @@ An autonomous job hunting agent that combines the best of three open-source tool
 | **8+ Job Sources** | RemoteOK, Arbeitnow, Findwork, Remotive, freehire, Greenhouse, Lever, Ashby |
 | **Company Career Pages** | 14 Greenhouse boards (Stripe, Notion, Figma, Datadog, Ramp, Replit, ClickHouse, Hasura…), 13 Lever boards (Netflix, Shopify, Spotify, Mercury, PostHog, Vanta…), 6 Ashby boards (Anthropic, OpenAI, Mistral…) |
 | **5-Dimension AI Scoring** | Role Fit, Location Fit, Growth Potential, Compensation Fit, Culture Fit + red flags |
-| **ATS-Optimized Tailoring** | Mirrors JD keywords into your CV, generates cover letters |
+| **Batch Scoring `/rank`** | Score all scraped jobs at once with deal-breaker vetoes and ranked output |
+| **ATS-Optimized Tailoring** | Mirrors JD keywords into your CV, generates cover letters, source-level ATS verification |
 | **Application Tracker** | Track status, interview stages, outcomes, follow-up dates and notes |
 | **HTML Dashboard** | Self-contained offline dashboard with stats, searchable table, upcoming follow-ups |
+| **Interview Prep Pack** | Stage-specific prep (STAR mapping, company research, likely questions) |
+| **Skill Gap Analysis** | Compare profile vs. jobs, generate prioritized learning plans |
+| **Salary Lookup** | Local JSON salary benchmarks by role and region |
+| **Profile Presets** | Multiple named YAML presets controlling search, scoring, outreach — switch without code changes |
+| **Daily Digest** | Scan → dedup → AI score top N → LinkedIn outreach blurbs + people-search URLs → email |
 | **Company Filtering** | Blacklist and whitelist companies in portal config |
+| **Location Preferences** | Positive/negative location keywords per profile |
+| **Attention Queue** | `review-each` mode gates new applications behind human approval |
+| **Outcome Review** | Analyze success/rejection patterns and get targeting suggestions |
+| **Verified Facts** | CV claims cross-checked against `config/cv.md`; no invented experience |
 | **Local-First** | All data stored locally. No accounts required. |
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org) v18+
 - [Cloudflare](https://dash.cloudflare.com/) account (free tier works for Workers AI)
-- Optional: [OpenCode](https://opencode.ai) or [Kilo](https://kilo.ai) CLI for agent mode
+- Optional: [Resend](https://resend.com) account for daily digest emails
+- Optional: `pdftotext` from [poppler](https://poppler.freedesktop.org/) for ATS checks (macOS: `brew install poppler`)
 
 ## Setup
 
@@ -36,7 +51,7 @@ An autonomous job hunting agent that combines the best of three open-source tool
 
 ```bash
 git clone <your-repo-url>
-cd career-apply-jobs
+cd JobOps
 npm install
 ```
 
@@ -109,6 +124,7 @@ target_locations:
   - Remote
   - US
   - Europe
+  - Canada
 
 experience:
   level: "Junior/Entry"
@@ -124,6 +140,18 @@ preferences:
     - Startup
     - Mid-size
     - Big Tech
+
+location_preferences:
+  positive:
+    - India
+    - Remote
+  negative: []
+```
+
+For multiple role configurations, add YAML presets in `config/profiles/` and activate one by editing `config/profiles/active.json`:
+
+```json
+{ "slug": "backend_python" }
 ```
 
 ### 4. Add your CV
@@ -151,9 +179,7 @@ node scripts/scan.mjs "software engineer" "Remote"
 node scripts/scan.mjs auto "Remote"
 ```
 
-`auto` reads `target_roles` from `config/profile.yml`, merges them with `search_queries` from `config/portals.yml` (deduped), scans one query per entry, and merges + dedups results. The daily digest uses `auto` by default, so the emails you get are always aligned with your resume.
-
-**Source of truth:** `config/profile.yml` = who you are (roles, skills); `config/portals.yml` = how/where to search (queries, boards, title filter).
+`auto` reads `target_roles` from the active profile, merges them with `search_queries` from `config/portals.yml` (deduped), scans one query per entry, and merges + dedups results. The daily digest uses `auto` by default.
 
 ### 8. Evaluate a job
 
@@ -169,7 +195,7 @@ This returns a 5-dimension score and recommendation.
 node scripts/tailor.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"We are looking for a software engineer with experience in React, Node.js, and TypeScript..."}'
 ```
 
-Check `output/` for your tailored CV and cover letter.
+Check `output/` for your tailored CV and cover letter. ATS source checks run automatically and warnings are printed if contact details or standard headers are missing.
 
 ### 10. Track applications
 
@@ -187,9 +213,41 @@ node scripts/tracker.mjs report
 npm run report
 ```
 
-### 11. Daily digest (optional push — GitHub Actions cron)
+### 11. Batch rank jobs
 
-JobOps can email you a daily digest of fresh matches at **12:00 PM IST** — scan, dedup against previously seen jobs, AI-score the top candidates, and a LinkedIn outreach blurb per role.
+```bash
+node scripts/rank.mjs "software engineer" "Remote" --limit 20 --min-score 3.5
+```
+
+Scans, evaluates all jobs, and returns a JSON array sorted by overall score descending.
+
+### 12. Interview prep
+
+```bash
+node scripts/interview.mjs "Stripe" "Technical"
+```
+
+Generates a stage-specific prep pack: company overview, likely questions, STAR-mapped answers from your CV, and questions to ask the interviewer. Requires the company to exist in the tracker.
+
+### 13. Skill gap analysis
+
+```bash
+node scripts/upskill.mjs --query "software engineer" --limit 20
+```
+
+Scrapes jobs, compares required skills against your profile, and produces a prioritized heatmap + learning plan with resources.
+
+### 14. Salary lookup
+
+```bash
+node scripts/salary.mjs "Software Engineer" "India"
+```
+
+Looks up salary from local `data/salary/*.json` files. Add your own benchmarks following the schema in `docs/customization.md`.
+
+### 15. Daily digest (optional push — GitHub Actions cron)
+
+JobOps can email you a daily digest of fresh matches at **12:00 PM IST** — scan, dedup against previously seen jobs, AI-score the top candidates, and a LinkedIn outreach blurb per role with people-search URLs.
 
 **Preview locally** (prints instead of emailing):
 
@@ -205,7 +263,7 @@ Flags:
 node scripts/digest.mjs --mode daily             # email + mark jobs as seen
 node scripts/digest.mjs --max 10                 # cap jobs in the email
 node scripts/digest.mjs --evaluate 0             # skip AI scoring (no Cloudflare keys)
-node scripts/digest.mjs --query "backend"        # custom scan query (default: auto from profile.yml)
+node scripts/digest.mjs --query "backend"        # custom scan query (default: auto from active profile)
 ```
 
 **Activate the scheduled email (needs GitHub):**
@@ -221,7 +279,7 @@ node scripts/digest.mjs --query "backend"        # custom scan query (default: a
 
 Freshness is tracked in `data/digest-seen.json` (cached across CI runs); already-seen jobs are never re-emailed.
 
-### 12. Automation philosophy — who decides what
+### 16. Automation philosophy — who decides what
 
 The system runs on a **three-way split of authority**:
 
@@ -265,6 +323,12 @@ mark interview for Acme "Technical" "2025-01-15"
 record outcome for Acme "Offer Received"
 add follow-up for Acme "Sent thank you email"
 export tracker
+rank jobs for "software engineer"
+prepare interview for Stripe
+analyze skill gaps
+show attention queue
+review my outcomes
+check autonomy level
 ```
 
 ### Standalone Scripts
@@ -290,6 +354,22 @@ node scripts/tracker.mjs outcome "Stripe" "Offer Received"
 node scripts/tracker.mjs followup "Stripe" "Send thank you email"
 node scripts/tracker.mjs export
 node scripts/tracker.mjs report
+node scripts/tracker.mjs reset profile
+node scripts/tracker.mjs attention
+node scripts/tracker.mjs review
+node scripts/tracker.mjs autonomy
+
+# Batch rank
+node scripts/rank.mjs "software engineer" "Remote" --limit 20
+
+# Interview prep
+node scripts/interview.mjs "Stripe" "Technical"
+
+# Skill gaps
+node scripts/upskill.mjs --query "software engineer" --limit 20
+
+# Salary lookup
+node scripts/salary.mjs "Software Engineer" "India"
 
 # Health check
 node scripts/doctor.mjs
@@ -305,6 +385,14 @@ npm run tracker
 npm run report
 npm run digest
 npm run doctor
+npm run rank
+npm run interview
+npm run upskill
+npm run salary
+npm run rank
+npm run interview
+npm run upskill
+npm run salary
 ```
 
 ## Commands Reference
@@ -313,7 +401,7 @@ npm run doctor
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/scan.mjs "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your profile. Location filter is optional. |
+| `node scripts/scan.mjs "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your active profile. Location filter is optional. |
 
 ### Job Evaluation
 
@@ -329,7 +417,31 @@ Returns 5 dimension scores (1-5 each), overall score, recommendation, analysis, 
 |---------|-------------|
 | `node scripts/tailor.mjs '{"title":"...","company":"...","location":"...","description":"..."}'` | Generate tailored CV + cover letter |
 
-Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
+Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source checks run automatically.
+
+### Batch Ranking
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/rank.mjs "query" ["location"] [--limit N] [--min-score X]` | Scan all boards, evaluate every job, return ranked JSON shortlist |
+
+### Interview Prep
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/interview.mjs "Company" ["stage"]` | Generate stage-specific interview prep pack from tracker entry |
+
+### Skill Gap Analysis
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/upskill.mjs [--query "q"] [--limit N]` | Compare profile skills vs. scraped jobs, generate learning plan |
+
+### Salary Lookup
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/salary.mjs "Title" ["Region"]` | Look up salary from local `data/salary/*.json` |
 
 ### Application Tracker
 
@@ -343,6 +455,16 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 | `node scripts/tracker.mjs followup "Company" "note" ["date"]` | Add follow-up reminder (defaults to +7 days) |
 | `node scripts/tracker.mjs export` | Export tracker as CSV |
 | `node scripts/tracker.mjs report` | Generate self-contained HTML dashboard |
+| `node scripts/tracker.mjs attention` | Show attention queue (applications awaiting review) |
+| `node scripts/tracker.mjs review` | Outcome review: distribution, patterns, suggestions |
+| `node scripts/tracker.mjs autonomy` | Show current autonomy level (`review-each` or `routine-auto`) |
+| `node scripts/tracker.mjs reset <mode>` | Reset tracker (`profile`, `documents`, or `all`). Requires typing `RESET` to confirm. |
+
+### Daily Digest
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/digest.mjs [--mode preview\|daily] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
 
 ### Health Check
 
@@ -355,8 +477,12 @@ Reads `config/cv.md` and `config/profile.yml`. Outputs to `output/`.
 | File | Purpose |
 |------|---------|
 | `config/profile.yml` | Your candidate profile: skills, target roles, locations, preferences |
+| `config/profiles/*.yaml` | Named role presets (search queries, outreach templates, preferences) |
+| `config/profiles/active.json` | Which preset is currently active (`{"slug":"default"}`) |
+| `config/profiles/*.yaml` | Named role presets (search queries, outreach templates, preferences, autonomy_level) |
 | `config/cv.md` | Your base CV in markdown. Used as source for tailoring. |
 | `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries |
+| `data/salary/*.json` | Optional local salary benchmarks |
 | `.env` | Cloudflare + Resend credentials (git-ignored; see `.env.example`) |
 | `data/digest-seen.json` | Seen-jobs database for the daily digest (git-ignored) |
 
@@ -401,7 +527,7 @@ whitelist:
 ## Project Structure
 
 ```
-career-apply-jobs/
+JobOps/
 ├── AGENTS.md                    # Agent instructions and capabilities
 ├── OPENCODE.md                  # OpenCode skill reference
 ├── package.json                 # NPM scripts
@@ -409,23 +535,41 @@ career-apply-jobs/
 ├── .env.example                 # Environment template
 ├── .opencode/
 │   └── skills/jobops/SKILL.md   # Kilo/OpenCode skill registration
+├── cli.mjs                      # CLI entry point
 ├── config/
-│   ├── profile.yml              # Candidate profile
+│   ├── profile.yml              # Candidate profile (fallback)
 │   ├── profile.example.yml      # Profile template
 │   ├── cv.md                    # Base CV (markdown)
 │   ├── portals.yml              # Job board config + filters
+│   └── profiles/
+│       ├── active.json          # Active preset slug
+│       └── default.yaml         # Default role preset
 ├── scripts/
 │   ├── scan.mjs                 # Multi-portal job scanner
 │   ├── evaluate.mjs             # 5-dimension AI job evaluator
 │   ├── tailor.mjs               # ATS-optimized CV + cover letter generator
 │   ├── tracker.mjs              # Application tracker with interview/outcome/follow-up support
-│   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach blurb → email
+│   ├── rank.mjs                 # Batch scorer: scan → evaluate → ranked shortlist
+│   ├── interview.mjs            # Interview prep pack generator
+│   ├── upskill.mjs              # Skill gap analysis + learning plan
+│   ├── salary.mjs               # Salary lookup from local data
+│   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach + LinkedIn URLs → email
 │   ├── html-report.mjs          # Self-contained HTML dashboard generator
-│   └── doctor.mjs               # System health check
+│   ├── doctor.mjs               # System health check
+│   └── lib/
+│       └── profile.mjs          # Shared active-profile loader
+├── docs/
+│   ├── architecture.md          # System architecture and data flow
+│   ├── setup.md                 # Detailed setup guide
+│   ├── api-reference.md         # Script interfaces and schemas
+│   └── customization.md         # Profiles, portals, salary data, templates
 ├── .github/workflows/
 │   └── daily-digest.yml         # Cron: digest email at 12:00 IST (Resend)
 ├── data/
-│   └── applications.md          # Application tracker data
+│   ├── applications.md          # Application tracker data
+│   ├── digest-seen.json         # Seen jobs for digest dedup
+│   └── salary/
+│       └── india-tech.json      # Local salary benchmarks
 ├── output/                      # Generated tailored CVs and cover letters
 └── reports/                     # Evaluation reports and HTML dashboard
 ```
@@ -439,30 +583,53 @@ career-apply-jobs/
    Deduplicates, filters by location and company blacklist/whitelist
 
 2. EVALUATE
-   evaluate.mjs → Sends job + profile to Cloudflare AI
+   evaluate.mjs → Sends job + active profile to Cloudflare AI
    ↓
    Returns 5-dimension scores (Role, Location, Growth, Comp, Culture)
    + red flags + recommendation
 
 3. TAILOR
-   tailor.mjs → Reads base CV + profile, sends JD to Cloudflare AI
+   tailor.mjs → Reads base CV + active profile, sends JD to Cloudflare AI
    ↓
    Generates ATS-optimized CV + cover letter in output/
+   Runs source-level ATS checks (contact details, headers, no fabricated skills)
 
 4. TRACK
    tracker.mjs → Manages application pipeline
    ↓
    Interview stages, outcomes, follow-ups, CSV export, HTML dashboard
+
+5. RANK
+   rank.mjs → Scans + batch-evaluates all jobs
+   ↓
+   Returns ranked JSON shortlist with deal-breaker vetoes
+
+6. PREP
+   interview.mjs → Reads tracker entry + base CV + company context
+   ↓
+   Generates STAR-mapped answers, likely questions, questions to ask
+
+7. UPSKILL
+   upskill.mjs → Scrapes jobs + reads active profile
+   ↓
+   Skill gap heatmap + prioritized learning plan with resources
+
+8. DIGEST
+   digest.mjs → Scan → dedup → score top N → outreach blurbs + LinkedIn URLs
+   ↓
+   Emails curated list or prints preview to console
 ```
 
 ## Tracking Workflow
 
 1. **Save** — Add interesting jobs to tracker before applying
-2. **Apply** — Mark as Applied when submitted
-3. **Interview** — Record each interview stage as it happens
-4. **Outcome** — Log final result: Offer, Rejected, Ghosted, etc.
-5. **Follow-up** — Set reminders with notes, default +7 days
-6. **Review** — Open `reports/tracker-dashboard.html` to visualize pipeline
+2. **Attention** — In `review-each` mode, jobs land in Attention queue first; approve to move to Saved
+3. **Apply** — Mark as Applied when submitted
+4. **Interview** — Record each interview stage as it happens
+5. **Outcome** — Log final result: Offer, Rejected, Ghosted, etc.
+6. **Review** — Run `node scripts/tracker.mjs review` to analyze patterns and get targeting suggestions
+7. **Follow-up** — Set reminders with notes, default +7 days
+8. **Dashboard** — Open `reports/tracker-dashboard.html` to visualize pipeline
 
 ## HTML Dashboard
 
@@ -483,7 +650,7 @@ Opens `reports/tracker-dashboard.html` with:
 
 ## Evaluation Dimensions
 
-Each job is scored 1-5 across 5 dimensions:
+Each job is scored 1-5 across 5 equal-weight dimensions:
 
 | Dimension | What It Measures |
 |-----------|-----------------|
@@ -507,6 +674,15 @@ Each job is scored 1-5 across 5 dimensions:
 4. **Mirror keywords** — CV tailoring extracts JD keywords into your experience
 5. **Local-first** — everything runs on your machine
 
+## Documentation
+
+| Doc | What's in it |
+|------|-------------|
+| `docs/architecture.md` | System architecture, data flow, script ownership |
+| `docs/setup.md` | Detailed setup: profiles, portals, credentials, digest |
+| `docs/api-reference.md` | Script interfaces, input/output schemas |
+| `docs/customization.md` | Profiles, portals, salary data, interview prep, upskill, reset |
+
 ## License
 
 MIT
@@ -515,6 +691,7 @@ MIT
 
 Inspired by and combining features from:
 
+- [AI Job Search](https://github.com/MadsLorentzen/ai-job-search) — 5-dimension scoring, drafter-reviewer CV pipeline, interview prep, HTML dashboard, portal skill system
+- [Job Hunter](https://github.com/replyre/job-hunter) — Multi-source scanning, email digests, company career pages, profile presets, LinkedIn outreach blurbs, configurable scoring weights
+- [Job Application Agent](https://github.com/vaibhavarora14/job-application-agent) — Attention queue, application dedup, outcome review loop, autonomy levels, verified-facts enforcement
 - [Auto Job Applier LinkedIn](https://github.com/GodsScion/Auto_job_applier_linkedIn) — LinkedIn Easy Apply automation, question answering, stealth mode
-- [AI Job Search](https://github.com/MadsLorentzen/ai-job-search) — 5-dimension scoring, LaTeX CV compilation, interview prep, HTML dashboard
-- [Job Hunter](https://github.com/replyre/job-hunter) — Multi-source scanning, email digests, company career pages, profile switching

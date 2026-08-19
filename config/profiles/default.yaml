@@ -1,5 +1,4 @@
-# JobOps Profile
-# This file is your source of truth. All evaluations reference it.
+# JobOps Default Profile
 
 candidate:
   name: "Nalin Dalal"
@@ -70,10 +69,13 @@ preferences:
     - Mid-size
     - Big Tech
 
-autonomy_level: "review-each"
+outreach:
+  linkedin_titles:
+    - Engineering Manager
+    - Tech Lead
+    - CTO
+    - HR
+  short_dm: "Hi {Name}, I'm {candidate_name} — a {experience_level} engineer. I build production-style projects and would love to chat about the {role} role at {company}."
+  long_dm: "Hi {Name},\n\nI'm {candidate_name}, a {experience_level} engineer with experience in {skills}.\n\nI came across the {role} opening at {company} and was impressed by your work. I build production-style projects with tests, CI, and DevOps-friendly practices.\n\nWould you be open to a quick chat or pointing me to the best next step?\n\nThanks!"
 
-location_preferences:
-  positive:
-    - India
-    - Remote
-  negative: []
+autonomy_level: "review-each"

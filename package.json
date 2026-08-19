@@ -13,6 +13,10 @@
     "report": "node cli.mjs report",
     "digest": "node cli.mjs digest",
     "doctor": "node cli.mjs doctor",
+    "rank": "node scripts/rank.mjs",
+    "interview": "node scripts/interview.mjs",
+    "upskill": "node scripts/upskill.mjs",
+    "salary": "node scripts/salary.mjs",
     "dev": "node cli.mjs scan"
   },
   "devDependencies": {

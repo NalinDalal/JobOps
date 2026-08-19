@@ -11,6 +11,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
+import { loadActiveProfile, getProfileSkills, getProfileTargetRoles, getProfileTargetLocations, getProfileExperience, getProfilePreferences } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -65,35 +66,18 @@ function parseJSON(raw, fallback) {
 }
 
 function loadProfile() {
-  let profile = {
-    skills: '',
-    targetRoles: '',
-    targetLocations: 'Remote, India',
-    salary: '',
-    experience: '',
+  const profile = loadActiveProfile();
+  const data = profile.data;
+  const skills = data.skills || {};
+  const cat = (...keys) => keys.flatMap(k => skills[k] || []).filter(Boolean);
+  const join = arr => arr.map(String).join(', ');
+  return {
+    skills: join(cat('languages', 'frameworks', 'databases', 'devops', 'tools')),
+    targetRoles: join(data.target_roles || []),
+    targetLocations: join(data.target_locations || []),
+    salary: data.preferences?.salary_range || 'Negotiable',
+    experience: getProfileExperience(profile),
   };
-
-  const profilePath = resolve(ROOT, 'config/profile.yml');
-  if (!existsSync(profilePath)) return profile;
-
-  try {
-    const p = yamlLoad(readFileSync(profilePath, 'utf-8')) || {};
-    const skills = p.skills || {};
-    const cat = (...keys) => keys.flatMap(k => skills[k] || []).filter(Boolean);
-    const join = arr => arr.map(String).join(', ');
-    if (p.skills) profile.skills = join(cat('languages', 'frameworks', 'databases', 'devops', 'tools'));
-    if (p.target_roles) profile.targetRoles = join(p.target_roles);
-    if (p.target_locations) profile.targetLocations = join(p.target_locations);
-    if (p.preferences?.salary_range) profile.salary = String(p.preferences.salary_range);
-    if (p.experience) {
-      const yrs = p.experience.years ? ` (${p.experience.years} years)` : '';
-      profile.experience = `${p.experience.level || ''}${yrs}`.trim();
-    }
-  } catch (e) {
-    console.warn(`Could not parse profile.yml: ${e.message}`);
-  }
-
-  return profile;
 }
 
 async function main() {
