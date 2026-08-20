@@ -149,7 +149,7 @@ async function scanArbeitnow() {
           source: 'arbeitnow',
           tags: item.tags || [],
           snippet: (item.description || '').replace(/<[^>]*>/g, '').substring(0, 300),
-          posted: item.created_at ? (typeof item.created_at === 'string' ? item.created_at.split('T')[0] : new Date(item.created_at).toISOString().split('T')[0]) : 'Unknown',
+          posted: item.created_at ? new Date((typeof item.created_at === 'number' ? item.created_at * 1000 : item.created_at)).toISOString().split('T')[0] : 'Unknown',
         });
       }
     }
@@ -327,7 +327,7 @@ async function scanAshby(slug) {
           source: `ashby:${slug}`,
           tags: item.tags || [],
           snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
-          posted: item.publishedDate ? item.publishedDate.split('T')[0] : 'Unknown',
+          posted: (item.publishedAt || item.publishedDate || item.createdAt) ? String(item.publishedAt || item.publishedDate || item.createdAt).split('T')[0] : 'Unknown',
         });
       }
     }
