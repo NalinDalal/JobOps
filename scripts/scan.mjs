@@ -22,6 +22,9 @@ const ROOT = resolve(__dirname, '..');
 const query = process.argv[2] || 'software engineer';
 const location = process.argv[3] || 'Remote';
 
+const fetchT = (url, opts = {}, ms = 15000) =>
+  fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+
 const jobs = [];
 const blacklist = new Set();
 const whitelist = new Set();
@@ -97,7 +100,7 @@ function matchesSearch(text) {
 // ─── RemoteOK ──────────────────────────────────────────────────
 async function scanRemoteOK() {
   try {
-    const res = await fetch('https://remoteok.com/api', {
+    const res = await fetchT('https://remoteok.com/api', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
     });
     const data = await res.json();
@@ -129,7 +132,7 @@ async function scanRemoteOK() {
 // ─── Arbeitnow ─────────────────────────────────────────────────
 async function scanArbeitnow() {
   try {
-    const res = await fetch('https://www.arbeitnow.com/api/job-board-api');
+    const res = await fetchT('https://www.arbeitnow.com/api/job-board-api');
     const data = await res.json();
     if (!data.data) return;
 
@@ -158,7 +161,7 @@ async function scanArbeitnow() {
 // ─── Findwork ──────────────────────────────────────────────────
 async function scanFindwork() {
   try {
-    const res = await fetch('https://findwork.dev/api/jobs/', {
+    const res = await fetchT('https://findwork.dev/api/jobs/', {
       headers: { 'Content-Type': 'application/json' },
     });
     const data = await res.json();
@@ -189,7 +192,7 @@ async function scanFindwork() {
 // ─── Remotive ──────────────────────────────────────────────────
 async function scanRemotive() {
   try {
-    const res = await fetch(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(query)}`);
+    const res = await fetchT(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(query)}`);
     const data = await res.json();
     if (!data.jobs) return;
 
@@ -218,7 +221,7 @@ async function scanRemotive() {
 // ─── freehire ──────────────────────────────────────────────────
 async function scanFreehire() {
   try {
-    const res = await fetch(`https://freehire.me/api/v1/jobs?q=${encodeURIComponent(query)}&remote=true`);
+    const res = await fetchT(`https://freehire.me/api/v1/jobs?q=${encodeURIComponent(query)}&remote=true`);
     const data = await res.json();
     if (!data.jobs) return;
 
@@ -247,7 +250,7 @@ async function scanFreehire() {
 // ─── Greenhouse ────────────────────────────────────────────────
 async function scanGreenhouse(slug) {
   try {
-    const res = await fetch(`https://api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
+    const res = await fetchT(`https://api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
     const data = await res.json();
     if (!data.jobs) return;
 
@@ -276,7 +279,7 @@ async function scanGreenhouse(slug) {
 // ─── Lever ─────────────────────────────────────────────────────
 async function scanLever(slug) {
   try {
-    const res = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
+    const res = await fetchT(`https://api.lever.co/v0/postings/${slug}?mode=json`);
     const data = await res.json();
     if (!Array.isArray(data)) return;
 
@@ -306,7 +309,7 @@ async function scanLever(slug) {
 // ─── Ashby ─────────────────────────────────────────────────────
 async function scanAshby(slug) {
   try {
-    const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
+    const res = await fetchT(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
     const data = await res.json();
     if (!data.jobs) return;
 

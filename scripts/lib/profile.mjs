@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const ROOT = resolve(__dirname, '..', '..');
 const PROFILES_DIR = resolve(ROOT, 'config/profiles');
 const ACTIVE_PATH = resolve(PROFILES_DIR, 'active.json');
 const FALLBACK_PATH = resolve(ROOT, 'config/profile.yml');
