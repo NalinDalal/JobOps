@@ -55,12 +55,21 @@ target_roles:
   - Backend Engineer
   - Systems Engineer
   - DevOps Engineer
+  - Open-source maintainer
 target_locations:
   - India
   - Remote
+  - US
+  - Europe
+  - Canada
+  - Dubai
+  - Singapore
+  - Netherlands
+  - UK
+  - Australia
 experience:
   level: Junior/Entry
-  years: 1
+  years: 0-1
   open_source: true
   competitive_programming: true
 preferences:

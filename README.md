@@ -43,7 +43,27 @@ An autonomous job hunting agent that combines the best of three open-source tool
 - [Node.js](https://nodejs.org) v18+
 - [Cloudflare](https://dash.cloudflare.com/) account (free tier works for Workers AI)
 - Optional: [Resend](https://resend.com) account for daily digest emails
+- Optional: Gmail App Password for SMTP email (alternative to Resend)
 - Optional: `pdftotext` from [poppler](https://poppler.freedesktop.org/) for ATS checks (macOS: `brew install poppler`)
+
+## Quick Start (New: Master Resume → Profile → Companies → Daily Digest)
+
+If you have a master resume (`config/resume.md`), you can generate everything in 3 commands:
+
+```bash
+# 1. Generate profile.yml from resume (one-time)
+node cli.mjs profile
+
+# 2. Discover 15 target companies on Greenhouse/Lever/Ashby (one-time)
+node cli.mjs discover
+
+# 3. Copy the output from step 2 into config/portals.yml under greenhouse/lever/ashby sections
+
+# 4. Run daily digest (recurring — runs automatically via GitHub Actions at 12:00 IST)
+node cli.mjs digest --send
+```
+
+---
 
 ## Setup
 
@@ -71,17 +91,35 @@ CLOUDFLARE_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast
 
 Get free credentials at [Cloudflare Workers AI](https://dash.cloudflare.com/).
 
-For the daily email digest you also need a [Resend](https://resend.com) account:
+For the daily email digest you also need a [Resend](https://resend.com) account **or** SMTP (Gmail App Password):
 
 ```
+# Option A: Resend
 RESEND_API_KEY=re_your_api_key_here
 MAIL_FROM=onboarding@resend.dev   # or your verified domain
 MAIL_TO=your@email.com
+
+# Option B: SMTP (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your_16_char_app_password
+MAIL_FROM=your-email@gmail.com
+MAIL_TO=your-email@gmail.com
 ```
 
 **Note:** before scheduled emails reach your inbox, verify a domain in Resend (Settings → Domains) and use it as `MAIL_FROM`, or use the `onboarding@resend.dev` sender for testing (it can only send to your own address).
 
-### 3. Configure your profile
+### 3. Create your profile
+
+**Option A: Auto-generate from master resume** (recommended)
+```bash
+node cli.mjs profile --enrich   # also fetches GitHub/LeetCode/Codeforces stats
+```
+This reads `config/resume.md` and generates `config/profile.yml` using AI.
+
+**Option B: Manual**
+Edit `config/profile.yml` with your details (see template below).
 
 Edit `config/profile.yml` with your details:
 
@@ -158,11 +196,41 @@ For multiple role configurations, add YAML presets in `config/profiles/` and act
 
 Edit `config/cv.md` with your CV in markdown format. This is the base CV that gets tailored for each job.
 
-### 5. Configure job boards
+### 5. Configure job boards & search filters
 
 Edit `config/portals.yml` to enable/disable sources, add company blacklists/whitelists, and configure search queries.
 
-### 6. Run health check
+Edit `config/search.yml` to control what jobs to search for:
+```yaml
+include_titles:
+  - Software Engineer
+  - Full Stack
+  - Backend
+  # ...titles you want
+exclude_titles:
+  - Senior
+  - Staff
+  - Intern
+  # ...titles to skip
+locations:
+  - India
+  - Remote
+  - US
+  # ...locations you want
+allow_remote: true
+max_age_days: 30          # skip postings older than this
+score_threshold: 3.5      # minimum AI score to include in digest
+max_per_digest: 10        # max jobs per daily email
+```
+
+### 6. Discover target companies (one-time)
+
+```bash
+node cli.mjs discover --count 15
+```
+This uses AI to find 15 companies hiring for your target roles on Greenhouse/Lever/Ashby. Copy the output into `config/portals.yml` under the appropriate `greenhouse.boards`, `lever.boards`, `ashby.boards` sections.
+
+### 7. Run health check
 
 ```bash
 npm run doctor
@@ -170,16 +238,21 @@ npm run doctor
 node scripts/doctor.mjs
 ```
 
-### 7. Run your first scan
+### 8. Test with mock data
 
 ```bash
-node scripts/scan.mjs "software engineer" "Remote"
-
-# or scan for every target role in your profile automatically:
-node scripts/scan.mjs auto "Remote"
+node cli.mjs scan --mock
+node cli.mjs digest --mock
 ```
 
-`auto` reads `target_roles` from the active profile, merges them with `search_queries` from `config/portals.yml` (deduped), scans one query per entry, and merges + dedups results. The daily digest uses `auto` by default.
+### 9. Run your first real scan
+
+```bash
+node cli.mjs scan auto "Remote"
+
+# or scan for a specific query
+node cli.mjs scan "software engineer" "Remote"
+```
 
 ### 8. Evaluate a job
 
@@ -245,36 +318,36 @@ node scripts/salary.mjs "Software Engineer" "India"
 
 Looks up salary from local `data/salary/*.json` files. Add your own benchmarks following the schema in `docs/customization.md`.
 
-### 15. Daily digest (optional push — GitHub Actions cron)
+### Daily Digest (Push Mode — GitHub Actions Cron)
 
-JobOps can email you a daily digest of fresh matches at **12:00 PM IST** — scan, dedup against previously seen jobs, AI-score the top candidates, and a LinkedIn outreach blurb per role with people-search URLs.
+JobOps emails you a daily digest of fresh matches at **12:00 PM IST** — scan, dedup against previously seen jobs, AI-score the top candidates, and a LinkedIn outreach blurb per role with people-search URLs.
 
 **Preview locally** (prints instead of emailing):
-
 ```bash
-node scripts/digest.mjs
+node cli.mjs digest
 # or
 npm run digest
 ```
 
-Flags:
-
+**Options:**
 ```bash
-node scripts/digest.mjs --mode daily             # email + mark jobs as seen
-node scripts/digest.mjs --max 10                 # cap jobs in the email
-node scripts/digest.mjs --evaluate 0             # skip AI scoring (no Cloudflare keys)
-node scripts/digest.mjs --query "backend"        # custom scan query (default: auto from active profile)
+node cli.mjs digest --mode daily          # email + mark jobs as seen (alias: --send)
+node cli.mjs digest --send                # same as --mode daily
+node cli.mjs digest --mock                # use mock data for testing
+node cli.mjs digest --max 10              # cap jobs in the email
+node cli.mjs digest --evaluate 0          # skip AI scoring (no Cloudflare keys)
+node cli.mjs digest --query "backend"     # custom scan query (default: auto from profile)
 ```
 
 **Activate the scheduled email (needs GitHub):**
-
 1. Push this repo to GitHub: `git push origin main`
 2. Go to **Settings → Secrets and variables → Actions → New repository secret** and add:
-   - `RESEND_API_KEY` — your `re_...` key from Resend
+   - `CLOUDFLARE_API_KEY` — your Cloudflare API key (enables AI scoring in CI)
+   - `CLOUDFLARE_ACCOUNT_ID` — your Cloudflare account ID
+   - `RESEND_API_KEY` — your `re_...` key from Resend (or use SMTP secrets below)
    - `MAIL_FROM` — your verified sender (e.g. `digest@yourdomain.com`)
    - `MAIL_TO` — the address to receive digests
-   - `CLOUDFLARE_API_KEY` *(optional)* — enables AI scoring in CI
-   - `CLOUDFLARE_ACCOUNT_ID` *(optional)* — enables AI scoring in CI
+   - **OR** SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
 3. The workflow `.github/workflows/daily-digest.yml` runs automatically at `30 6 * * *` UTC (**12:00 IST**). You can also trigger it manually: **Actions → Daily Job Digest → Run workflow**.
 
 Freshness is tracked in `data/digest-seen.json` (cached across CI runs); already-seen jobs are never re-emailed.
@@ -336,43 +409,55 @@ check autonomy level
 You can also run scripts directly without an agent CLI:
 
 ```bash
+# Setup (one-time)
+node cli.mjs profile              # Generate profile.yml from resume.md
+node cli.mjs profile --enrich     # Also fetch GitHub/CP stats
+node cli.mjs discover             # Find 15 target companies on GH/Lever/Ashby
+
 # Search jobs
-node scripts/scan.mjs "software engineer" "Remote"
+node cli.mjs scan "software engineer" "Remote"
+node cli.mjs scan auto            # Use profile target_roles
+node cli.mjs scan --mock          # Test with mock data
 
 # Evaluate a job
-node scripts/evaluate.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+node cli.mjs evaluate '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
 
 # Tailor CV + cover letter
-node scripts/tailor.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+node cli.mjs tailor '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
 
 # Track applications
-node scripts/tracker.mjs list
-node scripts/tracker.mjs add "Stripe" "Software Engineer"
-node scripts/tracker.mjs update "Stripe" "Applied"
-node scripts/tracker.mjs interview "Stripe" "Technical" "2025-01-15"
-node scripts/tracker.mjs outcome "Stripe" "Offer Received"
-node scripts/tracker.mjs followup "Stripe" "Send thank you email"
-node scripts/tracker.mjs export
-node scripts/tracker.mjs report
-node scripts/tracker.mjs reset profile
-node scripts/tracker.mjs attention
-node scripts/tracker.mjs review
-node scripts/tracker.mjs autonomy
+node cli.mjs tracker list
+node cli.mjs tracker add "Stripe" "Software Engineer"
+node cli.mjs tracker update "Stripe" "Applied"
+node cli.mjs tracker interview "Stripe" "Technical" "2025-01-15"
+node cli.mjs tracker outcome "Stripe" "Offer Received"
+node cli.mjs tracker followup "Stripe" "Send thank you email"
+node cli.mjs tracker export
+node cli.mjs tracker report
+node cli.mjs tracker reset profile
+node cli.mjs tracker attention
+node cli.mjs tracker review
+node cli.mjs tracker autonomy
 
 # Batch rank
-node scripts/rank.mjs "software engineer" "Remote" --limit 20
+node cli.mjs rank "software engineer" "Remote" --limit 20
 
 # Interview prep
-node scripts/interview.mjs "Stripe" "Technical"
+node cli.mjs interview "Stripe" "Technical"
 
 # Skill gaps
-node scripts/upskill.mjs --query "software engineer" --limit 20
+node cli.mjs upskill --query "software engineer" --limit 20
 
 # Salary lookup
-node scripts/salary.mjs "Software Engineer" "India"
+node cli.mjs salary "Software Engineer" "India"
+
+# Daily digest
+node cli.mjs digest                       # Preview
+node cli.mjs digest --send                # Send email (marks seen)
+node cli.mjs digest --mock                # Test with mock data
 
 # Health check
-node scripts/doctor.mjs
+node cli.mjs doctor
 ```
 
 ### NPM Scripts
@@ -397,17 +482,26 @@ npm run salary
 
 ## Commands Reference
 
+### Setup Commands (One-Time)
+
+| Command | Description |
+|---------|-------------|
+| `node cli.mjs profile` | Generate `profile.yml` from `config/resume.md` using AI |
+| `node cli.mjs profile --enrich` | Also fetch GitHub stats and LeetCode/Codeforces data |
+| `node cli.mjs discover [--count N]` | AI finds N target companies on Greenhouse/Lever/Ashby |
+
 ### Job Search
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/scan.mjs "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your active profile. Location filter is optional. |
+| `node cli.mjs scan "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your active profile. |
+| `node cli.mjs scan --mock` | Test with mock data (no API calls) |
 
 ### Job Evaluation
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/evaluate.mjs '{"title":"...","company":"...","location":"...","description":"..."}'` | Score a job using Cloudflare AI |
+| `node cli.mjs evaluate '{"title":"...","company":"...","location":"...","description":"..."}'` | Score a job using Cloudflare AI |
 
 Returns 5 dimension scores (1-5 each), overall score, recommendation, analysis, and red flags.
 
@@ -415,7 +509,7 @@ Returns 5 dimension scores (1-5 each), overall score, recommendation, analysis, 
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/tailor.mjs '{"title":"...","company":"...","location":"...","description":"..."}'` | Generate tailored CV + cover letter |
+| `node cli.mjs tailor '{"title":"...","company":"...","location":"...","description":"..."}'` | Generate tailored CV + cover letter |
 
 Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source checks run automatically.
 
@@ -423,67 +517,69 @@ Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source ch
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/rank.mjs "query" ["location"] [--limit N] [--min-score X]` | Scan all boards, evaluate every job, return ranked JSON shortlist |
+| `node cli.mjs rank "query" ["location"] [--limit N] [--min-score X]` | Scan all boards, evaluate every job, return ranked JSON shortlist |
 
 ### Interview Prep
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/interview.mjs "Company" ["stage"]` | Generate stage-specific interview prep pack from tracker entry |
+| `node cli.mjs interview "Company" ["stage"]` | Generate stage-specific interview prep pack from tracker entry |
 
 ### Skill Gap Analysis
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/upskill.mjs [--query "q"] [--limit N]` | Compare profile skills vs. scraped jobs, generate learning plan |
+| `node cli.mjs upskill [--query "q"] [--limit N]` | Compare profile skills vs. scraped jobs, generate learning plan |
 
 ### Salary Lookup
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/salary.mjs "Title" ["Region"]` | Look up salary from local `data/salary/*.json` |
+| `node cli.mjs salary "Title" ["Region"]` | Look up salary from local `data/salary/*.json` |
 
 ### Application Tracker
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/tracker.mjs list` | Show all applications with status, score, interview stage, outcome |
-| `node scripts/tracker.mjs add "Company" "Role"` | Add new application |
-| `node scripts/tracker.mjs update "Company" "status"` | Update status (Saved, Applied, Interviewing, Offer, Rejected, Withdrawn) |
-| `node scripts/tracker.mjs interview "Company" "stage" ["date"]` | Add interview stage (Phone Screen, Technical, Onsite, Final Round, HR Round, Offer, Other) |
-| `node scripts/tracker.mjs outcome "Company" "result"` | Record final outcome (Applied, Interviewing, Offer Received, Offer Accepted, Offer Declined, Rejected, Ghosted, Withdrawn) |
-| `node scripts/tracker.mjs followup "Company" "note" ["date"]` | Add follow-up reminder (defaults to +7 days) |
-| `node scripts/tracker.mjs export` | Export tracker as CSV |
-| `node scripts/tracker.mjs report` | Generate self-contained HTML dashboard |
-| `node scripts/tracker.mjs attention` | Show attention queue (applications awaiting review) |
-| `node scripts/tracker.mjs review` | Outcome review: distribution, patterns, suggestions |
-| `node scripts/tracker.mjs autonomy` | Show current autonomy level (`review-each` or `routine-auto`) |
-| `node scripts/tracker.mjs reset <mode>` | Reset tracker (`profile`, `documents`, or `all`). Requires typing `RESET` to confirm. |
+| `node cli.mjs tracker list` | Show all applications with status, score, interview stage, outcome |
+| `node cli.mjs tracker add "Company" "Role"` | Add new application |
+| `node cli.mjs tracker update "Company" "status"` | Update status (Saved, Applied, Interviewing, Offer, Rejected, Withdrawn) |
+| `node cli.mjs tracker interview "Company" "stage" ["date"]` | Add interview stage (Phone Screen, Technical, Onsite, Final Round, HR Round, Offer, Other) |
+| `node cli.mjs tracker outcome "Company" "result"` | Record final outcome (Applied, Interviewing, Offer Received, Offer Accepted, Offer Declined, Rejected, Ghosted, Withdrawn) |
+| `node cli.mjs tracker followup "Company" "note" ["date"]` | Add follow-up reminder (defaults to +7 days) |
+| `node cli.mjs tracker export` | Export tracker as CSV |
+| `node cli.mjs tracker report` | Generate self-contained HTML dashboard |
+| `node cli.mjs tracker attention` | Show attention queue (applications awaiting review) |
+| `node cli.mjs tracker review` | Outcome review: distribution, patterns, suggestions |
+| `node cli.mjs tracker autonomy` | Show current autonomy level (`review-each` or `routine-auto`) |
+| `node cli.mjs tracker reset <mode>` | Reset tracker (`profile`, `documents`, or `all`). Requires typing `RESET` to confirm. |
 
 ### Daily Digest
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/digest.mjs [--mode preview\|daily] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
+| `node cli.mjs digest [--mode preview\|daily] [--send] [--mock] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
 
 ### Health Check
 
 | Command | Description |
 |---------|-------------|
-| `node scripts/doctor.mjs` | Validate prerequisites and configuration |
+| `node cli.mjs doctor` | Validate prerequisites and configuration |
 
 ## Configuration Files
 
 | File | Purpose |
 |------|---------|
 | `config/profile.yml` | Your candidate profile: skills, target roles, locations, preferences |
-| `config/profiles/*.yaml` | Named role presets (search queries, outreach templates, preferences) |
-| `config/profiles/active.json` | Which preset is currently active (`{"slug":"default"}`) |
+| `config/profile.example.yml` | Profile template |
+| `config/resume.md` | **NEW** Master resume (superset) — source for `profile` command |
+| `config/search.yml` | **NEW** Search filters: include/exclude titles, locations, remote, max_age_days, score_threshold, max_per_digest |
 | `config/profiles/*.yaml` | Named role presets (search queries, outreach templates, preferences, autonomy_level) |
+| `config/profiles/active.json` | Which preset is currently active (`{"slug":"default"}`) |
 | `config/cv.md` | Your base CV in markdown. Used as source for tailoring. |
-| `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries |
+| `config/portals.yml` | Job board configuration: sources, blacklists, whitelists, search queries, company boards |
 | `data/salary/*.json` | Optional local salary benchmarks |
-| `.env` | Cloudflare + Resend credentials (git-ignored; see `.env.example`) |
+| `.env` | Cloudflare + Resend/SMTP credentials (git-ignored; see `.env.example`) |
 | `data/digest-seen.json` | Seen-jobs database for the daily digest (git-ignored) |
 
 ## Job Boards
@@ -535,17 +631,19 @@ JobOps/
 ├── .env.example                 # Environment template
 ├── .opencode/
 │   └── skills/jobops/SKILL.md   # Kilo/OpenCode skill registration
-├── cli.mjs                      # CLI entry point
+├── cli.mjs                      # CLI entry point (main interface)
 ├── config/
 │   ├── profile.yml              # Candidate profile (fallback)
 │   ├── profile.example.yml      # Profile template
+│   ├── resume.md                # **NEW** Master resume (superset) — source for `profile` command
+│   ├── search.yml               # **NEW** Search filters: titles, locations, remote, age, score
 │   ├── cv.md                    # Base CV (markdown)
-│   ├── portals.yml              # Job board config + filters
+│   ├── portals.yml              # Job board config + filters + company boards
 │   └── profiles/
 │       ├── active.json          # Active preset slug
 │       └── default.yaml         # Default role preset
 ├── scripts/
-│   ├── scan.mjs                 # Multi-portal job scanner
+│   ├── scan.mjs                 # Multi-portal job scanner (uses search.yml)
 │   ├── evaluate.mjs             # 5-dimension AI job evaluator
 │   ├── tailor.mjs               # ATS-optimized CV + cover letter generator
 │   ├── tracker.mjs              # Application tracker with interview/outcome/follow-up support
@@ -556,6 +654,8 @@ JobOps/
 │   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach + LinkedIn URLs → email
 │   ├── html-report.mjs          # Self-contained HTML dashboard generator
 │   ├── doctor.mjs               # System health check
+│   ├── profile-generator.mjs    # **NEW** Generate profile.yml from resume.md
+│   ├── discover-companies.mjs   # **NEW** AI company discovery for GH/Lever/Ashby
 │   └── lib/
 │       └── profile.mjs          # Shared active-profile loader
 ├── docs/
@@ -564,7 +664,7 @@ JobOps/
 │   ├── api-reference.md         # Script interfaces and schemas
 │   └── customization.md         # Profiles, portals, salary data, templates
 ├── .github/workflows/
-│   └── daily-digest.yml         # Cron: digest email at 12:00 IST (Resend)
+│   └── daily-digest.yml         # Cron: digest email at 12:00 IST (Resend/SMTP)
 ├── data/
 │   ├── applications.md          # Application tracker data
 │   ├── digest-seen.json         # Seen jobs for digest dedup
