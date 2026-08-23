@@ -4,8 +4,8 @@
  * digest.mjs — Daily job digest (push mode for JobOps)
  * Scans all portals, filters fresh jobs, optionally scores the top N
  * with Cloudflare AI, generates a LinkedIn outreach blurb per role,
- * and emails the digest via Resend.
- *
+ * and emails the digest via Resend or SMTP.
+ * 
  * Usage:
  *   node scripts/digest.mjs                          — preview to console (no email)
  *   node scripts/digest.mjs --mode daily             — email digest, marks jobs as seen
@@ -13,6 +13,8 @@
  *   node scripts/digest.mjs --evaluate 0             — disable AI scoring
  *   node scripts/digest.mjs --query "backend"        — custom scan query (default: auto from profile.yml)
  *   node scripts/digest.mjs --query auto             — scan each target_role from config/profile.yml
+ *   node scripts/digest.mjs --mock                   — use mock data for testing
+ *   node scripts/digest.mjs --send                   — send email (alias for --mode daily)
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -26,19 +28,39 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const SEEN_PATH = resolve(ROOT, 'data/digest-seen.json');
 
-// ─── Args ──────────────────────────────────────────────────────
+// ─── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 function argVal(name, fallback) {
   const idx = args.indexOf(`--${name}`);
   if (idx === -1 || idx === args.length - 1) return fallback;
   return args[idx + 1];
 }
-const MODE = argVal('mode', 'preview');
+function argFlag(name) {
+  return args.includes(`--${name}`);
+}
+
+const MODE = argFlag('send') || argFlag('daily') ? 'daily' : argVal('mode', 'preview');
 const MAX_JOBS = parseInt(argVal('max', '50'), 10) || 50;
 const EVAL_TOP = parseInt(argVal('evaluate', '5'), 10) || 0;
 const QUERY = argVal('query', 'auto');
+const MOCK_MODE = argFlag('mock');
 
-// ─── Env ───────────────────────────────────────────────────────
+// ─── Load search.yml config ──────────────────────────────────────
+function loadSearchConfig() {
+  try {
+    const cfg = yamlLoad(readFileSync(resolve(ROOT, 'config/search.yml'), 'utf-8')) || {};
+    return {
+      score_threshold: cfg.score_threshold || 3.5,
+      max_per_digest: cfg.max_per_digest || 10,
+      max_age_days: cfg.max_age_days || 30,
+    };
+  } catch {
+    return { score_threshold: 3.5, max_per_digest: 10, max_age_days: 30 };
+  }
+}
+const searchConfig = loadSearchConfig();
+
+// ─── Env ─────────────────────────────────────────────────────────
 const envPath = resolve(ROOT, '.env');
 if (existsSync(envPath)) {
   const lines = readFileSync(envPath, 'utf-8').split('\n');
@@ -47,9 +69,9 @@ if (existsSync(envPath)) {
     if (key && val.length) process.env[key.trim()] = val.join('=').trim();
   }
 }
-const HAS_KEYS = (process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN) && process.env.CLOUDFLARE_ACCOUNT_ID;
+const HAS_CF_KEYS = (process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN) && process.env.CLOUDFLARE_ACCOUNT_ID;
 
-// ─── Profile ───────────────────────────────────────────────────
+// ─── Profile ─────────────────────────────────────────────────────
 const profile = loadActiveProfile();
 const candidate = getProfileCandidate(profile);
 const outreach = getProfileOutreach(profile);
@@ -77,11 +99,12 @@ function outreachFor(job) {
   return text;
 }
 
-// ─── Seen database (dedup) ─────────────────────────────────────
+// ─── Seen database (dedup) ──────────────────────────────────────
 function loadSeen() {
   try {
     if (existsSync(SEEN_PATH)) {
-      return new Set(JSON.parse(readFileSync(SEEN_PATH, 'utf-8')).seen || []);
+      const data = JSON.parse(readFileSync(SEEN_PATH, 'utf-8'));
+      return new Set(data.seen || []);
     }
   } catch {}
   return new Set();
@@ -94,10 +117,16 @@ function saveSeen(seen) {
 
 const jobId = j => `${j.company}::${j.title}::${j.url}`;
 
-// ─── Scan ──────────────────────────────────────────────────────
+// ─── Scan ────────────────────────────────────────────────────────
 function runScan() {
+  const scanArgs = [resolve(ROOT, 'scripts/scan.mjs')];
+  if (QUERY !== 'auto') scanArgs.push(QUERY);
+  else scanArgs.push('auto');
+  scanArgs.push('any'); // location
+  if (MOCK_MODE) scanArgs.push('--mock');
+  
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(process.execPath, [resolve(ROOT, 'scripts/scan.mjs'), QUERY, 'any'], { cwd: ROOT });
+    const child = spawn(process.execPath, scanArgs, { cwd: ROOT });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', d => (stdout += d));
@@ -112,7 +141,7 @@ function runScan() {
   });
 }
 
-// ─── Evaluation (optional, top N) ──────────────────────────────
+// ─── Evaluation (optional, top N) ────────────────────────────────
 function evaluateJob(job) {
   return new Promise(resolvePromise => {
     const payload = JSON.stringify({
@@ -141,7 +170,7 @@ function evaluateJob(job) {
 }
 
 async function evaluateTop(fresh, limit) {
-  if (!HAS_KEYS || limit <= 0 || fresh.length === 0) return;
+  if (!HAS_CF_KEYS || limit <= 0 || fresh.length === 0) return;
   const targets = fresh.slice(0, limit);
   console.log(`Evaluating top ${targets.length} jobs with Cloudflare AI...`);
   const results = await Promise.allSettled(targets.map(j => evaluateJob(j)));
@@ -152,9 +181,9 @@ async function evaluateTop(fresh, limit) {
   });
 }
 
-// ─── Email via Resend ─────────────────────────────────────────
+// ─── Email helpers ───────────────────────────────────────────────
 function esc(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  return String(s || '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/\n/g, '<br>');
 }
 
 function buildHTML(jobs, dateStr, freshCount) {
@@ -187,7 +216,7 @@ function buildHTML(jobs, dateStr, freshCount) {
   <h2>JobOps Daily Digest — ${dateStr}</h2>
   <p>${freshCount} new job(s) found across ${jobs.length} shown. Full list is in your tracker pipeline.</p>
   ${rows}
-  <p style="color:#777;font-size:12px;">Generated by JobOps (career-apply-jobs). Scores are AI estimates — review before applying.</p>
+  <p style="color:#777;font-size:12px;">Generated by JobOps. Scores are AI estimates — review before applying.</p>
 </div>`;
 }
 
@@ -205,16 +234,13 @@ function buildText(jobs, dateStr, freshCount) {
   return lines.join('\n');
 }
 
-async function sendEmail(subject, text, html) {
+// ─── Email via Resend ───────────────────────────────────────────
+async function sendEmailResend(subject, text, html) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
   const to = process.env.MAIL_TO;
-  if (!key || !from || !to) {
-    console.log('\n[email] No RESEND_API_KEY/MAIL_FROM/MAIL_TO — printing digest instead.\n');
-    console.log(`Subject: ${subject}\n`);
-    console.log(text);
-    return false;
-  }
+  if (!key || !from || !to) return false;
+  
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -224,13 +250,65 @@ async function sendEmail(subject, text, html) {
     const body = await res.text();
     throw new Error(`Resend ${res.status}: ${body.substring(0, 300)}`);
   }
-  console.log(`Email sent to ${to}`);
+  console.log(`Email sent via Resend to ${to}`);
   return true;
 }
 
-// ─── Main ──────────────────────────────────────────────────────
+// ─── Email via SMTP (Gmail App Password) ────────────────────────
+async function sendEmailSMTP(subject, text, html) {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const to = process.env.MAIL_TO;
+  const from = process.env.MAIL_FROM || user;
+  
+  if (!user || !pass || !to) return false;
+  
+  // Use nodemailer if available, otherwise fallback to basic fetch
+  try {
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+    
+    await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+    console.log(`Email sent via SMTP to ${to}`);
+    return true;
+  } catch (e) {
+    console.warn('SMTP send failed (nodemailer not installed?):', e.message);
+    return false;
+  }
+}
+
+async function sendEmail(subject, text, html) {
+  // Try Resend first, then SMTP
+  if (process.env.RESEND_API_KEY) {
+    return sendEmailResend(subject, text, html);
+  }
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return sendEmailSMTP(subject, text, html);
+  }
+  
+  console.log('\n[email] No RESEND_API_KEY or SMTP credentials — printing digest instead.\n');
+  console.log(`Subject: ${subject}\n`);
+  console.log(text);
+  return false;
+}
+
+// ─── Main ────────────────────────────────────────────────────────
 async function main() {
-  console.log(`Digest mode=${MODE} query="${QUERY}" max=${MAX_JOBS} evaluate=${HAS_KEYS ? EVAL_TOP : 0}`);
+  console.log(`Digest mode=${MODE} query="${QUERY}" max=${MAX_JOBS} evaluate=${HAS_CF_KEYS ? EVAL_TOP : 0} mock=${MOCK_MODE}`);
+  console.log(`Config: score_threshold=${searchConfig.score_threshold} max_per_digest=${searchConfig.max_per_digest} max_age_days=${searchConfig.max_age_days}`);
 
   const all = await runScan();
   const seen = loadSeen();
@@ -239,11 +317,20 @@ async function main() {
 
   await evaluateTop(fresh, EVAL_TOP);
 
-  const scored = fresh.filter(j => j.evaluation?.overall);
-  const rest = fresh.filter(j => !j.evaluation?.overall);
+  // Filter by score threshold
+  const threshold = searchConfig.score_threshold;
+  const scored = fresh.filter(j => j.evaluation?.overall && j.evaluation.overall >= threshold);
+  const unscored = fresh.filter(j => !j.evaluation?.overall);
+  const belowThreshold = fresh.filter(j => j.evaluation?.overall && j.evaluation.overall < threshold);
+  
+  console.log(`Score filter (>= ${threshold}): ${fresh.length} → ${scored.length} above, ${belowThreshold.length} below, ${unscored.length} unscored`);
+
   scored.sort((a, b) => b.evaluation.overall - a.evaluation.overall);
-  rest.sort((a, b) => String(b.posted).localeCompare(String(a.posted)));
-  const digestJobs = [...scored, ...rest].slice(0, MAX_JOBS);
+  unscored.sort((a, b) => String(b.posted).localeCompare(String(a.posted)));
+  
+  // Combine: scored first, then unscored, limit to max_per_digest
+  const maxDigest = Math.min(searchConfig.max_per_digest, MAX_JOBS);
+  const digestJobs = [...scored, ...unscored].slice(0, maxDigest);
 
   if (MODE === 'daily') {
     fresh.forEach(j => seen.add(jobId(j)));
@@ -265,7 +352,7 @@ async function main() {
   const digestFile = resolve(reportsDir, `digest-${ist.toISOString().split('T')[0]}.md`);
   writeFileSync(digestFile, `# JobOps Digest — ${dateStr}\n\n${text}\n`);
   console.log(`\nDigest saved to: ${digestFile}`);
-  console.log(sent ? 'Done.' : 'Preview only — run with RESEND env vars to email.');
+  console.log(sent ? 'Done.' : 'Preview only — configure RESEND_API_KEY or SMTP credentials to email.');
 }
 
 main().catch(e => {

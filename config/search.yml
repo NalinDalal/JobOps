@@ -1,0 +1,90 @@
+# JobOps Search Configuration
+# Controls what kind of jobs to search for and filter
+
+# ─── Job Title Filters ───────────────────────────────────────────
+# Titles to INCLUDE (positive keywords - job must match at least one)
+include_titles:
+  - Software Engineer
+  - Full Stack
+  - Backend
+  - Frontend
+  - SWE
+  - Developer
+  - Junior
+  - Entry Level
+  - Graduate
+
+# Titles to EXCLUDE (negative keywords - skip if matches)
+exclude_titles:
+  - Senior
+  - Staff
+  - Principal
+  - Lead
+  - Manager
+  - Director
+  - VP
+  - Vice President
+  - Head of
+  - Architect
+  - Intern
+  - Internship
+  - Co-op
+  - Contract
+  - Freelance
+  - Part-time
+
+# ─── Location Filters ────────────────────────────────────────────
+# Locations you are willing to work in (case-insensitive partial match)
+locations:
+  - India
+  - Remote
+  - US
+  - United States
+  - Europe
+  - Canada
+  - UK
+  - London
+  - Berlin
+  - Amsterdam
+  - Bangalore
+  - Bengaluru
+  - Mumbai
+  - Delhi
+  - Hyderabad
+  - Pune
+  - Chennai
+
+# Allow remote jobs (true/false)
+allow_remote: true
+
+# ─── Freshness Filter ────────────────────────────────────────────
+# Maximum age of job posting in days (0 = no limit)
+max_age_days: 30
+
+# ─── AI Scoring Threshold ────────────────────────────────────────
+# Minimum AI match score (1-5) to include in digest
+# Jobs below this threshold are filtered out
+score_threshold: 3.5
+
+# ─── Digest Limits ───────────────────────────────────────────────
+# Maximum number of jobs to include in the final digest/email
+max_per_digest: 10
+
+# ─── Portal Selection ────────────────────────────────────────────
+# Which portal groups to scan (all enabled by default)
+portals:
+  api_portals: true      # RemoteOK, Arbeitnow, Findwork, Remotive, freehire
+  greenhouse: true       # Greenhouse boards from portals.yml
+  lever: true            # Lever boards from portals.yml
+  ashby: true            # Ashby boards from portals.yml
+
+# ─── Search Behavior ─────────────────────────────────────────────
+# Query mode: "auto" = derive from profile.yml target_roles, or custom string
+query_mode: "auto"
+
+# Custom query (used when query_mode is not "auto")
+custom_query: ""
+
+# ─── Mock/Test Mode ──────────────────────────────────────────────
+# Use mock data instead of real API calls (for testing)
+mock_mode: false

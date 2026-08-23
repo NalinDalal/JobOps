@@ -16,6 +16,9 @@
  *   node cli.mjs tracker report
  *   node cli.mjs report
  *   node cli.mjs doctor
+ *   node cli.mjs profile resume.pdf
+ *   node cli.mjs discover
+ *   node cli.mjs digest [--mode preview|daily] [--mock] [--send]
  */
 
 import { spawn } from 'child_process';
@@ -58,10 +61,31 @@ JobOps — AI Job Hunting Agent
 Usage:
   node cli.mjs <command> [args...]
 
-Commands:
-  scan <query> [location]         Search job boards
-  evaluate <job-json>             Evaluate a job (5-dimension AI)
+Setup Commands:
+  profile <resume.pdf|.txt>       Generate profile.yml from resume (AI-powered)
+  discover [--count N]            Discover target companies on Greenhouse/Lever/Ashby
+  doctor                          Run health check
+
+Search Commands:
+  scan <query> [location]         Search job boards (use "auto" for profile-based)
+  scan --mock                     Test with mock data
+  digest [options]                Daily digest (scan + eval + outreach + email)
+    --mode preview|daily          Preview mode (default) or daily with email
+    --mock                        Use mock data
+    --send                        Alias for --mode daily
+    --max N                       Max jobs in digest (default: from config)
+    --evaluate N                  Evaluate top N jobs with AI (default: 5)
+    --query <q>                   Custom query (default: auto from profile)
+
+Evaluation & Tailoring:
+  evaluate <job-json>             Evaluate a job (5-dimension AI scoring)
   tailor <job-json>               Generate tailored CV + cover letter
+  rank <query> [location]         Batch score all scraped jobs
+  interview <company> [stage]     Generate interview prep pack
+  upskill [--query <q>] [--limit N] Skill gap analysis + learning plan
+  salary "<title>" [region]       Salary lookup from local data
+
+Application Tracking:
   tracker list                    Show all applications
   tracker add <company> <role>    Add new application
   tracker update <company> <status> Update status
@@ -74,24 +98,40 @@ Commands:
   tracker review                  Outcome review + suggestions
   tracker autonomy                Show autonomy level
   tracker reset <mode>            Reset tracker (profile|documents|all)
-  rank <query> [location]         Batch score all scraped jobs
-  interview <company> [stage]     Generate interview prep pack
-  upskill [--query <q>] [--limit N] Skill gap analysis + learning plan
-  salary "<title>" [region]       Salary lookup from local data
+
+Reports:
   report                          Generate HTML dashboard
-  digest [--mode preview|daily]   Daily digest (scan+eval+outreach+email)
-  doctor                          Run health check
-  help                            Show this help
+  html-report                     Alias for report
 
 Examples:
+  # Setup
+  node cli.mjs profile resume.pdf
+  node cli.mjs discover
+  
+  # Daily workflow
+  node cli.mjs digest --send
+  node cli.mjs digest --mock --mode preview
+  
+  # Search & evaluate
   node cli.mjs scan "software engineer" "Remote"
+  node cli.mjs scan auto
   node cli.mjs evaluate '{"title":"SWE","company":"Stripe","description":"..."}'
+  node cli.mjs tailor '{"title":"SWE","company":"Stripe","description":"..."}'
+  
+  # Track applications
   node cli.mjs tracker add "Stripe" "Software Engineer"
   node cli.mjs tracker interview "Stripe" "Technical" "2025-01-15"
+  node cli.mjs tracker outcome "Stripe" "Offer Received"
 `);
 }
 
 switch (command) {
+  case 'profile':
+    runScript('profile-generator.mjs', args);
+    break;
+  case 'discover':
+    runScript('discover-companies.mjs', args);
+    break;
   case 'scan':
     runScript('scan.mjs', args);
     break;

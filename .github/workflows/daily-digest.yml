@@ -2,52 +2,49 @@ name: Daily Job Digest
 
 on:
   schedule:
-    # 06:30 UTC = 12:00 IST
-    - cron: '30 6 * * *'
-  workflow_dispatch:
-    inputs:
-      query:
-        description: 'Scan query (auto = from profile.yml target_roles)'
-        required: false
-        default: 'auto'
-      max:
-        description: 'Max jobs in email'
-        required: false
-        default: '50'
-
-permissions:
-  contents: read
+    - cron: '30 6 * * *'  # 12:00 IST = 06:30 UTC
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   digest:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Cache seen-jobs DB
-        uses: actions/cache@v4
-        with:
-          path: data/digest-seen.json
-          key: digest-seen-1
-          restore-keys: |
-            digest-seen-
-
       - name: Run daily digest
         env:
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL }}
+          # Alternative SMTP
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: node cli.mjs digest --mode daily
+
+      - name: Commit updated seen.json
         run: |
-          node scripts/digest.mjs --mode daily --query "${{ github.event.inputs.query || 'auto' }}" --max "${{ github.event.inputs.max || '50' }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet data/digest-seen.json; then
+            git add data/digest-seen.json
+            git commit -m "chore: update digest seen jobs [skip ci]"
+            git push
+          else
+            echo "No new jobs to track"
+          fi
