@@ -50,26 +50,16 @@ skills:
     - Linux/Unix Shell
     - dotfiles/terminal environment tuning
 target_roles:
-  - Software Engineer
-  - Full Stack Developer
-  - Backend Engineer
-  - Systems Engineer
-  - DevOps Engineer
+  - Full-stack + infra
+  - Systems/infra-heavy
   - Open-source maintainer
+  - Quant/HFT-leaning
 target_locations:
   - India
   - Remote
-  - US
-  - Europe
-  - Canada
-  - Dubai
-  - Singapore
-  - Netherlands
-  - UK
-  - Australia
 experience:
   level: Junior/Entry
-  years: 0-1
+  years: 0-2
   open_source: true
   competitive_programming: true
 preferences:
