@@ -41,7 +41,7 @@ export const TRUST_MEDIUM = 60;
 export const TRUST_LOW = 40;
 
 // ─── User-Agent string ───────────────────────────────────────
-export const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+export const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)";
 
 // ─── Date helpers ─────────────────────────────────────────────
 export const IST_OFFSET_HOURS = 5.5;

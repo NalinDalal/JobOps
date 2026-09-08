@@ -11,97 +11,103 @@
  *   node scripts/reverseEngineer.mjs --limit 20         — Analyze more jobs
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import {
-  loadActiveProfile,
-  getProfileSkills,
-  getProfileExperience,
-  getProfileTargetRoles,
-} from './lib/profile.mjs';
-import { loadEnv } from './lib/env.mjs';
-import { cfAI } from './lib/ai.mjs';
-import { argVal } from './lib/args.mjs';
-import { runScan } from './lib/scan.mjs';
+    loadActiveProfile,
+    getProfileSkills,
+    getProfileExperience,
+    getProfileTargetRoles,
+} from "./lib/profile.mjs";
+import { loadEnv } from "./lib/env.mjs";
+import { cfAI } from "./lib/ai.mjs";
+import { argVal } from "./lib/args.mjs";
+import { runScan } from "./lib/scan.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const ROOT = resolve(__dirname, "..");
 
 loadEnv(ROOT);
 
-const COMPANY = argVal('company', null);
-const LIMIT = parseInt(argVal('limit', '15'), 10) || 15;
+const COMPANY = argVal("company", null);
+const LIMIT = parseInt(argVal("limit", "15"), 10) || 15;
 
 async function main() {
-  const profile = loadActiveProfile();
-  const mySkills = getProfileSkills(profile);
-  const experience = getProfileExperience(profile);
-  const targetRoles = getProfileTargetRoles(profile);
+    const profile = loadActiveProfile();
+    const mySkills = getProfileSkills(profile);
+    const experience = getProfileExperience(profile);
+    const targetRoles = getProfileTargetRoles(profile);
 
-  let jobs = [];
+    let jobs = [];
 
-  if (COMPANY) {
-    // Research specific company
-    console.log(`\n Researching ${COMPANY}...\n`);
-    const queries = targetRoles.slice(0, 3);
-    for (const q of queries) {
-      try {
-        const results = await runScan(q, 'any');
-        jobs = jobs.concat(
-          results.filter((j) => j.company.toLowerCase().includes(COMPANY.toLowerCase())),
+    if (COMPANY) {
+        // Research specific company
+        console.log(`\n Researching ${COMPANY}...\n`);
+        const queries = targetRoles.slice(0, 3);
+        for (const q of queries) {
+            try {
+                const results = await runScan(q, "any");
+                jobs = jobs.concat(
+                    results.filter((j) =>
+                        j.company.toLowerCase().includes(COMPANY.toLowerCase()),
+                    ),
+                );
+            } catch (e) {
+                console.error(`Scan error: ${e.message}`);
+            }
+        }
+    } else {
+        // Analyze recent jobs
+        console.log(
+            `\n Reverse-engineering ${LIMIT} recent job descriptions...\n`,
         );
-      } catch (e) {
-        console.error(`Scan error: ${e.message}`);
-      }
+        const queries = targetRoles.slice(0, 3);
+        for (const q of queries) {
+            try {
+                const results = await runScan(q, "any");
+                jobs = jobs.concat(results);
+            } catch (e) {
+                console.error(`Scan error: ${e.message}`);
+            }
+        }
     }
-  } else {
-    // Analyze recent jobs
-    console.log(`\n Reverse-engineering ${LIMIT} recent job descriptions...\n`);
-    const queries = targetRoles.slice(0, 3);
-    for (const q of queries) {
-      try {
-        const results = await runScan(q, 'any');
-        jobs = jobs.concat(results);
-      } catch (e) {
-        console.error(`Scan error: ${e.message}`);
-      }
+
+    // Deduplicate
+    const seen = new Set();
+    const unique = jobs
+        .filter((j) => {
+            const key = `${j.title.toLowerCase()}|${j.company.toLowerCase()}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        })
+        .slice(0, LIMIT);
+
+    if (unique.length === 0) {
+        console.log("No jobs found to analyze.");
+        return;
     }
-  }
 
-  // Deduplicate
-  const seen = new Set();
-  const unique = jobs
-    .filter((j) => {
-      const key = `${j.title.toLowerCase()}|${j.company.toLowerCase()}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, LIMIT);
+    console.log(`Found ${unique.length} jobs to analyze:\n`);
+    unique.forEach((j, i) =>
+        console.log(`  ${i + 1}. ${j.title} @ ${j.company} (${j.location})`),
+    );
 
-  if (unique.length === 0) {
-    console.log('No jobs found to analyze.');
-    return;
-  }
+    // Build analysis prompt
+    const jobSummaries = unique
+        .map(
+            (j, i) =>
+                `[${i + 1}] ${j.title} at ${j.company}\n   Location: ${j.location}\n   Description: ${(j.snippet || "").substring(0, 200)}`,
+        )
+        .join("\n\n");
 
-  console.log(`Found ${unique.length} jobs to analyze:\n`);
-  unique.forEach((j, i) => console.log(`  ${i + 1}. ${j.title} @ ${j.company} (${j.location})`));
-
-  // Build analysis prompt
-  const jobSummaries = unique
-    .map(
-      (j, i) =>
-        `[${i + 1}] ${j.title} at ${j.company}\n   Location: ${j.location}\n   Description: ${(j.snippet || '').substring(0, 200)}`,
-    )
-    .join('\n\n');
-
-  const prompt = `Analyze these ${unique.length} job postings and provide a reverse-engineering report.
+    const prompt = `Analyze these ${unique.length} job postings and provide a reverse-engineering report.
 
 MY PROFILE:
 - Experience: ${experience}
 - Skills: ${mySkills}
-- Target roles: ${targetRoles.join(', ')}
+- Target roles: ${targetRoles.join(", ")}
 
 JOB POSTINGS:
 ${jobSummaries}
@@ -129,21 +135,24 @@ Format: "Company: [use case idea] — why it fits them"
 - Top 3 companies to research deeper
 - Specific project ideas that would impress these employers`;
 
-  console.log('\n Generating reverse-engineering report...\n');
+    console.log("\n Generating reverse-engineering report...\n");
 
-  const report = await cfAI(prompt);
-  console.log(report);
+    const report = await cfAI(prompt);
+    console.log(report);
 
-  // Save report
-  const reportsDir = resolve(ROOT, 'reports');
-  if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
-  const date = new Date().toISOString().split('T')[0];
-  const reportFile = resolve(reportsDir, `reverse-engineer-${date}.md`);
-  writeFileSync(reportFile, `# Reverse-Engineering Report — ${date}\n\n${report}\n`);
-  console.log(`\n Report saved to: ${reportFile}`);
+    // Save report
+    const reportsDir = resolve(ROOT, "reports");
+    if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+    const date = new Date().toISOString().split("T")[0];
+    const reportFile = resolve(reportsDir, `reverse-engineer-${date}.md`);
+    writeFileSync(
+        reportFile,
+        `# Reverse-Engineering Report — ${date}\n\n${report}\n`,
+    );
+    console.log(`\n Report saved to: ${reportFile}`);
 }
 
 main().catch((e) => {
-  console.error(`Reverse-engineer failed: ${e.message}`);
-  process.exit(1);
+    console.error(`Reverse-engineer failed: ${e.message}`);
+    process.exit(1);
 });

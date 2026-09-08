@@ -10,45 +10,45 @@
  *   node scripts/loomOutreach.mjs --count 10           — Find more companies
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import {
-  loadActiveProfile,
-  getProfileSkills,
-  getProfileExperience,
-  getProfileCandidate,
-} from './lib/profile.mjs';
-import { loadEnv } from './lib/env.mjs';
-import { cfAI } from './lib/ai.mjs';
-import { argVal } from './lib/args.mjs';
+    loadActiveProfile,
+    getProfileSkills,
+    getProfileExperience,
+    getProfileCandidate,
+} from "./lib/profile.mjs";
+import { loadEnv } from "./lib/env.mjs";
+import { cfAI } from "./lib/ai.mjs";
+import { argVal } from "./lib/args.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const ROOT = resolve(__dirname, "..");
 
 loadEnv(ROOT);
 
-const COMPANY = argVal('company', null);
-const COUNT = parseInt(argVal('count', '5'), 10) || 5;
+const COMPANY = argVal("company", null);
+const COUNT = parseInt(argVal("count", "5"), 10) || 5;
 
 async function main() {
-  const profile = loadActiveProfile();
-  const candidate = getProfileCandidate(profile);
-  const mySkills = getProfileSkills(profile);
-  const experience = getProfileExperience(profile);
+    const profile = loadActiveProfile();
+    const candidate = getProfileCandidate(profile);
+    const mySkills = getProfileSkills(profile);
+    const experience = getProfileExperience(profile);
 
-  if (COMPANY) {
-    // Deep research on one company
-    console.log(`\n Deep research: ${COMPANY}\n`);
+    if (COMPANY) {
+        // Deep research on one company
+        console.log(`\n Deep research: ${COMPANY}\n`);
 
-    const prompt = `Research the company "${COMPANY}" and create a personalized outreach strategy.
+        const prompt = `Research the company "${COMPANY}" and create a personalized outreach strategy.
 
 MY PROFILE:
 - Name: ${candidate.name}
 - Skills: ${mySkills}
 - Experience: ${experience}
-- GitHub: ${candidate.github || 'N/A'}
-- Portfolio: ${candidate.portfolio || 'N/A'}
+- GitHub: ${candidate.github || "N/A"}
+- Portfolio: ${candidate.portfolio || "N/A"}
 
 Provide:
 
@@ -78,23 +78,26 @@ Write a short, personalized DM (under 100 words) that references the loom.
 - Suggest 2-3 roles to reach out to (CTO, Engineering Manager, etc.)
 - LinkedIn search strings to find them`;
 
-    console.log('Generating research...\n');
-    const report = await cfAI(prompt);
-    console.log(report);
+        console.log("Generating research...\n");
+        const report = await cfAI(prompt);
+        console.log(report);
 
-    // Save
-    const reportsDir = resolve(ROOT, 'reports');
-    if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
-    const date = new Date().toISOString().split('T')[0];
-    const slug = COMPANY.toLowerCase().replace(/\s+/g, '-');
-    const reportFile = resolve(reportsDir, `loom-${slug}-${date}.md`);
-    writeFileSync(reportFile, `# Loom Outreach: ${COMPANY} — ${date}\n\n${report}\n`);
-    console.log(`\n Saved to: ${reportFile}`);
-  } else {
-    // Find companies to target
-    console.log(`\n Finding ${COUNT} companies for loom outreach...\n`);
+        // Save
+        const reportsDir = resolve(ROOT, "reports");
+        if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+        const date = new Date().toISOString().split("T")[0];
+        const slug = COMPANY.toLowerCase().replace(/\s+/g, "-");
+        const reportFile = resolve(reportsDir, `loom-${slug}-${date}.md`);
+        writeFileSync(
+            reportFile,
+            `# Loom Outreach: ${COMPANY} — ${date}\n\n${report}\n`,
+        );
+        console.log(`\n Saved to: ${reportFile}`);
+    } else {
+        // Find companies to target
+        console.log(`\n Finding ${COUNT} companies for loom outreach...\n`);
 
-    const prompt = `Find ${COUNT} startups/companies that would benefit from AI integration.
+        const prompt = `Find ${COUNT} startups/companies that would benefit from AI integration.
 
 MY PROFILE:
 - Skills: ${mySkills}
@@ -116,21 +119,24 @@ Focus on:
 
 Format as a numbered list with clear sections.`;
 
-    console.log('Finding companies...\n');
-    const report = await cfAI(prompt);
-    console.log(report);
+        console.log("Finding companies...\n");
+        const report = await cfAI(prompt);
+        console.log(report);
 
-    // Save
-    const reportsDir = resolve(ROOT, 'reports');
-    if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
-    const date = new Date().toISOString().split('T')[0];
-    const reportFile = resolve(reportsDir, `loom-targets-${date}.md`);
-    writeFileSync(reportFile, `# Loom Outreach Targets — ${date}\n\n${report}\n`);
-    console.log(`\n Saved to: ${reportFile}`);
-  }
+        // Save
+        const reportsDir = resolve(ROOT, "reports");
+        if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+        const date = new Date().toISOString().split("T")[0];
+        const reportFile = resolve(reportsDir, `loom-targets-${date}.md`);
+        writeFileSync(
+            reportFile,
+            `# Loom Outreach Targets — ${date}\n\n${report}\n`,
+        );
+        console.log(`\n Saved to: ${reportFile}`);
+    }
 }
 
 main().catch((e) => {
-  console.error(`Loom outreach failed: ${e.message}`);
-  process.exit(1);
+    console.error(`Loom outreach failed: ${e.message}`);
+    process.exit(1);
 });

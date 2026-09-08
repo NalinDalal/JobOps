@@ -6,54 +6,57 @@
  * Usage: node scripts/interview.mjs "Company" ["stage"]
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import {
-  loadActiveProfile,
-  getProfileCandidate,
-  getProfileSkills,
-  getProfileExperience,
-} from './lib/profile.mjs';
-import { readTracker } from './lib/tracker.mjs';
+    loadActiveProfile,
+    getProfileCandidate,
+    getProfileSkills,
+    getProfileExperience,
+} from "./lib/profile.mjs";
+import { readTracker } from "./lib/tracker.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const ROOT = resolve(__dirname, "..");
 
 const args = process.argv.slice(2);
 const COMPANY = args[0];
-const STAGE = args[1] || 'Technical';
+const STAGE = args[1] || "Technical";
 
 if (!COMPANY) {
-  console.error('Usage: node scripts/interview.mjs "Company" ["stage"]');
-  process.exit(1);
+    console.error('Usage: node scripts/interview.mjs "Company" ["stage"]');
+    process.exit(1);
 }
 
 function findTrackerEntry(company) {
-  const rows = readTracker();
-  return rows.find((r) => r.company.toLowerCase() === company.toLowerCase()) || null;
+    const rows = readTracker();
+    return (
+        rows.find((r) => r.company.toLowerCase() === company.toLowerCase()) ||
+        null
+    );
 }
 
 async function main() {
-  const entry = findTrackerEntry(COMPANY);
-  if (!entry) {
-    console.error(
-      `Company "${COMPANY}" not found in tracker. Add it first with: node scripts/tracker.mjs add "${COMPANY}" "Role"`,
-    );
-    process.exit(1);
-  }
+    const entry = findTrackerEntry(COMPANY);
+    if (!entry) {
+        console.error(
+            `Company "${COMPANY}" not found in tracker. Add it first with: node scripts/tracker.mjs add "${COMPANY}" "Role"`,
+        );
+        process.exit(1);
+    }
 
-  const profile = loadActiveProfile();
-  const candidate = getProfileCandidate(profile);
-  const skills = getProfileSkills(profile);
-  const experience = getProfileExperience(profile);
+    const profile = loadActiveProfile();
+    const candidate = getProfileCandidate(profile);
+    const skills = getProfileSkills(profile);
+    const experience = getProfileExperience(profile);
 
-  const cvPath = resolve(ROOT, 'config/cv.md');
-  const baseCv = existsSync(cvPath) ? readFileSync(cvPath, 'utf-8') : '';
+    const cvPath = resolve(ROOT, "config/cv.md");
+    const baseCv = existsSync(cvPath) ? readFileSync(cvPath, "utf-8") : "";
 
-  const prompt = `Generate an interview prep pack for the following:
+    const prompt = `Generate an interview prep pack for the following:
 
-CANDIDATE: ${candidate.name || 'Candidate'}
+CANDIDATE: ${candidate.name || "Candidate"}
 EXPERIENCE: ${experience}
 SKILLS: ${skills}
 
@@ -75,46 +78,50 @@ Generate a stage-specific prep pack in markdown with these sections:
 
 Do not invent experience. If a STAR answer requires a metric you don't have, state the action without inventing a number.`;
 
-  console.log(`Preparing interview pack for ${COMPANY} — ${STAGE}...`);
+    console.log(`Preparing interview pack for ${COMPANY} — ${STAGE}...`);
 
-  const CF_TOKEN = process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN;
-  const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const CF_MODEL = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+    const CF_TOKEN =
+        process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN;
+    const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const CF_MODEL =
+        process.env.CLOUDFLARE_MODEL ||
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/${CF_MODEL}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${CF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an interview coach. Return markdown only.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        stream: false,
-        max_tokens: 2048,
-        temperature: 0.4,
-      }),
-    },
-  );
+    const res = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/${CF_MODEL}`,
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${CF_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                messages: [
+                    {
+                        role: "system",
+                        content:
+                            "You are an interview coach. Return markdown only.",
+                    },
+                    { role: "user", content: prompt },
+                ],
+                stream: false,
+                max_tokens: 2048,
+                temperature: 0.4,
+            }),
+        },
+    );
 
-  const data = await res.json();
-  const content =
-    data.result?.choices?.[0]?.message?.content ||
-    data.result?.response ||
-    'Could not generate prep pack.';
+    const data = await res.json();
+    const content =
+        data.result?.choices?.[0]?.message?.content ||
+        data.result?.response ||
+        "Could not generate prep pack.";
 
-  console.log(`\n# Interview Prep: ${COMPANY} — ${STAGE}\n`);
-  console.log(content);
+    console.log(`\n# Interview Prep: ${COMPANY} — ${STAGE}\n`);
+    console.log(content);
 }
 
 main().catch((e) => {
-  console.error(`Interview prep failed: ${e.message}`);
-  process.exit(1);
+    console.error(`Interview prep failed: ${e.message}`);
+    process.exit(1);
 });
