@@ -174,12 +174,12 @@ node scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query
 
 **Output:** Text + HTML email via Resend, or console preview.
 
-## html-report.mjs
+## htmlReport.mjs
 
 Generate self-contained HTML dashboard.
 
 ```
-node scripts/html-report.mjs
+node scripts/htmlReport.mjs
 ```
 
 **Output:** `reports/tracker-dashboard.html` (offline, no external dependencies).

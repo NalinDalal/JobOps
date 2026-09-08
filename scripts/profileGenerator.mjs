@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * profile-generator.mjs — Generate profile.yml from master resume.md
+ * profileGenerator.mjs — Generate profile.yml from master resume.md
  * Parses structured markdown and enriches with GitHub/CP data
  * 
  * Usage: 
- *   node scripts/profile-generator.mjs              # uses config/resume.md
- *   node scripts/profile-generator.mjs --enrich     # also fetch GitHub/CP data
- *   node scripts/profile-generator.mjs resume.md    # custom file
+ *   node scripts/profileGenerator.mjs              # uses config/resume.md
+ *   node scripts/profileGenerator.mjs --enrich     # also fetch GitHub/CP data
+ *   node scripts/profileGenerator.mjs resume.md    # custom file
  * 
  * Output: config/profile.yml (overwrites existing)
  */

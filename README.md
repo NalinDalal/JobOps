@@ -672,9 +672,9 @@ JobOps/
 │   ├── upskill.mjs              # Skill gap analysis + learning plan
 │   ├── salary.mjs               # Salary lookup from local data
 │   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach + LinkedIn URLs → email
-│   ├── html-report.mjs          # Self-contained HTML dashboard generator
+│   ├── htmlReport.mjs           # Self-contained HTML dashboard generator
 │   ├── doctor.mjs               # System health check
-│   ├── profile-generator.mjs    # **NEW** Generate profile.yml from resume.md
+│   ├── profileGenerator.mjs     # **NEW** Generate profile.yml from resume.md
 │   ├── discoverCompanies.mjs    # **NEW** AI company discovery for GH/Lever/Ashby
 │   ├── atsSearch.mjs            # **NEW** Google dork scanner for ATS boards
 │   ├── verifyJob.mjs            # **NEW** Job verification (cross-check platforms)
@@ -765,7 +765,7 @@ Generate a self-contained offline dashboard:
 ```bash
 npm run report
 # or
-node scripts/html-report.mjs
+node scripts/htmlReport.mjs
 ```
 
 Opens `reports/tracker-dashboard.html` with:

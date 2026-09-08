@@ -102,7 +102,7 @@ User request
 | `scripts/evaluate.mjs` | Job evaluator (5-dimension scoring via Cloudflare AI) |
 | `scripts/tailor.mjs` | CV tailor (ATS-optimized via Cloudflare AI) |
 | `scripts/tracker.mjs` | Application tracker with interview stages, outcomes, follow-ups |
-| `scripts/html-report.mjs` | Self-contained HTML dashboard generator |
+| `scripts/htmlReport.mjs` | Self-contained HTML dashboard generator |
 | `scripts/digest.mjs` | Daily digest (scan → dedup → AI score → outreach → email) |
 | `scripts/doctor.mjs` | System health check |
 | `scripts/atsSearch.mjs` | Google dork scanner for ATS boards (less competitive jobs) |
@@ -135,7 +135,7 @@ User request
 - `scripts/tracker.mjs followup "Company" "note" ["date"]` — Add follow-up reminder
 - `scripts/tracker.mjs export` — Export tracker as CSV
 - `scripts/tracker.mjs report` — Generate HTML dashboard
-- `scripts/html-report.mjs` — Generate HTML dashboard directly
+- `scripts/htmlReport.mjs` — Generate HTML dashboard directly
 - `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → Resend email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
 - `scripts/doctor.mjs` — System health check
 - `scripts/atsSearch.mjs "role query" "location" --boards greenhouse,lever,ashby` — Google dork scanner for ATS boards

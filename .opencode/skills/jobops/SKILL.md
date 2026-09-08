@@ -47,5 +47,5 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 - `scripts/evaluate.mjs '{json}'` — Score a job (5-dimension AI)
 - `scripts/tailor.mjs '{json}'` — Generate ATS-optimized CV + cover letter
 - `scripts/tracker.mjs list|add|update|interview|outcome|followup|export|report` — Manage applications
-- `scripts/html-report.mjs` — Generate self-contained HTML dashboard
+- `scripts/htmlReport.mjs` — Generate self-contained HTML dashboard
 - `scripts/doctor.mjs` — Health check

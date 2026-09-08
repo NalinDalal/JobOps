@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * html-report.mjs — Self-contained HTML dashboard
+ * htmlReport.mjs — Self-contained HTML dashboard
  * Generates an offline dashboard from tracker data and scan results.
  *
- * Usage: node scripts/html-report.mjs
+ * Usage: node scripts/htmlReport.mjs
  * Output: reports/tracker-dashboard.html
  */
 

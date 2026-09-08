@@ -353,9 +353,9 @@ function exportCSV() {
 }
 
 function generateReport() {
-  const child = spawn(process.execPath, [resolve(__dirname, 'html-report.mjs')], { stdio: 'inherit', cwd: ROOT });
+  const child = spawn(process.execPath, [resolve(__dirname, 'htmlReport.mjs')], { stdio: 'inherit', cwd: ROOT });
   child.on('error', (err) => {
-    console.error(`Failed to start html-report.mjs: ${err.message}`);
+    console.error(`Failed to start htmlReport.mjs: ${err.message}`);
     process.exit(1);
   });
   child.on('exit', (code) => process.exit(code ?? 0));

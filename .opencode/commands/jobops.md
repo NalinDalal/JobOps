@@ -19,7 +19,7 @@ Then route the user's prompt to the correct mode:
 - If it contains "record outcome" → Run `node scripts/tracker.mjs outcome "Company" "result"`
 - If it contains "follow-up" or "followup" → Run `node scripts/tracker.mjs followup "Company" "note" ["date"]`
 - If it contains "export" → Run `node scripts/tracker.mjs export`
-- If it contains "report" or "dashboard" → Run `node scripts/tracker.mjs report` or `node scripts/html-report.mjs`
+- If it contains "report" or "dashboard" → Run `node scripts/tracker.mjs report` or `node scripts/htmlReport.mjs`
 - If it contains "add [company]" → Run `node scripts/tracker.mjs add "Company" "Role"`
 - If it contains URL → Fetch it, extract job details, evaluate
 - If it contains "profile", "setup" → Show config/profile.yml

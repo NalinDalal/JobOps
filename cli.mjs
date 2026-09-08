@@ -127,10 +127,10 @@ Examples:
 
 switch (command) {
   case 'profile':
-    runScript('profile-generator.mjs', args);
+    runScript('profileGenerator.mjs', args);
     break;
   case 'discover':
-    runScript('discover-companies.mjs', args);
+    runScript('discoverCompanies.mjs', args);
     break;
   case 'scan':
     runScript('scan.mjs', args);
@@ -146,7 +146,7 @@ switch (command) {
     break;
   case 'report':
   case 'html-report':
-    runScript('html-report.mjs', args);
+    runScript('htmlReport.mjs', args);
     break;
   case 'doctor':
     runScript('doctor.mjs', args);

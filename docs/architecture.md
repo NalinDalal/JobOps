@@ -13,7 +13,7 @@ tailor.mjs  →  ATS-optimized CV + cover letter (markdown)
    ↓
 tracker.mjs  →  application state (data/applications.md + CSV)
    ↓
-html-report.mjs  →  offline dashboard (reports/tracker-dashboard.html)
+htmlReport.mjs  →  offline dashboard (reports/tracker-dashboard.html)
    ↓
 digest.mjs  →  daily email (Resend) or console preview
 ```
@@ -31,7 +31,7 @@ digest.mjs  →  daily email (Resend) or console preview
 | `upskill.mjs` | Skill gap analysis, learning plan generation | stdout markdown |
 | `salary.mjs` | Salary lookup from local JSON data | stdout |
 | `digest.mjs` | Scan → dedup → score top N → email/preview | `data/digest-seen.json`, `reports/digest-*.md` |
-| `html-report.mjs` | Self-contained HTML dashboard from tracker + archives | `reports/tracker-dashboard.html` |
+| `htmlReport.mjs` | Self-contained HTML dashboard from tracker + archives | `reports/tracker-dashboard.html` |
 | `doctor.mjs` | Prerequisite and config validation | stdout |
 
 ## Configuration layers
