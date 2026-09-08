@@ -606,11 +606,15 @@ async function main() {
   const reportsDir = resolve(ROOT, 'reports');
   if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
 
-  // Save full report with all fresh jobs
-  const fullHtml = buildHTML(fresh, dateStr, fresh.length, '');
-  const fullReportFile = resolve(reportsDir, `digest-full-${ist.toISOString().split('T')[0]}.html`);
-  writeFileSync(fullReportFile, fullHtml);
-  const fullListNote = fresh.length > digestJobs.length ? `<p style="margin:0 0 14px;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.4;">Full list: <code style="background:${accentLight};padding:2px 6px;border-radius:4px;font-size:11px;">${fullReportFile}</code></p>` : '';
+  // Save full report with all fresh jobs (local only; CI runners are ephemeral)
+  const isCI = Boolean(process.env.CI);
+  let fullListNote = '';
+  if (!isCI && fresh.length > digestJobs.length) {
+    const fullHtml = buildHTML(fresh, dateStr, fresh.length, '');
+    const fullReportFile = resolve(reportsDir, `digest-full-${ist.toISOString().split('T')[0]}.html`);
+    writeFileSync(fullReportFile, fullHtml);
+    fullListNote = `<p style="margin:0 0 14px;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.4;">Full list: <code style="background:${accentLight};padding:2px 6px;border-radius:4px;font-size:11px;">${fullReportFile}</code></p>`;
+  }
 
   const text = buildText(digestJobs, dateStr, fresh.length);
   const html = buildHTML(digestJobs, dateStr, fresh.length, fullListNote);
