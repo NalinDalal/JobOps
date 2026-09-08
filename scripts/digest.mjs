@@ -121,6 +121,22 @@ function isSeniorRole(title, snippet) {
   return seniorIndicators.some(ind => text.includes(ind));
 }
 
+const WEB_PRIORITY_SKILLS = ['typescript','javascript','react','next.js','node.js','tailwind css','elysia','express','postgresql','prisma','mongodb','redis','docker','kubernetes','aws','github actions','bun','jest','bash','linux'];
+
+function pickRelevantFallbackSkills(allSkills) {
+  const lower = allSkills.map(s => s.toLowerCase());
+  const picked = [];
+  for (const priority of WEB_PRIORITY_SKILLS) {
+    const idx = lower.indexOf(priority);
+    if (idx !== -1 && !picked.includes(allSkills[idx])) {
+      picked.push(allSkills[idx]);
+      if (picked.length >= 3) break;
+    }
+  }
+  if (picked.length === 0) return allSkills.slice(0, 3);
+  return picked;
+}
+
 function outreachFor(job) {
   const name = candidate.name || 'Candidate';
   const experience = getProfileExperience(profile);
@@ -129,7 +145,7 @@ function outreachFor(job) {
   
   // Find skills relevant to this specific job, prioritizing JD keywords
   const matchedSkills = matchSkillsToJob(job, allSkills);
-  const topSkills = matchedSkills.slice(0, 3).join(', ') || allSkills.slice(0, 3).join(', ');
+  const topSkills = matchedSkills.slice(0, 3).join(', ') || pickRelevantFallbackSkills(allSkills).join(', ');
   
   // Check seniority mismatch
   const seniorMismatch = isSeniorRole(job.title, job.snippet);
@@ -144,7 +160,7 @@ function outreachFor(job) {
   
   const skillLine = matchedSkills.length > 0
     ? `My experience with ${topSkills} directly aligns with what you're looking for.`
-    : `I build production-style projects with ${topSkills} and similar modern stacks.`;
+    : `My background is in ${topSkills} and similar modern stacks.`;
   
   const lines = [
     `Hi Hiring Manager, I'm ${name} — ${experienceLine}`,
@@ -265,7 +281,7 @@ function truncate(s, maxLen = 200) {
   return clean.substring(0, maxLen).replace(/\s+\S*$/, '') + '…';
 }
 
-function buildHTML(jobs, dateStr, freshCount) {
+function buildHTML(jobs, dateStr, freshCount, fullListNote) {
   const accent = '#0a0a0a';
   const accentLight = '#f5f5f7';
   const textPrimary = '#1d1d1f';
@@ -365,8 +381,7 @@ function buildHTML(jobs, dateStr, freshCount) {
       const actions = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">
         <tr>
           <td style="padding:0 8px 0 0;"><a href="${esc(primary.url)}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">View posting</a></td>
-          <td style="padding:0 8px 0 0;"><a href="mailto:?subject=Application: ${esc(primary.title)} at ${esc(group.company)}&body=${encodeURIComponent('I am applying for the ' + primary.title + ' role at ' + group.company + '.')}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">Mark applied</a></td>
-          <td style="padding:0 8px 0 0;"><a href="${esc(primary.url)}" style="font-family:${font};font-size:12px;color:${textSecondary};text-decoration:underline;text-underline-offset:3px;">Dismiss</a></td>
+          <td style="padding:0 8px 0 0;"><a href="mailto:?subject=Application: ${esc(primary.title)} at ${esc(group.company)}&body=${encodeURIComponent('I am applying for the ' + primary.title + ' role at ' + group.company + '.')}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">Draft applied note</a></td>
         </tr>
       </table>`;
 
@@ -432,6 +447,7 @@ function buildHTML(jobs, dateStr, freshCount) {
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f5f5f7;">
+${fullListNote ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 14px;"><tr><td style="padding:0 14px;"><p style="margin:0;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.4;">${fullListNote}</p></td></tr></table>` : ''}
 ${rows}
 </body>
 </html>`;
@@ -587,13 +603,20 @@ async function main() {
   const dateStr = ist.toISOString().replace('T', ' ').substring(0, 16) + ' IST';
   const subject = `JobOps Digest — ${fresh.length} new jobs (${dateStr.slice(0, 11)})`;
 
+  const reportsDir = resolve(ROOT, 'reports');
+  if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+
+  // Save full report with all fresh jobs
+  const fullHtml = buildHTML(fresh, dateStr, fresh.length, '');
+  const fullReportFile = resolve(reportsDir, `digest-full-${ist.toISOString().split('T')[0]}.html`);
+  writeFileSync(fullReportFile, fullHtml);
+  const fullListNote = fresh.length > digestJobs.length ? `<p style="margin:0 0 14px;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.4;">Full list: <code style="background:${accentLight};padding:2px 6px;border-radius:4px;font-size:11px;">${fullReportFile}</code></p>` : '';
+
   const text = buildText(digestJobs, dateStr, fresh.length);
-  const html = buildHTML(digestJobs, dateStr, fresh.length);
+  const html = buildHTML(digestJobs, dateStr, fresh.length, fullListNote);
 
   const sent = await sendEmail(subject, text, html);
 
-  const reportsDir = resolve(ROOT, 'reports');
-  if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
   const digestFile = resolve(reportsDir, `digest-${ist.toISOString().split('T')[0]}.md`);
   writeFileSync(digestFile, `# JobOps Digest — ${dateStr}\n\n${text}\n`);
   console.log(`\nDigest saved to: ${digestFile}`);
