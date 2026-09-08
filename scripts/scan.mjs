@@ -17,7 +17,7 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
-import { loadActiveProfile, getProfileTargetRoles, getProfileTargetLocations } from './lib/profile.mjs';
+import { loadActiveProfile, getProfileSkills, getProfileTargetRoles, getProfileTargetLocations } from './lib/profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -194,6 +194,45 @@ function matchesTitleFilter(title, snippet) {
     if (!matched) return false;
   }
   
+  return true;
+}
+
+// ─── Skill filter — exclude jobs requiring skills user doesn't have ─
+function matchesSkillFilter(title, snippet, tags) {
+  const profile = loadActiveProfile();
+  const userSkills = getProfileSkills(profile).toLowerCase();
+  const text = `${title || ''} ${snippet || ''} ${(tags || []).join(' ')}`.toLowerCase();
+
+  // Hard-skill keywords that trigger exclusion if mentioned as primary requirement
+  // Only block if the skill is prominently mentioned (title, first-line, or as a tag)
+  const hardSkills = [
+    'java', 'c#', 'csharp', 'go', 'golang', 'scala', 'kotlin',
+    'swift', 'objective-c', 'ruby', 'php', 'perl', 'r language',
+    '.net', 'dotnet', 'spring boot', 'django', 'flask',
+    'objective c', 'ios developer', 'android developer',
+    'flutter', 'react native', 'xamarin',
+  ];
+
+  // Check title — if title contains a hard skill not in user's profile, exclude
+  const titleLower = (title || '').toLowerCase();
+  for (const skill of hardSkills) {
+    if (userSkills.includes(skill)) continue; // user has this skill, skip
+    // Title match is strong signal — exclude
+    if (titleLower.includes(skill)) return false;
+  }
+
+  // Check tags — tags are explicit skill requirements
+  const userSkillsList = userSkills.split(',').map(s => s.trim());
+  for (const tag of (tags || [])) {
+    const tagLower = tag.toLowerCase().trim();
+    if (!tagLower) continue;
+    // If tag matches a known hard skill and user doesn't have it, exclude
+    for (const skill of hardSkills) {
+      if (userSkills.includes(skill)) continue;
+      if (tagLower === skill || tagLower.includes(skill)) return false;
+    }
+  }
+
   return true;
 }
 
@@ -858,8 +897,11 @@ async function main() {
   // Title filter using search.yml include/exclude (also checks snippet for experience)
   const filtered = unique.filter(j => matchesTitleFilter(j.title, j.snippet));
 
+  // Skill filter — exclude jobs requiring skills user doesn't have
+  const skilled = filtered.filter(j => matchesSkillFilter(j.title, j.snippet, j.tags));
+
   // Location filter using search.yml
-  const located = filtered.filter(j => matchesLocationFilter(j.location));
+  const located = skilled.filter(j => matchesLocationFilter(j.location));
 
   // Age filter
   const fresh = located.filter(j => isFreshEnough(j.posted));
@@ -869,7 +911,8 @@ async function main() {
 
   console.log(`\nFilters applied:`);
   console.log(`  Title filter: ${unique.length} → ${filtered.length}`);
-  console.log(`  Location filter: ${filtered.length} → ${located.length}`);
+  console.log(`  Skill filter: ${filtered.length} → ${skilled.length}`);
+  console.log(`  Location filter: ${skilled.length} → ${located.length}`);
   console.log(`  Age filter (${searchConfig.max_age_days} days): ${located.length} → ${fresh.length}`);
   console.log(`\nFound ${fresh.length} jobs:\n`);
   console.log(JSON.stringify(fresh, null, 2));

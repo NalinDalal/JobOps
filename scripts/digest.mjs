@@ -606,6 +606,10 @@ async function main() {
   const reportsDir = resolve(ROOT, 'reports');
   if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
 
+  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+  const textSecondary = '#6e6e73';
+  const accentLight = '#f5f5f7';
+
   // Save full report with all fresh jobs (local only; CI runners are ephemeral)
   const isCI = Boolean(process.env.CI);
   let fullListNote = '';
