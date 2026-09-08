@@ -21,10 +21,10 @@
  *   node cli.mjs digest [--mode preview|daily] [--mock] [--send]
  */
 
-import { spawn } from "child_process";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import { existsSync } from "fs";
+import { spawn } from 'child_process';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
@@ -33,29 +33,29 @@ const command = process.argv[2];
 const args = process.argv.slice(3);
 
 function runScript(scriptName, scriptArgs = []) {
-    const scriptPath = resolve(ROOT, "scripts", scriptName);
-    if (!existsSync(scriptPath)) {
-        console.error(`Script not found: ${scriptPath}`);
-        process.exit(1);
-    }
+  const scriptPath = resolve(ROOT, 'scripts', scriptName);
+  if (!existsSync(scriptPath)) {
+    console.error(`Script not found: ${scriptPath}`);
+    process.exit(1);
+  }
 
-    const child = spawn(process.execPath, [scriptPath, ...scriptArgs], {
-        stdio: "inherit",
-        cwd: ROOT,
-    });
+  const child = spawn(process.execPath, [scriptPath, ...scriptArgs], {
+    stdio: 'inherit',
+    cwd: ROOT,
+  });
 
-    child.on("error", (err) => {
-        console.error(`Failed to start: ${err.message}`);
-        process.exit(1);
-    });
+  child.on('error', (err) => {
+    console.error(`Failed to start: ${err.message}`);
+    process.exit(1);
+  });
 
-    child.on("exit", (code) => {
-        process.exit(code ?? 0);
-    });
+  child.on('exit', (code) => {
+    process.exit(code ?? 0);
+  });
 }
 
 function printHelp() {
-    console.log(`
+  console.log(`
 JobOps — AI Job Hunting Agent
 
 Usage:
@@ -126,53 +126,53 @@ Examples:
 }
 
 switch (command) {
-    case "profile":
-        runScript("profileGenerator.mjs", args);
-        break;
-    case "discover":
-        runScript("discoverCompanies.mjs", args);
-        break;
-    case "scan":
-        runScript("scan.mjs", args);
-        break;
-    case "evaluate":
-        runScript("evaluate.mjs", args);
-        break;
-    case "tailor":
-        runScript("tailor.mjs", args);
-        break;
-    case "tracker":
-        runScript("tracker.mjs", args);
-        break;
-    case "report":
-    case "html-report":
-        runScript("htmlReport.mjs", args);
-        break;
-    case "doctor":
-        runScript("doctor.mjs", args);
-        break;
-    case "rank":
-        runScript("rank.mjs", args);
-        break;
-    case "interview":
-        runScript("interview.mjs", args);
-        break;
-    case "upskill":
-        runScript("upskill.mjs", args);
-        break;
-    case "salary":
-        runScript("salary.mjs", args);
-        break;
-    case "digest":
-        runScript("digest.mjs", args);
-        break;
-    case "help":
-    case "--help":
-    case "-h":
-        printHelp();
-        break;
-    default:
-        console.error(`Unknown command: ${command}`);
-        printHelp();
-        process.exit(1);
+  case 'profile':
+    runScript('profileGenerator.mjs', args);
+    break;
+  case 'discover':
+    runScript('discoverCompanies.mjs', args);
+    break;
+  case 'scan':
+    runScript('scan.mjs', args);
+    break;
+  case 'evaluate':
+    runScript('evaluate.mjs', args);
+    break;
+  case 'tailor':
+    runScript('tailor.mjs', args);
+    break;
+  case 'tracker':
+    runScript('tracker.mjs', args);
+    break;
+  case 'report':
+  case 'html-report':
+    runScript('htmlReport.mjs', args);
+    break;
+  case 'doctor':
+    runScript('doctor.mjs', args);
+    break;
+  case 'rank':
+    runScript('rank.mjs', args);
+    break;
+  case 'interview':
+    runScript('interview.mjs', args);
+    break;
+  case 'upskill':
+    runScript('upskill.mjs', args);
+    break;
+  case 'salary':
+    runScript('salary.mjs', args);
+    break;
+  case 'digest':
+    runScript('digest.mjs', args);
+    break;
+  case 'help':
+  case '--help':
+  case '-h':
+    printHelp();
+    break;
+  default:
+    console.error(`Unknown command: ${command}`);
+    printHelp();
+    process.exit(1);
 }

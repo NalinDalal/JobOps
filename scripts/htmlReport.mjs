@@ -8,75 +8,70 @@
  * Output: reports/tracker-dashboard.html
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import { readTracker } from "./lib/tracker.mjs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { readTracker } from './lib/tracker.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, "..");
+const ROOT = resolve(__dirname, '..');
 
 function generateSVGDashboard(rows) {
-    const total = rows.length;
-    const statuses = {};
-    const outcomes = {};
-    const interviews = rows.filter((r) => r.interviewStage !== "—").length;
-    const offers = rows.filter((r) => r.outcome.includes("Offer")).length;
+  const total = rows.length;
+  const statuses = {};
+  const outcomes = {};
+  const interviews = rows.filter((r) => r.interviewStage !== '—').length;
+  const offers = rows.filter((r) => r.outcome.includes('Offer')).length;
 
-    for (const row of rows) {
-        statuses[row.status] = (statuses[row.status] || 0) + 1;
-        if (row.outcome !== "—")
-            outcomes[row.outcome] = (outcomes[row.outcome] || 0) + 1;
-    }
+  for (const row of rows) {
+    statuses[row.status] = (statuses[row.status] || 0) + 1;
+    if (row.outcome !== '—') outcomes[row.outcome] = (outcomes[row.outcome] || 0) + 1;
+  }
 
-    const maxVal = Math.max(...Object.values(statuses), 1);
+  const maxVal = Math.max(...Object.values(statuses), 1);
 
-    function makeBar(label, value, max, color) {
-        const height = Math.max((value / max) * 100, 2);
-        return `<div style="display:flex;align-items:center;margin:6px 0;">
+  function makeBar(label, value, max, color) {
+    const height = Math.max((value / max) * 100, 2);
+    return `<div style="display:flex;align-items:center;margin:6px 0;">
       <div style="width:120px;font-size:12px;color:#666;">${label}</div>
       <div style="flex:1;background:#f0f0f0;height:20px;border-radius:4px;overflow:hidden;">
         <div style="width:${height}%;background:${color};height:100%;border-radius:4px;transition:width 0.3s;"></div>
       </div>
       <div style="width:30px;text-align:right;font-size:12px;font-weight:bold;margin-left:8px;">${value}</div>
     </div>`;
-    }
+  }
 
-    const colors = {
-        Saved: "#1976d2",
-        Applied: "#f57c00",
-        Interviewing: "#7b1fa2",
-        Offer: "#388e3c",
-        Rejected: "#d32f2f",
-        Withdrawn: "#616161",
-    };
+  const colors = {
+    Saved: '#1976d2',
+    Applied: '#f57c00',
+    Interviewing: '#7b1fa2',
+    Offer: '#388e3c',
+    Rejected: '#d32f2f',
+    Withdrawn: '#616161',
+  };
 
-    const statusBars = Object.entries(statuses)
-        .sort((a, b) => b[1] - a[1])
-        .map(([label, value]) =>
-            makeBar(label, value, maxVal, colors[label] || "#666"),
-        )
-        .join("\n");
+  const statusBars = Object.entries(statuses)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value]) => makeBar(label, value, maxVal, colors[label] || '#666'))
+    .join('\n');
 
-    return statusBars;
+  return statusBars;
 }
 
 function main() {
-    const rows = readTracker();
-    const today = new Date().toISOString().split("T")[0];
-    const upcomingFollowups = rows.filter(
-        (r) => r.followupDate !== "—" && r.followupDate >= today,
-    );
+  const rows = readTracker();
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingFollowups = rows.filter((r) => r.followupDate !== '—' && r.followupDate >= today);
 
-    const total = rows.length;
-    const interviews = rows.filter((r) => r.interviewStage !== "—").length;
-    const offers = rows.filter((r) => r.outcome.includes("Offer")).length;
-    const rejected = rows.filter((r) => r.outcome === "Rejected").length;
-    const ghosted = rows.filter((r) => r.outcome === "Ghosted").length;
+  const total = rows.length;
+  const interviews = rows.filter((r) => r.interviewStage !== '—').length;
+  const offers = rows.filter((r) => r.outcome.includes('Offer')).length;
+  const rejected = rows.filter((r) => r.outcome === 'Rejected').length;
+  const ghosted = rows.filter((r) => r.outcome === 'Ghosted').length;
 
-    const dashboardHTML = generateSVGDashboard(rows);
+  const dashboardHTML = generateSVGDashboard(rows);
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -138,20 +133,20 @@ function main() {
   </div>
 
   ${
-      upcomingFollowups.length > 0
-          ? `
+    upcomingFollowups.length > 0
+      ? `
   <div class="section">
     <h2>⏰ Upcoming Follow-ups</h2>
     <table>
       <thead><tr><th>Company</th><th>Role</th><th>Follow-up Date</th><th>Note</th></tr></thead>
       <tbody>
-        ${upcomingFollowups.map((r) => `<tr><td><strong>${r.company}</strong></td><td>${r.role}</td><td>${r.followupDate}</td><td>${r.followupNote}</td></tr>`).join("\n")}
+        ${upcomingFollowups.map((r) => `<tr><td><strong>${r.company}</strong></td><td>${r.role}</td><td>${r.followupDate}</td><td>${r.followupNote}</td></tr>`).join('\n')}
       </tbody>
     </table>
   </div>
   `
-          : ""
-}
+      : ''
+  }
 
   <div class="section">
     <h2> All Applications</h2>
@@ -162,8 +157,8 @@ function main() {
       <thead><tr><th>#</th><th>Company</th><th>Role</th><th>Status</th><th>Score</th><th>Interview Stage</th><th>Outcome</th><th>Follow-up</th></tr></thead>
       <tbody>
         ${rows
-            .map(
-                (r) => `<tr>
+          .map(
+            (r) => `<tr>
           <td>${r.num}</td>
           <td><strong>${r.company}</strong></td>
           <td>${r.role}</td>
@@ -171,10 +166,10 @@ function main() {
           <td>${r.score}</td>
           <td>${r.interviewStage}</td>
           <td>${r.outcome}</td>
-          <td>${r.followupDate !== "—" ? `<span class="followup">${r.followupDate}</span>` : "—"}</td>
+          <td>${r.followupDate !== '—' ? `<span class="followup">${r.followupDate}</span>` : '—'}</td>
         </tr>`,
-            )
-            .join("\n")}
+          )
+          .join('\n')}
       </tbody>
     </table>
   </div>
@@ -214,12 +209,12 @@ function filterTable() {
 </body>
 </html>`;
 
-    const reportPath = resolve(ROOT, "reports/tracker-dashboard.html");
-    if (!existsSync(resolve(ROOT, "reports")))
-        mkdirSync(resolve(ROOT, "reports"), { recursive: true });
-    writeFileSync(reportPath, html);
-    console.log(`Dashboard saved to: ${reportPath}`);
-    console.log(`Open in browser: file://${reportPath}`);
+  const reportPath = resolve(ROOT, 'reports/tracker-dashboard.html');
+  if (!existsSync(resolve(ROOT, 'reports')))
+    mkdirSync(resolve(ROOT, 'reports'), { recursive: true });
+  writeFileSync(reportPath, html);
+  console.log(`Dashboard saved to: ${reportPath}`);
+  console.log(`Open in browser: file://${reportPath}`);
 }
 
 main();

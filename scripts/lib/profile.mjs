@@ -32,7 +32,9 @@ function loadActiveSlug() {
       const parsed = JSON.parse(raw);
       if (parsed?.slug && typeof parsed.slug === 'string') return parsed.slug.trim();
     }
-  } catch {}
+  } catch (e) {
+    // Silently return null if active profile can't be loaded
+  }
   return null;
 }
 
