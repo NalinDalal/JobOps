@@ -105,6 +105,8 @@ Company: ${job.company}
 Location: ${job.location || 'Not specified'}
 Description: ${(job.description || job.snippet || '').substring(0, 3000)}
 
+IMPORTANT: This candidate is Junior/Entry-level (0-2 years). Jobs requiring 5+ years of experience are a poor fit.
+
 Rate 1-5 for each dimension:
 - roleFit: How well does the role match skills and target roles?
 - locationFit: Is the location compatible with preferences?
@@ -113,11 +115,12 @@ Rate 1-5 for each dimension:
 - cultureFit: Does the company culture seem aligned (consider work-life balance, tech stack, mission)?
 
 Also provide:
+- entryLevelFit: Is this role suitable for someone with 0-2 years experience? (1=requires 5+ years, 5=open to fresh graduates)
 - recommendation: One-line recommendation
 - analysis: 2-3 sentences of detailed analysis
 - redFlags: Array of potential concerns (empty array if none)
 
-Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.5,"compFit":4.0,"cultureFit":4.0,"recommendation":"Apply!","analysis":"...","redFlags":[]}`;
+Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.5,"compFit":4.0,"cultureFit":4.0,"entryLevelFit":4.0,"recommendation":"Apply!","analysis":"...","redFlags":[]}`;
 
   console.log(`Evaluating: ${job.title} at ${job.company}...`);
   const raw = await cfAI(prompt);
@@ -128,6 +131,7 @@ Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.
     growthPotential: 3.0,
     compFit: 3.0,
     cultureFit: 3.0,
+    entryLevelFit: 3.0,
     recommendation: 'Manual review needed',
     analysis: 'Could not parse AI evaluation.',
     redFlags: [],
@@ -136,9 +140,17 @@ Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.
   // Validate redFlags is array
   if (!Array.isArray(result.redFlags)) result.redFlags = [];
 
+  // Factor in entry-level fit: penalize if role requires too much experience
+  if (result.entryLevelFit && result.entryLevelFit < 3) {
+    const penalty = (3 - result.entryLevelFit) * 0.3;
+    result.overall = Math.max(1, result.overall - penalty);
+    result.redFlags.push(`Requires more experience than candidate has (entry-level fit: ${result.entryLevelFit}/5)`);
+  }
+
   // Calculate overall if not provided
-  if (!result.overall) {
+  if (!result.overall || result.overall === 3.0) {
     const scores = [result.roleFit, result.locationFit, result.growthPotential, result.compFit, result.cultureFit];
+    if (result.entryLevelFit) scores.push(result.entryLevelFit);
     result.overall = scores.reduce((a, b) => a + b, 0) / scores.length;
   }
 
@@ -159,6 +171,7 @@ Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.
   console.log(`| Growth | ${result.growthPotential}/5 |`);
   console.log(`| Compensation | ${result.compFit}/5 |`);
   console.log(`| Culture | ${result.cultureFit}/5 |`);
+  console.log(`| Entry-Level Fit | ${result.entryLevelFit || 'N/A'}/5 |`);
   console.log(`\n### Analysis\n${result.analysis}`);
   console.log(`\n### Recommendation\n${result.recommendation}`);
 
@@ -180,6 +193,7 @@ Return JSON: {"overall":4.2,"roleFit":4.5,"locationFit":4.0,"growthPotential":4.
 - Growth: ${result.growthPotential}/5
 - Compensation: ${result.compFit}/5
 - Culture: ${result.cultureFit}/5
+- Entry-Level Fit: ${result.entryLevelFit || 'N/A'}/5
 
 ## Analysis
 ${result.analysis}

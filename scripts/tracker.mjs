@@ -424,7 +424,7 @@ function handleReset() {
     process.exit(1);
   }
 
-  console.log(`\n⚠️  This will reset: ${mode}`);
+  console.log(`\n  This will reset: ${mode}`);
   console.log('   - profile: clears all tracker rows (keeps header)');
   console.log('   - documents: deletes archived application folders under data/applications/');
   console.log('   - all: both of the above');

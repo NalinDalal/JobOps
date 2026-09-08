@@ -70,7 +70,7 @@ function stripMetaCommentary(text) {
     }
     kept.push(line);
   }
-  if (stripped > 0) console.warn(`⚠️  Stripped ${stripped} meta-commentary / note paragraph(s) from output`);
+  if (stripped > 0) console.warn(`  Stripped ${stripped} meta-commentary / note paragraph(s) from output`);
   return kept.join('\n').trim() + '\n';
 }
 
@@ -96,9 +96,9 @@ function warnFabricatedSkills(tailored, baseCv) {
   const tailoredTokens = extractSkillTokens(tailored);
   const fabricated = [...tailoredTokens].filter(t => !baseTokens.has(t)).slice(0, 15);
   if (fabricated.length > 0) {
-    console.warn(`⚠️  Possible fabricated skill(s) — verify before sending: ${fabricated.join(', ')}`);
+    console.warn(`  Possible fabricated skill(s) — verify before sending: ${fabricated.join(', ')}`);
   } else {
-    console.log('✅ No fabricated skills detected (all skills present in base CV).');
+    console.log(' No fabricated skills detected (all skills present in base CV).');
   }
 }
 
@@ -116,9 +116,9 @@ function verifyATS(cvText, candidate) {
   if (tableRows > 5) issues.push('Markdown tables detected — some ATS parsers struggle with tables');
   if (cvText.split('\n').some(line => line.includes('  '))) issues.push('Double-spaced lines detected — may indicate multi-column layout');
   if (issues.length === 0) {
-    console.log('✅ ATS source check passed.');
+    console.log(' ATS source check passed.');
   } else {
-    console.warn('⚠️  ATS source check flagged issues:');
+    console.warn('  ATS source check flagged issues:');
     issues.forEach(i => console.warn(`   - ${i}`));
   }
   return issues;
@@ -144,9 +144,9 @@ function verifyFacts(tailored, baseCv, candidate) {
     }
   }
   if (issues.length === 0) {
-    console.log('✅ Verified-facts check passed: contact details and key metrics anchor in base CV.');
+    console.log(' Verified-facts check passed: contact details and key metrics anchor in base CV.');
   } else {
-    console.warn('⚠️  Verified-facts check flagged issues:');
+    console.warn('  Verified-facts check flagged issues:');
     issues.forEach(i => console.warn(`   - ${i}`));
   }
   return issues;
@@ -225,8 +225,8 @@ Return ONLY the cover letter text. No preamble, no notes, no explanation, no "De
   writeFileSync(cvFile, cvClean);
   writeFileSync(clFile, clClean);
 
-  console.log(`\n✅ CV saved to: ${cvFile}`);
-  console.log(`✅ Cover letter saved to: ${clFile}`);
+  console.log(`\n CV saved to: ${cvFile}`);
+  console.log(` Cover letter saved to: ${clFile}`);
   console.log(`\nReview both files before applying.`);
 }
 

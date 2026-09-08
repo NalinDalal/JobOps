@@ -57,6 +57,9 @@ let searchConfig = {
     greenhouse: true,
     lever: true,
     ashby: true,
+    linkedin: true,
+    instahyre: true,
+    wellfound: true,
   },
   query_mode: 'auto',
   custom_query: '',
@@ -114,6 +117,9 @@ function loadSearchConfig() {
       greenhouse: true,
       lever: true,
       ashby: true,
+      linkedin: true,
+      instahyre: true,
+      wellfound: true,
     },
     query_mode: cfg.query_mode || 'auto',
     custom_query: cfg.custom_query || '',
@@ -150,12 +156,30 @@ function matchesSearch(text) {
 }
 
 // ─── Title filter using search.yml include/exclude ───────────────
-function matchesTitleFilter(title) {
+function matchesTitleFilter(title, snippet) {
   const titleLower = title.toLowerCase();
   
-  // Check exclude first (negative filter)
+  // Check exclude first (negative filter) against title
   for (const excl of searchConfig.exclude_titles) {
     if (titleLower.includes(excl.toLowerCase())) return false;
+  }
+  
+  // Also check snippet for experience-based exclusions
+  if (snippet) {
+    const snippetLower = snippet.toLowerCase();
+    const experiencePatterns = [
+      /(\d+)\+?\s*years?\s*(of\s*)?(experience|professional|relevant)/i,
+      /experience\s*:\s*(\d+)\+?\s*years?/i,
+      /minimum\s*(of\s*)?(\d+)\+?\s*years?/i,
+      /at\s*least\s*(\d+)\+?\s*years?/i,
+    ];
+    for (const pattern of experiencePatterns) {
+      const match = snippet.match(pattern);
+      if (match) {
+        const years = parseInt(match[1] || match[2], 10);
+        if (years >= 5) return false; // Skip roles requiring 5+ years
+      }
+    }
   }
   
   // Check include (positive filter) - if list not empty, must match at least one
@@ -178,12 +202,15 @@ function matchesLocationFilter(location) {
   const locLower = location.toLowerCase();
   
   // Allow remote if configured
-  if (searchConfig.allow_remote && locLower === 'remote') return true;
+  if (searchConfig.allow_remote && (locLower === 'remote' || locLower.includes('remote'))) return true;
   
-  // Check against configured locations
+  // Check against configured locations (partial match)
   for (const loc of searchConfig.locations) {
     if (locLower.includes(loc.toLowerCase())) return true;
   }
+  
+  // If location is "Not specified" or empty, allow it (might be remote)
+  if (!locLower || locLower === 'not specified' || locLower === 'anywhere') return true;
   
   return false;
 }
@@ -533,6 +560,206 @@ async function scanAshby(slug) {
   }
 }
 
+// ─── LinkedIn (guest/public job listings) ────────────────────────
+async function scanLinkedIn() {
+  if (MOCK_MODE || searchConfig.mock_mode) return;
+  if (!searchConfig.portals.linkedin) return;
+  
+  try {
+    const searchQ = globalThis.__query || 'software engineer';
+    const location = globalThis.__location || '';
+    
+    // LinkedIn public jobs search (no auth required, low volume)
+    const params = new URLSearchParams({
+      keywords: searchQ,
+      location: location || 'India',
+      f_TPR: 'r604800', // Last 7 days
+      f_E: '2', // Entry level
+      f_JT: 'F', // Full-time
+    });
+    
+    const res = await fetchT(`https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?${params}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Accept': 'text/html',
+      },
+    });
+    
+    if (!res.ok) return;
+    const html = await res.text();
+    
+    // Parse job cards from HTML
+    const cardRegex = /<li[^>]*class="[^"]*result-card[^"]*"[^>]*>([\s\S]*?)<\/li>/g;
+    const titleRegex = /<h3[^>]*class="[^"]*result-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/;
+    const companyRegex = /<h4[^>]*class="[^"]*result-card__company[^"]*"[^>]*>([\s\S]*?)<\/h4>/;
+    const locationRegex = /<span[^>]*class="[^"]*job-result__location[^"]*"[^>]*>([\s\S]*?)<\/span>/;
+    const linkRegex = /<a[^>]*href="([^"]*)"[^>]*class="[^"]*result-card__full-card-link[^"]*"/;
+    const dateRegex = /<time[^>]*class="[^"]*result-card__date[^"]*"[^>]*datetime="([^"]*)"/;
+    
+    let match;
+    while ((match = cardRegex.exec(html)) !== null) {
+      const card = match[1];
+      
+      const titleMatch = card.match(titleRegex);
+      const companyMatch = card.match(companyRegex);
+      const locationMatch = card.match(locationRegex);
+      const linkMatch = card.match(linkRegex);
+      const dateMatch = card.match(dateRegex);
+      
+      if (!titleMatch || !companyMatch) continue;
+      
+      const title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
+      const company = companyMatch[1].replace(/<[^>]*>/g, '').trim();
+      const loc = locationMatch ? locationMatch[1].replace(/<[^>]*>/g, '').trim() : 'Not specified';
+      const url = linkMatch ? linkMatch[1] : '';
+      const posted = dateMatch ? dateMatch[1].split('T')[0] : 'Unknown';
+      
+      if (isBlacklisted(company)) continue;
+      if (!matchesSearch(`${title} ${company} ${loc}`)) continue;
+      if (!isFreshEnough(posted)) continue;
+      
+      jobs.push({
+        id: jobs.length + 1,
+        title,
+        company,
+        location: loc,
+        url: url.startsWith('http') ? url : `https://www.linkedin.com${url}`,
+        source: 'linkedin',
+        tags: [],
+        snippet: '',
+        posted,
+      });
+    }
+  } catch (e) {
+    console.error(`LinkedIn error: ${e.message}`);
+  }
+}
+
+// ─── Instahyre (India-focused) ───────────────────────────────────
+async function scanInstahyre() {
+  if (MOCK_MODE || searchConfig.mock_mode) return;
+  if (!searchConfig.portals.instahyre) return;
+  
+  try {
+    // Instahyre public job listing API
+    const res = await fetchT('https://api.instahyre.com/api/v1/jobs?page=1&limit=50', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        'Accept': 'application/json',
+      },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const items = data.jobs || data.data || data || [];
+    if (!Array.isArray(items)) return;
+
+    for (const item of items) {
+      const company = item.company_name || item.company || '';
+      if (isBlacklisted(company)) continue;
+      
+      const title = item.title || item.job_title || '';
+      const location = item.location || item.city || 'India';
+      if (!matchesSearch(`${title} ${company} ${location}`)) continue;
+      
+      const posted = item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : 'Unknown';
+      if (!isFreshEnough(posted)) continue;
+      
+      jobs.push({
+        id: jobs.length + 1,
+        title,
+        company,
+        location,
+        url: item.job_url || item.url || `https://instahyre.com/job/${item.id}`,
+        source: 'instahyre',
+        tags: item.skills || item.tags || [],
+        snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+        posted,
+      });
+    }
+  } catch (e) {
+    console.error(`Instahyre error: ${e.message}`);
+  }
+}
+
+// ─── Wellfound (AngelList) ──────────────────────────────────────
+async function scanWellfound() {
+  if (MOCK_MODE || searchConfig.mock_mode) return;
+  if (!searchConfig.portals.wellfound) return;
+  
+  try {
+    // Wellfound GraphQL API for job listings
+    const query = `
+      query JobSearchQuery($query: String!) {
+        jobSearch(input: { query: $query, first: 50 }) {
+          edges {
+            node {
+              id
+              title
+              slug
+              company {
+                name
+                slug
+              }
+              locations
+              remote
+              postedAt
+              description
+            }
+          }
+        }
+      }
+    `;
+    
+    const searchQ = globalThis.__query || 'software engineer';
+    const res = await fetchT('https://wellfound.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      },
+      body: JSON.stringify({
+        query,
+        variables: { query: searchQ },
+      }),
+    });
+    
+    if (!res.ok) return;
+    const data = await res.json();
+    const edges = data?.data?.jobSearch?.edges || [];
+    
+    for (const edge of edges) {
+      const item = edge.node;
+      if (!item) continue;
+      
+      const company = item.company?.name || '';
+      if (isBlacklisted(company)) continue;
+      
+      const title = item.title || '';
+      const locs = item.locations || [];
+      const location = item.remote ? 'Remote' : (locs[0] || 'Not specified');
+      
+      if (!matchesSearch(`${title} ${company} ${locs.join(' ')}`)) continue;
+      
+      const posted = item.postedAt ? new Date(item.postedAt).toISOString().split('T')[0] : 'Unknown';
+      if (!isFreshEnough(posted)) continue;
+      
+      jobs.push({
+        id: jobs.length + 1,
+        title,
+        company,
+        location,
+        url: `https://wellfound.com/jobs/${item.slug}`,
+        source: 'wellfound',
+        tags: [],
+        snippet: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : '',
+        posted,
+      });
+    }
+  } catch (e) {
+    console.error(`Wellfound error: ${e.message}`);
+  }
+}
+
 // ─── Scan all boards ─────────────────────────────────────────────
 async function scanAllGreenhouse() {
   await Promise.all(greenhouseBoards.map(slug => scanGreenhouse(slug)));
@@ -547,8 +774,9 @@ async function scanAllAshby() {
 }
 
 // ─── Main scan function ──────────────────────────────────────────
-async function scanOnce(q) {
+async function scanOnce(q, loc) {
   globalThis.__query = q;
+  globalThis.__location = loc || '';
   jobs.length = 0;
   
   const tasks = [];
@@ -559,6 +787,9 @@ async function scanOnce(q) {
   if (searchConfig.portals.greenhouse) tasks.push(scanAllGreenhouse());
   if (searchConfig.portals.lever) tasks.push(scanAllLever());
   if (searchConfig.portals.ashby) tasks.push(scanAllAshby());
+  if (searchConfig.portals.linkedin) tasks.push(scanLinkedIn());
+  if (searchConfig.portals.instahyre) tasks.push(scanInstahyre());
+  if (searchConfig.portals.wellfound) tasks.push(scanWellfound());
   
   await Promise.all(tasks);
   const results = jobs.slice();
@@ -579,7 +810,7 @@ async function main() {
   }
 
   if (searchConfig.mock_mode) {
-    console.log('🧪 Mock mode enabled - using sample data');
+    console.log(' Mock mode enabled - using sample data');
   }
 
   const location = LOCATION;
@@ -603,7 +834,7 @@ async function main() {
   let all = [];
   for (const q of queries) {
     console.log(`Scanning for: "${q}" in "${location}"...`);
-    const results = await scanOnce(q);
+    const results = await scanOnce(q, location);
     console.log(`  -> ${results.length} raw matches`);
     all = all.concat(results);
   }
@@ -624,8 +855,8 @@ async function main() {
     return true;
   });
 
-  // Title filter using search.yml include/exclude
-  const filtered = unique.filter(j => matchesTitleFilter(j.title));
+  // Title filter using search.yml include/exclude (also checks snippet for experience)
+  const filtered = unique.filter(j => matchesTitleFilter(j.title, j.snippet));
 
   // Location filter using search.yml
   const located = filtered.filter(j => matchesLocationFilter(j.location));

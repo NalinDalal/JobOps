@@ -76,27 +76,57 @@ const profile = loadActiveProfile();
 const candidate = getProfileCandidate(profile);
 const outreach = getProfileOutreach(profile);
 
+function matchSkillsToJob(job, allSkills) {
+  const text = `${job.title} ${job.snippet || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
+  const matched = [];
+  for (const skill of allSkills) {
+    if (text.includes(skill.toLowerCase())) {
+      matched.push(skill);
+    }
+  }
+  return matched;
+}
+
 function outreachFor(job) {
   const name = candidate.name || 'Candidate';
   const experience = getProfileExperience(profile);
-  const skills = getProfileSkills(profile);
+  const allSkills = getProfileSkills(profile).split(', ').map(s => s.trim()).filter(Boolean);
   const templates = outreach.short_dm || outreach.long_dm || '';
-  let text = templates
-    .replace(/\{Name\}/g, 'Hiring Manager')
-    .replace(/\{candidate_name\}/g, name)
-    .replace(/\{experience_level\}/g, experience || 'software')
-    .replace(/\{skills\}/g, skills)
-    .replace(/\{role\}/g, job.title)
-    .replace(/\{company\}/g, job.company);
-  if (!text) {
-    const lines = [
-      `Hi Hiring Manager, I'm ${name} — a ${experience || 'software'} engineer focused on ${skills}.`,
-      `I'm excited about ${job.company}'s work and this ${job.title} role. I build production-style projects (tests, CI, DevOps-friendly) and can share concise repos${candidate.github ? ` (${candidate.github})` : ''}.`,
-      'Would you be open to a quick chat or pointing me to the best next step? Thanks!',
-    ];
-    text = lines.join('\n');
+  
+  // Find skills relevant to this specific job
+  const matchedSkills = matchSkillsToJob(job, allSkills);
+  const topSkills = matchedSkills.slice(0, 3).join(', ') || allSkills.slice(0, 3).join(', ');
+  
+  // Build personalized outreach regardless of template
+  const skillLine = matchedSkills.length > 0
+    ? `My experience with ${topSkills} directly aligns with what you're looking for.`
+    : `I build production-style projects with ${topSkills} and similar modern stacks.`;
+  
+  const companyHook = matchedSkills.length > 0
+    ? `I noticed ${job.company} uses ${matchedSkills[0]} — that's one of my core tools.`
+    : `I'm excited about ${job.company}'s work and this ${job.title} role.`;
+  
+  const lines = [
+    `Hi Hiring Manager, I'm ${name} — a ${experience || 'software'} engineer.`,
+    companyHook,
+    skillLine,
+    `I build production-style projects (tests, CI, DevOps-friendly) and can share concise repos${candidate.github ? ` (${candidate.github})` : ''}.`,
+    'Would you be open to a quick chat or pointing me to the best next step? Thanks!',
+  ];
+  
+  // Only use template if it's a custom template (not the default one without {skills})
+  // The default template doesn't have {skills}, so we always use personalized outreach
+  if (templates && templates.includes('{skills}')) {
+    return templates
+      .replace(/\{Name\}/g, 'Hiring Manager')
+      .replace(/\{candidate_name\}/g, name)
+      .replace(/\{experience_level\}/g, experience || 'software')
+      .replace(/\{skills\}/g, topSkills)
+      .replace(/\{role\}/g, job.title)
+      .replace(/\{company\}/g, job.company);
   }
-  return text;
+  
+  return lines.join('\n');
 }
 
 // ─── Seen database (dedup) ──────────────────────────────────────
@@ -197,11 +227,17 @@ function truncate(s, maxLen = 200) {
 }
 
 function buildHTML(jobs, dateStr, freshCount) {
+  // Build TL;DR summary
+  const strongMatches = jobs.filter(j => j.evaluation?.overall >= 4.0).length;
+  const worthReviewing = jobs.filter(j => j.evaluation?.overall >= 3.5 && j.evaluation?.overall < 4.0).length;
+  const withFlags = jobs.filter(j => j.evaluation?.redFlags?.length > 0).length;
+  const unscored = jobs.filter(j => !j.evaluation?.overall).length;
+
   const rows = jobs.map(j => {
     const score = j.evaluation?.overall ? `<span style="background:#111;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold;">${j.evaluation.overall.toFixed(1)}/5</span>` : '';
     const rec = j.evaluation?.recommendation ? `<p><em>${esc(j.evaluation.recommendation)}</em></p>` : '';
     const flags = j.evaluation?.redFlags?.length
-      ? `<p style="color:#b91c1c;">⚠ ${esc(j.evaluation.redFlags.join(' • '))}</p>`
+      ? `<p style="color:#b91c1c;"> ${esc(j.evaluation.redFlags.join(' • '))}</p>`
       : '';
     const outreach = stripHtml(outreachFor(j)).replace(/\n/g, '<br>');
     const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
@@ -227,20 +263,49 @@ function buildHTML(jobs, dateStr, freshCount) {
 
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:680px;margin:auto;">
   <h2>JobOps Daily Digest — ${dateStr}</h2>
-  <p>${freshCount} new job(s) found across ${jobs.length} shown. Full list is in your tracker pipeline.</p>
+  <p>${freshCount} new job(s) found. ${jobs.length} shown after scoring.</p>
+  
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+    <p style="margin:0 0 6px;font-weight:600;color:#0369a1;">TL;DR</p>
+    <p style="margin:0;color:#333;font-size:14px;">
+      ${strongMatches > 0 ? `<strong style="color:#16a34a;">${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}</strong>` : ''}
+      ${strongMatches > 0 && worthReviewing > 0 ? ' · ' : ''}
+      ${worthReviewing > 0 ? `<span style="color:#d97706;">${worthReviewing} worth reviewing</span>` : ''}
+      ${(strongMatches > 0 || worthReviewing > 0) && unscored > 0 ? ' · ' : ''}
+      ${unscored > 0 ? `<span style="color:#6b7280;">${unscored} unscored</span>` : ''}
+      ${withFlags > 0 ? ` · <span style="color:#dc2626;">${withFlags} with red flags</span>` : ''}
+      ${strongMatches === 0 && worthReviewing === 0 && unscored === 0 ? '<span style="color:#6b7280;">No strong matches today — keep applying</span>' : ''}
+    </p>
+  </div>
+  
   ${rows}
   <p style="color:#777;font-size:12px;">Generated by JobOps. Scores are AI estimates — review before applying.</p>
 </div>`;
 }
 
 function buildText(jobs, dateStr, freshCount) {
+  const strongMatches = jobs.filter(j => j.evaluation?.overall >= 4.0).length;
+  const worthReviewing = jobs.filter(j => j.evaluation?.overall >= 3.5 && j.evaluation?.overall < 4.0).length;
+  const withFlags = jobs.filter(j => j.evaluation?.redFlags?.length > 0).length;
+  const unscored = jobs.filter(j => !j.evaluation?.overall).length;
+
   const lines = [`JobOps Daily Digest — ${dateStr}`, `${freshCount} new job(s)`, ''];
+  
+  // TL;DR
+  const tldr = [];
+  if (strongMatches > 0) tldr.push(`${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}`);
+  if (worthReviewing > 0) tldr.push(`${worthReviewing} worth reviewing`);
+  if (unscored > 0) tldr.push(`${unscored} unscored`);
+  if (withFlags > 0) tldr.push(`${withFlags} with red flags`);
+  if (tldr.length > 0) lines.push(`TL;DR: ${tldr.join(' · ')}`, '');
   for (const j of jobs) {
     const score = j.evaluation?.overall ? ` [${j.evaluation.overall.toFixed(1)}/5]` : '';
     lines.push(`${j.title}${score} — ${j.company} (${j.location})`);
     lines.push(`  ${j.url}`);
     if (j.evaluation?.recommendation) lines.push(`  Rec: ${j.evaluation.recommendation}`);
-    if (j.evaluation?.redFlags?.length) lines.push(`  ⚠ ${j.evaluation.redFlags.join(' • ')}`);
+    if (j.evaluation?.redFlags?.length) lines.push(`   ${j.evaluation.redFlags.join(' • ')}`);
+    const outreachLines = outreachFor(j).split('\n');
+    lines.push(`  Outreach: ${outreachLines.join('\n         ')}`);
     lines.push('');
   }
   lines.push('--- LinkedIn outreach drafts + scores via JobOps ---');

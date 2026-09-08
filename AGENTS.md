@@ -53,6 +53,37 @@ User request
 1. Run `node scripts/tracker.mjs followup "Company" "note" ["date"]`
 2. Default date is +7 days from today
 
+### When user says "search ATS boards" or "find jobs on greenhouse/lever/ashby"
+1. Run `node scripts/atsSearch.mjs "role query" "location" --boards greenhouse,lever,ashby`
+2. Shows Google dorks + direct search URLs for ATS boards
+3. These jobs are less competitive than LinkedIn postings
+
+### When user says "verify if a job is real" or "is this job genuine"
+1. Run `node scripts/verifyJob.mjs --company "Company" --role "Role"`
+2. Cross-checks LinkedIn, Wellfound, company page, Greenhouse API, Lever API
+3. Gives a trust score (80%+ = very likely genuine)
+
+### When user says "find email for [Company]" or "email outreach"
+1. Run `node scripts/emailOutreach.mjs --company "Company" --role "Role"`
+2. Finds CTO/EM contacts, drafts personalized emails
+3. Tracks outreach in data/outreach.json
+4. Follow up in 4-5 days: `node scripts/emailOutreach.mjs --followup`
+
+### When user says "start 30-day challenge" or "challenge progress"
+1. Run `node scripts/challenge.mjs` — show today's progress
+2. Log outreach: `node scripts/challenge.mjs log "Company" [email|linkedin|call]`
+3. View stats: `node scripts/challenge.mjs stats`
+4. Goal: 300 companies in 30 days (10/day)
+
+### When user says "reverse engineer JDs" or "find skill patterns"
+1. Run `node scripts/reverseEngineer.mjs` — analyze recent jobs
+2. Shows skill patterns, company patterns, gap analysis, AI integration angles
+
+### When user says "loom outreach" or "find companies for loom"
+1. Run `node scripts/loomOutreach.mjs` — find 5 target companies
+2. Deep research: `node scripts/loomOutreach.mjs --company "Razorpay"`
+3. Generates loom script, DM template, who to contact
+
 ### When user says "export tracker"
 1. Run `node scripts/tracker.mjs export`
 2. CSV saved to `data/tracker-export.csv`
@@ -74,6 +105,14 @@ User request
 | `scripts/html-report.mjs` | Self-contained HTML dashboard generator |
 | `scripts/digest.mjs` | Daily digest (scan → dedup → AI score → outreach → email) |
 | `scripts/doctor.mjs` | System health check |
+| `scripts/atsSearch.mjs` | Google dork scanner for ATS boards (less competitive jobs) |
+| `scripts/verifyJob.mjs` | Job verification (cross-check across platforms) |
+| `scripts/emailOutreach.mjs` | Direct email outreach (find contacts, draft emails, track) |
+| `scripts/challenge.mjs` | 30-day challenge tracker (300 companies goal) |
+| `scripts/reverseEngineer.mjs` | Analyze job patterns, skill gaps, AI integration angles |
+| `scripts/loomOutreach.mjs` | Wellfound company research + loom outreach flow |
+| `scripts/habits.mjs` | Daily habit tracker (apply, DM, outreach, learn) |
+| `scripts/discoverCompanies.mjs` | Discover companies hiring on ATS boards (Greenhouse, Lever, Ashby) |
 
 ## Rules
 
@@ -99,6 +138,16 @@ User request
 - `scripts/html-report.mjs` — Generate HTML dashboard directly
 - `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → Resend email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
 - `scripts/doctor.mjs` — System health check
+- `scripts/atsSearch.mjs "role query" "location" --boards greenhouse,lever,ashby` — Google dork scanner for ATS boards
+- `scripts/verifyJob.mjs --company "Company" --role "Role"` — Job verification (cross-check platforms)
+- `scripts/emailOutreach.mjs --company "Company" --role "Role"` — Direct email outreach (find contacts, draft emails)
+- `scripts/emailOutreach.mjs --followup` — Show follow-ups due (4-5 days after outreach)
+- `scripts/challenge.mjs` — 30-day challenge tracker (300 companies goal)
+- `scripts/challenge.mjs log "Company" [method]` — Log outreach (email/linkedin/call)
+- `scripts/challenge.mjs stats` — Overall challenge stats
+- `scripts/reverseEngineer.mjs` — Analyze job patterns and skill gaps
+- `scripts/loomOutreach.mjs` — Wellfound company research + loom outreach
+- `scripts/discoverCompanies.mjs --ats greenhouse,lever,ashby` — Discover companies hiring on ATS boards
 
 ## When user pastes a LinkedIn/Greenhouse/etc URL
 1. Fetch the URL content to extract job details
@@ -111,3 +160,42 @@ User request
 - Blacklist in `config/portals.yml`: skip jobs from specific companies
 - Whitelist in `config/portals.yml`: only scan jobs from specific companies
 - Configure per-portal search queries in `config/portals.yml`
+
+## Direct Outreach Strategy (from the 30-day challenge)
+
+The most effective way to land interviews is NOT applying on job boards. It's:
+
+1. **Find companies** via ATS boards (less competitive than LinkedIn)
+2. **Verify the job is real** before spending time on it
+3. **Find CTO/EM emails** (Apollo.io, Hunter.io, pattern guessing)
+4. **Email 2 people directly** — short, specific, mention the role
+5. **Follow up once** after 4-5 days — low key bump
+6. **Do this 10x/day for 30 days** = 300 direct outreach
+
+### ATS Boards to Search (less competitive)
+- `site:jobs.ashbyhq.com` — Ashby
+- `site:boards.greenhouse.io` — Greenhouse
+- `site:jobs.lever.co` — Lever
+- `site:careers.icims.com` — iCIMS
+- `site:jobs.jobvite.com` — Jobvite
+- `site:wd1.myworkdayjobs.com` — Workday
+- `site:jobs.bamboohr.com` — BambooHR
+- `site:jobs.smartrecruiters.com` — SmartRecruiters
+- `site:apply.jazz.co` — JazzHR
+- `site:careers.workable.com` — Workable
+
+### Verification Checklist (before applying)
+- Same role on company's own careers page?
+- Same role on LinkedIn?
+- Same role also live on Wellfound?
+- Company page shows recent hiring activity?
+- Job description matches across platforms?
+
+### Email Template Structure
+1. Hook (5s): "Hey [Name], I noticed [Company] does X..."
+2. Problem (15s): "I saw you're dealing with Y..."
+3. Solution (20s): "I built a quick prototype that..."
+4. CTA (10s): "Would love to show you how it works..."
+
+### Key Insight
+Startup roles rarely get posted publicly. If you want them, you gotta go where they are — Wellfound, direct outreach, and company career pages.

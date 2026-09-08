@@ -474,10 +474,14 @@ npm run rank
 npm run interview
 npm run upskill
 npm run salary
-npm run rank
-npm run interview
-npm run upskill
-npm run salary
+npm run habits
+npm run atsSearch
+npm run verifyJob
+npm run emailOutreach
+npm run challenge
+npm run reverseEngineer
+npm run loomOutreach
+npm run discover
 ```
 
 ## Commands Reference
@@ -559,6 +563,22 @@ Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source ch
 | Command | Description |
 |---------|-------------|
 | `node cli.mjs digest [--mode preview\|daily] [--send] [--mock] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
+
+### Direct Outreach (30-Day Challenge)
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/atsSearch.mjs "role" "location" --boards greenhouse,lever,ashby` | Google dork scanner for ATS boards (less competitive jobs) |
+| `node scripts/verifyJob.mjs --company "Company" --role "Role"` | Job verification (cross-check LinkedIn, Wellfound, Greenhouse, Lever, Ashby) |
+| `node scripts/emailOutreach.mjs --company "Company" --role "Role"` | Find CTO/EM contacts, draft personalized emails |
+| `node scripts/emailOutreach.mjs --followup` | Show follow-ups due (4-5 days after outreach) |
+| `node scripts/challenge.mjs` | 30-day challenge tracker (10 companies/day = 300 total) |
+| `node scripts/challenge.mjs log "Company" [method]` | Log outreach (email/linkedin/call) |
+| `node scripts/challenge.mjs stats` | Overall challenge stats with funnel estimate |
+| `node scripts/reverseEngineer.mjs` | Analyze job patterns, skill gaps, AI integration angles |
+| `node scripts/loomOutreach.mjs` | Wellfound company research + loom outreach flow |
+| `node scripts/habits.mjs` | Daily habit tracker (apply, DM, outreach, learn) |
+| `node scripts/discoverCompanies.mjs --ats greenhouse,lever,ashby` | Discover companies hiring on ATS boards |
 
 ### Health Check
 
@@ -655,7 +675,14 @@ JobOps/
 │   ├── html-report.mjs          # Self-contained HTML dashboard generator
 │   ├── doctor.mjs               # System health check
 │   ├── profile-generator.mjs    # **NEW** Generate profile.yml from resume.md
-│   ├── discover-companies.mjs   # **NEW** AI company discovery for GH/Lever/Ashby
+│   ├── discoverCompanies.mjs    # **NEW** AI company discovery for GH/Lever/Ashby
+│   ├── atsSearch.mjs            # **NEW** Google dork scanner for ATS boards
+│   ├── verifyJob.mjs            # **NEW** Job verification (cross-check platforms)
+│   ├── emailOutreach.mjs        # **NEW** Direct email outreach
+│   ├── challenge.mjs            # **NEW** 30-day challenge tracker
+│   ├── reverseEngineer.mjs      # **NEW** Analyze job patterns, skill gaps
+│   ├── loomOutreach.mjs         # **NEW** Wellfound company research + loom outreach
+│   ├── habits.mjs               # **NEW** Daily habit tracker
 │   └── lib/
 │       └── profile.mjs          # Shared active-profile loader
 ├── docs/
@@ -765,6 +792,41 @@ Each job is scored 1-5 across 5 equal-weight dimensions:
 - `≥ 3.5` → Review
 - `≥ 3.0` → Maybe
 - `< 3.0` → Skip
+
+## Direct Outreach Strategy
+
+The most effective way to land interviews is NOT applying on job boards. It's:
+
+1. **Find companies** via ATS boards (less competitive than LinkedIn)
+2. **Verify the job is real** before spending time on it
+3. **Find CTO/EM emails** (Apollo.io, Hunter.io, pattern guessing)
+4. **Email 2 people directly** — short, specific, mention the role
+5. **Follow up once** after 4-5 days — low key bump
+6. **Do this 10x/day for 30 days** = 300 direct outreach
+
+### ATS Boards to Search
+
+- `site:jobs.ashbyhq.com` — Ashby
+- `site:boards.greenhouse.io` — Greenhouse
+- `site:jobs.lever.co` — Lever
+- `site:careers.icims.com` — iCIMS
+- `site:jobs.jobvite.com` — Jobvite
+- `site:wd1.myworkdayjobs.com` — Workday
+- `site:jobs.bamboohr.com` — BambooHR
+- `site:jobs.smartrecruiters.com` — SmartRecruiters
+- `site:apply.jazz.co` — JazzHR
+- `site:careers.workable.com` — Workable
+
+### Email Template Structure
+
+1. Hook (5s): "Hey [Name], I noticed [Company] does X..."
+2. Problem (15s): "I saw you're dealing with Y..."
+3. Solution (20s): "I built a quick prototype that..."
+4. CTA (10s): "Would love to show you how it works..."
+
+### Key Insight
+
+Startup roles rarely get posted publicly. If you want them, you gotta go where they are — Wellfound, direct outreach, and company career pages.
 
 ## Rules
 

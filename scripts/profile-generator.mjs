@@ -307,7 +307,7 @@ async function main() {
     process.exit(1);
   }
   
-  console.log('📄 Reading master resume...');
+  console.log(' Reading master resume...');
   const resumeContent = readFileSync(resumePath, 'utf-8');
   const sections = parseResumeSections(resumeContent);
   
@@ -324,19 +324,19 @@ async function main() {
   let cpData = null;
   
   if (enrich) {
-    console.log('🌐 Fetching GitHub data...');
+    console.log(' Fetching GitHub data...');
     githubData = await fetchGitHubData();
     if (githubData) {
       console.log(`   Public repos: ${githubData.publicRepos}, Stars: ${githubData.totalStars}, Contributions: ${githubData.totalContributions}`);
     }
     
-    console.log('🏆 Fetching competitive programming data...');
+    console.log(' Fetching competitive programming data...');
     cpData = await fetchCPData();
     if (cpData.leetcode) console.log(`   LeetCode: ${cpData.leetcode.total} solved`);
     if (cpData.codeforces) console.log(`   Codeforces: ${cpData.codeforces.rating} (${cpData.codeforces.rank})`);
   }
   
-  console.log('🤖 Generating profile with AI...');
+  console.log(' Generating profile with AI...');
   
   const prompt = `Parse this master resume and generate a JobOps profile.yml. Return ONLY valid YAML.
 
@@ -423,8 +423,8 @@ location_preferences:
   const yamlString = yamlDump(profile, { lineWidth: 120, noRefs: true });
   
   writeFileSync(outputPath, yamlString);
-  console.log(`\n✅ Profile generated: ${outputPath}`);
-  console.log('\n📋 Review the generated profile and adjust as needed.');
+  console.log(`\n Profile generated: ${outputPath}`);
+  console.log('\n Review the generated profile and adjust as needed.');
   console.log('   Key fields to verify: target_roles, skills, experience.level, target_locations');
 }
 

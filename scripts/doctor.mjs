@@ -19,15 +19,15 @@ const issues = [];
 
 function check(name, condition, fix) {
   if (condition) {
-    console.log(`  ✅ ${name}`);
+    console.log(`   ${name}`);
   } else {
-    console.log(`  ❌ ${name}`);
+    console.log(`   ${name}`);
     issues.push({ name, fix });
     healthy = false;
   }
 }
 
-console.log('\n🔍 JobOps Health Check\n');
+console.log('\n JobOps Health Check\n');
 
 // 1. Node.js
 check('Node.js installed', typeof process.version === 'string', 'Install Node.js from nodejs.org');
@@ -72,10 +72,10 @@ check('Scripts directory exists', existsSync(scriptsPath), 'Run: mkdir scripts')
 console.log('\n' + '─'.repeat(50));
 
 if (healthy) {
-  console.log('\n✅ All checks passed! Ready to hunt jobs.\n');
+  console.log('\n All checks passed! Ready to hunt jobs.\n');
   console.log('Try: node scripts/scan.mjs "software engineer" "Remote"');
 } else {
-  console.log(`\n⚠️  ${issues.length} issue(s) found:\n`);
+  console.log(`\n  ${issues.length} issue(s) found:\n`);
   for (const issue of issues) {
     console.log(`  • ${issue.name}: ${issue.fix}`);
   }

@@ -26,12 +26,30 @@ exclude_titles:
   - Vice President
   - Head of
   - Architect
+  - Fellow
+  - Distinguished
   - Intern
   - Internship
   - Co-op
   - Contract
   - Freelance
   - Part-time
+  # Seniority level indicators (Roman numerals / experience bands)
+  - " III"
+  - " IV"
+  - " V"
+  - " VI"
+  - " VII"
+  - " VIII"
+  # Experience-based exclusions (matched in description, not title)
+  - "5+ years"
+  - "6+ years"
+  - "7+ years"
+  - "8+ years"
+  - "9+ years"
+  - "10+ years"
+  - "12+ years"
+  - "15+ years"
 
 # ─── Location Filters ────────────────────────────────────────────
 # Locations you are willing to work in (case-insensitive partial match)
@@ -80,6 +98,9 @@ portals:
   greenhouse: true       # Greenhouse boards from portals.yml
   lever: true            # Lever boards from portals.yml
   ashby: true            # Ashby boards from portals.yml
+  linkedin: true         # LinkedIn guest/public job listings
+  instahyre: true        # Instahyre (India-focused)
+  wellfound: true        # Wellfound/AngelList (global startups)
 
 # ─── Search Behavior ─────────────────────────────────────────────
 # Query mode: "auto" = derive from profile.yml target_roles, or custom string

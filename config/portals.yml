@@ -99,8 +99,9 @@ greenhouse:
       slug: replit
     - name: ClickHouse
       slug: clickhouse
-    - name: Hasura
-      slug: hasura
+    # India companies with Greenhouse boards (verified)
+    - name: Postman
+      slug: postman
 
 # ─── Lever Companies ──────────────────────────────────────────
 lever:
@@ -131,6 +132,11 @@ lever:
       slug: puzzle
     - name: Sourcegraph
       slug: sourcegraph
+    # India companies with Lever boards (verified)
+    - name: CRED
+      slug: cred
+    - name: Meesho
+      slug: meesho
 
 # ─── Ashby Companies ──────────────────────────────────────────
 ashby:
@@ -147,6 +153,17 @@ ashby:
       slug: huggingface
     - name: Scale AI
       slug: scaleai
+
+# ─── Instahyre (India-focused portal) ────────────────────────
+instahyre:
+  enabled: true
+  # Instahyre doesn't use slugs - it scans broadly for India jobs
+  # Filter by skills/location in the query
+
+# ─── Wellfound (AngelList startups) ──────────────────────────
+wellfound:
+  enabled: true
+  # Wellfound scans broadly - filter by query in profile.yml
 
 # ─── Custom Search Queries ────────────────────────────────────
 search_queries:
@@ -167,5 +184,31 @@ search_queries:
 
   - name: "Python Engineer"
     query: "python engineer"
+    location: "Remote"
+    enabled: true
+
+  # India-specific queries
+  - name: "SDE India"
+    query: "software development engineer"
+    location: "India"
+    enabled: true
+
+  - name: "Full Stack India"
+    query: "full stack developer"
+    location: "India"
+    enabled: true
+
+  - name: "Backend India"
+    query: "backend developer"
+    location: "India"
+    enabled: true
+
+  - name: "Junior Developer India"
+    query: "junior software engineer"
+    location: "India"
+    enabled: true
+
+  - name: "Remote India"
+    query: "software engineer"
     location: "Remote"
     enabled: true

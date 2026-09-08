@@ -17,6 +17,14 @@
     "interview": "node scripts/interview.mjs",
     "upskill": "node scripts/upskill.mjs",
     "salary": "node scripts/salary.mjs",
+    "habits": "node scripts/habits.mjs",
+    "atsSearch": "node scripts/atsSearch.mjs",
+    "verifyJob": "node scripts/verifyJob.mjs",
+    "emailOutreach": "node scripts/emailOutreach.mjs",
+    "challenge": "node scripts/challenge.mjs",
+    "reverseEngineer": "node scripts/reverseEngineer.mjs",
+    "loomOutreach": "node scripts/loomOutreach.mjs",
+    "discover": "node scripts/discoverCompanies.mjs",
     "dev": "node cli.mjs scan"
   },
   "devDependencies": {

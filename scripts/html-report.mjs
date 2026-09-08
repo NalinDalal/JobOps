@@ -147,7 +147,7 @@ function main() {
 </head>
 <body>
 <div class="container">
-  <h1>📊 JobOps Tracker Dashboard</h1>
+  <h1> JobOps Tracker Dashboard</h1>
 
   <div class="stats">
     <div class="stat-card">
@@ -185,9 +185,9 @@ function main() {
   ` : ''}
 
   <div class="section">
-    <h2>📋 All Applications</h2>
+    <h2> All Applications</h2>
     <div class="filter-bar">
-      <input type="text" id="searchInput" placeholder="🔍 Search by company or role..." onkeyup="filterTable()">
+      <input type="text" id="searchInput" placeholder=" Search by company or role..." onkeyup="filterTable()">
     </div>
     <table id="appsTable">
       <thead><tr><th>#</th><th>Company</th><th>Role</th><th>Status</th><th>Score</th><th>Interview Stage</th><th>Outcome</th><th>Follow-up</th></tr></thead>
@@ -207,7 +207,7 @@ function main() {
   </div>
 
   <div class="section">
-    <h2>📈 Status Distribution</h2>
+    <h2> Status Distribution</h2>
     <div id="dashboard">
       ${dashboardHTML}
     </div>
