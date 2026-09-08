@@ -8,6 +8,11 @@ dist
 *.duckdb
 *.duckdb.wal
 data/digest-seen.json
+data/challenge.json
+data/habits.json
+data/outreach.json
+data/discovered.json
+data/ats-search-*.json
 # Generated outputs — audit trail lives on disk, not in git
 reports/digest-*.md
 reports/*-*.md
