@@ -10,82 +10,45 @@
  *   node scripts/loomOutreach.mjs --count 10           — Find more companies
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { loadActiveProfile, getProfileSkills, getProfileExperience, getProfileCandidate } from './lib/profile.mjs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+import {
+    loadActiveProfile,
+    getProfileSkills,
+    getProfileExperience,
+    getProfileCandidate,
+} from "./lib/profile.mjs";
+import { loadEnv } from "./lib/env.mjs";
+import { cfAI } from "./lib/ai.mjs";
+import { argVal } from "./lib/args.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const ROOT = resolve(__dirname, "..");
 
-// Load env
-const envPath = resolve(ROOT, '.env');
-if (existsSync(envPath)) {
-  const lines = readFileSync(envPath, 'utf-8').split('\n');
-  for (const line of lines) {
-    const [key, ...val] = line.split('=');
-    if (key && val.length) process.env[key.trim()] = val.join('=').trim();
-  }
-}
+loadEnv(ROOT);
 
-const CF_TOKEN = process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN;
-const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_MODEL = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-
-const args = process.argv.slice(2);
-function argVal(name, fallback) {
-  const idx = args.indexOf(`--${name}`);
-  if (idx === -1 || idx === args.length - 1) return fallback;
-  return args[idx + 1];
-}
-const COMPANY = argVal('company', null);
-const COUNT = parseInt(argVal('count', '5'), 10) || 5;
-
-async function cfAI(prompt) {
-  if (!CF_TOKEN || !CF_ACCOUNT) {
-    throw new Error('Cloudflare credentials not configured. Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env');
-  }
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/${CF_MODEL}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${CF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'You are a startup outreach specialist. Return markdown only.' },
-          { role: 'user', content: prompt },
-        ],
-        stream: false,
-        max_tokens: 4096,
-        temperature: 0.4,
-      }),
-    }
-  );
-  const data = await res.json();
-  return data.result?.choices?.[0]?.message?.content || data.result?.response || '';
-}
+const COMPANY = argVal("company", null);
+const COUNT = parseInt(argVal("count", "5"), 10) || 5;
 
 async function main() {
-  const profile = loadActiveProfile();
-  const candidate = getProfileCandidate(profile);
-  const mySkills = getProfileSkills(profile);
-  const experience = getProfileExperience(profile);
+    const profile = loadActiveProfile();
+    const candidate = getProfileCandidate(profile);
+    const mySkills = getProfileSkills(profile);
+    const experience = getProfileExperience(profile);
 
-  if (COMPANY) {
-    // Deep research on one company
-    console.log(`\n Deep research: ${COMPANY}\n`);
-    
-    const prompt = `Research the company "${COMPANY}" and create a personalized outreach strategy.
+    if (COMPANY) {
+        // Deep research on one company
+        console.log(`\n Deep research: ${COMPANY}\n`);
+
+        const prompt = `Research the company "${COMPANY}" and create a personalized outreach strategy.
 
 MY PROFILE:
 - Name: ${candidate.name}
 - Skills: ${mySkills}
 - Experience: ${experience}
-- GitHub: ${candidate.github || 'N/A'}
-- Portfolio: ${candidate.portfolio || 'N/A'}
+- GitHub: ${candidate.github || "N/A"}
+- Portfolio: ${candidate.portfolio || "N/A"}
 
 Provide:
 
@@ -115,24 +78,26 @@ Write a short, personalized DM (under 100 words) that references the loom.
 - Suggest 2-3 roles to reach out to (CTO, Engineering Manager, etc.)
 - LinkedIn search strings to find them`;
 
-    console.log('Generating research...\n');
-    const report = await cfAI(prompt);
-    console.log(report);
+        console.log("Generating research...\n");
+        const report = await cfAI(prompt);
+        console.log(report);
 
-    // Save
-    const reportsDir = resolve(ROOT, 'reports');
-    if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
-    const date = new Date().toISOString().split('T')[0];
-    const slug = COMPANY.toLowerCase().replace(/\s+/g, '-');
-    const reportFile = resolve(reportsDir, `loom-${slug}-${date}.md`);
-    writeFileSync(reportFile, `# Loom Outreach: ${COMPANY} — ${date}\n\n${report}\n`);
-    console.log(`\n Saved to: ${reportFile}`);
+        // Save
+        const reportsDir = resolve(ROOT, "reports");
+        if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+        const date = new Date().toISOString().split("T")[0];
+        const slug = COMPANY.toLowerCase().replace(/\s+/g, "-");
+        const reportFile = resolve(reportsDir, `loom-${slug}-${date}.md`);
+        writeFileSync(
+            reportFile,
+            `# Loom Outreach: ${COMPANY} — ${date}\n\n${report}\n`,
+        );
+        console.log(`\n Saved to: ${reportFile}`);
+    } else {
+        // Find companies to target
+        console.log(`\n Finding ${COUNT} companies for loom outreach...\n`);
 
-  } else {
-    // Find companies to target
-    console.log(`\n Finding ${COUNT} companies for loom outreach...\n`);
-
-    const prompt = `Find ${COUNT} startups/companies that would benefit from AI integration.
+        const prompt = `Find ${COUNT} startups/companies that would benefit from AI integration.
 
 MY PROFILE:
 - Skills: ${mySkills}
@@ -154,21 +119,24 @@ Focus on:
 
 Format as a numbered list with clear sections.`;
 
-    console.log('Finding companies...\n');
-    const report = await cfAI(prompt);
-    console.log(report);
+        console.log("Finding companies...\n");
+        const report = await cfAI(prompt);
+        console.log(report);
 
-    // Save
-    const reportsDir = resolve(ROOT, 'reports');
-    if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
-    const date = new Date().toISOString().split('T')[0];
-    const reportFile = resolve(reportsDir, `loom-targets-${date}.md`);
-    writeFileSync(reportFile, `# Loom Outreach Targets — ${date}\n\n${report}\n`);
-    console.log(`\n Saved to: ${reportFile}`);
-  }
+        // Save
+        const reportsDir = resolve(ROOT, "reports");
+        if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+        const date = new Date().toISOString().split("T")[0];
+        const reportFile = resolve(reportsDir, `loom-targets-${date}.md`);
+        writeFileSync(
+            reportFile,
+            `# Loom Outreach Targets — ${date}\n\n${report}\n`,
+        );
+        console.log(`\n Saved to: ${reportFile}`);
+    }
 }
 
-main().catch(e => {
-  console.error(`Loom outreach failed: ${e.message}`);
-  process.exit(1);
+main().catch((e) => {
+    console.error(`Loom outreach failed: ${e.message}`);
+    process.exit(1);
 });

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * lib/profile.mjs — Shared profile loader for JobOps
  *
@@ -7,7 +5,7 @@
  * falling back to config/profile.yml if no active preset is set.
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
@@ -53,13 +51,13 @@ export function loadActiveProfile() {
 export function getProfileSkills(profile) {
   const data = profile.data;
   const skills = data.skills || {};
-  const cat = (...keys) => keys.flatMap(k => skills[k] || []).filter(Boolean);
-  const join = arr => arr.map(String).join(', ');
+  const cat = (...keys) => keys.flatMap((k) => skills[k] || []).filter(Boolean);
+  const join = (arr) => arr.map(String).join(', ');
   return join(cat('languages', 'frameworks', 'databases', 'devops', 'tools'));
 }
 
 export function getProfileTargetRoles(profile) {
-  return (profile.data.target_roles || []).map(r => String(r).trim()).filter(Boolean);
+  return (profile.data.target_roles || []).map((r) => String(r).trim()).filter(Boolean);
 }
 
 export function getProfileTargetLocations(profile) {
@@ -96,5 +94,3 @@ export function setActiveProfile(slug) {
   mkdirSync(resolve(ROOT, 'config/profiles'), { recursive: true });
   writeFileSync(ACTIVE_PATH, JSON.stringify({ slug }, null, 2));
 }
-
-import { mkdirSync, writeFileSync } from 'fs';
