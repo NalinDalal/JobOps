@@ -14,60 +14,58 @@
  *   11–12px — meta
  */
 
-import { SCORE_STRONG, SCORE_REVIEW } from "./constants.mjs";
+import { SCORE_STRONG, SCORE_REVIEW } from './constants.mjs';
 
 // ─── Style tokens ────────────────────────────────────────────────
 const S = {
-    font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
-    accent: "#C76B16",
-    textPrimary: "#1d1d1f",
-    textSecondary: "#86868b",
-    textTertiary: "#aeaeb2",
-    textLink: "#0066cc",
-    success: "#2d6a4f",
-    danger: "#c41e3a",
-    divider: "#e8e8ed",
-    tagBg: "#f5f5f7",
-    tagBorder: "#e0e0e5",
+  font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+  accent: '#C76B16',
+  textPrimary: '#1d1d1f',
+  textSecondary: '#86868b',
+  textTertiary: '#aeaeb2',
+  textLink: '#0066cc',
+  success: '#2d6a4f',
+  danger: '#c41e3a',
+  divider: '#e8e8ed',
+  tagBg: '#f5f5f7',
+  tagBorder: '#e0e0e5',
 };
 
 function esc(s) {
-    return String(s || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // ─── Component helpers ───────────────────────────────────────────
 
 function divider() {
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
   <tr><td style="padding:20px 0;border-top:1px solid ${S.divider};font-size:0;line-height:0;">&nbsp;</td></tr>
 </table>`;
 }
 
 function sectionLabel(text) {
-    return `<p style="margin:0 0 12px;font-family:${S.font};font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.textTertiary};">${esc(text)}</p>`;
+  return `<p style="margin:0 0 12px;font-family:${S.font};font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.textTertiary};">${esc(text)}</p>`;
 }
 
 function skillTag(skill, missing = false) {
-    const bg = missing ? "transparent" : S.tagBg;
-    const border = missing ? S.danger : S.tagBorder;
-    const color = missing ? S.danger : S.textSecondary;
-    const prefix = missing ? "× " : "";
-    return `<span style="display:inline-block;background:${bg};border:1px solid ${border};border-radius:4px;padding:2px 8px;margin:0 6px 6px 0;font-family:${S.font};font-size:11px;color:${color};line-height:16px;">${prefix}${esc(skill)}</span>`;
+  const bg = missing ? 'transparent' : S.tagBg;
+  const border = missing ? S.danger : S.tagBorder;
+  const color = missing ? S.danger : S.textSecondary;
+  const prefix = missing ? '× ' : '';
+  return `<span style="display:inline-block;background:${bg};border:1px solid ${border};border-radius:4px;padding:2px 8px;margin:0 6px 6px 0;font-family:${S.font};font-size:11px;color:${color};line-height:16px;">${prefix}${esc(skill)}</span>`;
 }
 
 // ─── 1. Header ──────────────────────────────────────────────────
 
 function renderHeader(vm) {
-    const roles =
-        vm.profile.targetRoles.slice(0, 3).join(" · ") || "Software Engineer";
-    const locations =
-        vm.profile.targetLocations.slice(0, 2).join(" · ") || "Remote";
+  const roles = vm.profile.targetRoles.slice(0, 3).join(' · ') || 'Software Engineer';
+  const locations = vm.profile.targetLocations.slice(0, 2).join(' · ') || 'Remote';
 
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 20px;">
     <tr>
       <td style="padding:20px 0 0;">
@@ -83,60 +81,56 @@ function renderHeader(vm) {
 // ─── 2. Summary ─────────────────────────────────────────────────
 
 function renderSummary(vm) {
-    const { summary } = vm;
-    const parts = [`<strong>${summary.totalScanned}</strong> scanned`];
-    if (summary.strongMatches > 0) {
-        parts.push(
-            `<strong style="color:${S.success};">${summary.strongMatches}</strong> strong`,
-        );
-    }
-    if (summary.worthReviewing > 0) {
-        parts.push(`<strong>${summary.worthReviewing}</strong> to review`);
-    }
-    if (summary.withFlags > 0) {
-        parts.push(
-            `<strong style="color:${S.danger};">${summary.withFlags}</strong> flagged`,
-        );
-    }
+  const { summary } = vm;
+  const parts = [`<strong>${summary.totalScanned}</strong> scanned`];
+  if (summary.strongMatches > 0) {
+    parts.push(`<strong style="color:${S.success};">${summary.strongMatches}</strong> strong`);
+  }
+  if (summary.worthReviewing > 0) {
+    parts.push(`<strong>${summary.worthReviewing}</strong> to review`);
+  }
+  if (summary.withFlags > 0) {
+    parts.push(`<strong style="color:${S.danger};">${summary.withFlags}</strong> flagged`);
+  }
 
-    return `
-  <p style="margin:0 0 20px;font-family:${S.font};font-size:14px;color:${S.textSecondary};line-height:1.5;">${parts.join(" · ")}</p>`;
+  return `
+  <p style="margin:0 0 20px;font-family:${S.font};font-size:14px;color:${S.textSecondary};line-height:1.5;">${parts.join(' · ')}</p>`;
 }
 
 // ─── 3. Primary match (detailed) ────────────────────────────────
 
 function renderPrimaryMatch(match) {
-    if (!match) return "";
+  if (!match) return '';
 
-    const matchedTags = match.matchedSkills
-        .slice(0, 6)
-        .map((s) => skillTag(s))
-        .join("");
+  const matchedTags = match.matchedSkills
+    .slice(0, 6)
+    .map((s) => skillTag(s))
+    .join('');
 
-    const whyHtml =
-        match.whyMatch.length > 0
-            ? `<p style="margin:0;font-family:${S.font};font-size:13px;color:${S.textSecondary};line-height:1.5;">${match.whyMatch.join(". ")}.</p>`
-            : "";
+  const whyHtml =
+    match.whyMatch.length > 0
+      ? `<p style="margin:0;font-family:${S.font};font-size:13px;color:${S.textSecondary};line-height:1.5;">${match.whyMatch.join('. ')}.</p>`
+      : '';
 
-    const watchHtml =
-        match.redFlags.length > 0
-            ? `<p style="margin:10px 0 0;font-family:${S.font};font-size:12px;color:${S.danger};line-height:1.5;">
-        <span style="font-weight:600;">Watch:</span> ${esc(match.redFlags.join(". "))}
+  const watchHtml =
+    match.redFlags.length > 0
+      ? `<p style="margin:10px 0 0;font-family:${S.font};font-size:12px;color:${S.danger};line-height:1.5;">
+        <span style="font-weight:600;">Watch:</span> ${esc(match.redFlags.join('. '))}
       </p>`
-            : "";
+      : '';
 
-    const verdictColor =
-        match.score.overall >= SCORE_STRONG
-            ? S.success
-            : match.score.overall >= SCORE_REVIEW
-              ? S.accent
-              : S.textSecondary;
+  const verdictColor =
+    match.score.overall >= SCORE_STRONG
+      ? S.success
+      : match.score.overall >= SCORE_REVIEW
+        ? S.accent
+        : S.textSecondary;
 
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
-        ${sectionLabel("Top match")}
+        ${sectionLabel('Top match')}
 
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
           <tr>
@@ -152,7 +146,7 @@ function renderPrimaryMatch(match) {
               <p style="margin:0 0 8px;font-family:${S.font};font-size:14px;color:${S.textPrimary};">${esc(match.company)}</p>
               <p style="margin:0 0 10px;font-family:${S.font};font-size:12px;color:${S.textTertiary};">${esc(match.location)} · Posted ${esc(match.posted)}</p>
 
-              ${matchedTags ? `<div style="margin:0 0 10px;">${matchedTags}</div>` : ""}
+              ${matchedTags ? `<div style="margin:0 0 10px;">${matchedTags}</div>` : ''}
               ${whyHtml}
               ${watchHtml}
 
@@ -174,22 +168,22 @@ function renderPrimaryMatch(match) {
 // ─── 4. Other matches (compact) ─────────────────────────────────
 
 function renderOtherMatches(matches) {
-    if (matches.length === 0) return "";
+  if (matches.length === 0) return '';
 
-    const rows = matches.map((m) => {
-        const verdictColor =
-            m.score.overall >= SCORE_STRONG
-                ? S.success
-                : m.score.overall >= SCORE_REVIEW
-                  ? S.accent
-                  : S.textSecondary;
+  const rows = matches.map((m) => {
+    const verdictColor =
+      m.score.overall >= SCORE_STRONG
+        ? S.success
+        : m.score.overall >= SCORE_REVIEW
+          ? S.accent
+          : S.textSecondary;
 
-        const skillTags = m.matchedSkills
-            .slice(0, 4)
-            .map((s) => skillTag(s))
-            .join("");
+    const skillTags = m.matchedSkills
+      .slice(0, 4)
+      .map((s) => skillTag(s))
+      .join('');
 
-        return `
+    return `
     <tr>
       <td style="padding:14px 0;border-top:1px solid ${S.divider};vertical-align:top;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -203,10 +197,10 @@ function renderOtherMatches(matches) {
                 <a href="${esc(m.url)}" style="color:${S.textLink};text-decoration:none;">${esc(m.title)}</a>
               </p>
               <p style="margin:0 0 4px;font-family:${S.font};font-size:13px;color:${S.textSecondary};">${esc(m.company)}</p>
-              <p style="margin:0 0 6px;font-family:${S.font};font-size:11px;color:${S.textTertiary};">${esc(m.location)} · ${esc(m.posted)}${m.compensation ? ` · ${esc(m.compensation)}` : ""}</p>
-              ${skillTags ? `<div style="margin:0 0 4px;">${skillTags}</div>` : ""}
-              ${m.redFlags.length > 0 ? `<p style="margin:0;font-family:${S.font};font-size:11px;color:${S.danger};line-height:1.4;">${esc(m.redFlags[0])}</p>` : ""}
-              ${m.recommendation && m.redFlags.length === 0 ? `<p style="margin:0;font-family:${S.font};font-size:11px;color:${S.textSecondary};line-height:1.4;">${esc(m.recommendation)}</p>` : ""}
+              <p style="margin:0 0 6px;font-family:${S.font};font-size:11px;color:${S.textTertiary};">${esc(m.location)} · ${esc(m.posted)}${m.compensation ? ` · ${esc(m.compensation)}` : ''}</p>
+              ${skillTags ? `<div style="margin:0 0 4px;">${skillTags}</div>` : ''}
+              ${m.redFlags.length > 0 ? `<p style="margin:0;font-family:${S.font};font-size:11px;color:${S.danger};line-height:1.4;">${esc(m.redFlags[0])}</p>` : ''}
+              ${m.recommendation && m.redFlags.length === 0 ? `<p style="margin:0;font-family:${S.font};font-size:11px;color:${S.textSecondary};line-height:1.4;">${esc(m.recommendation)}</p>` : ''}
             </td>
             <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:12px;">
               <p style="margin:0;font-family:${S.font};font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${verdictColor};">${esc(m.verdict)}</p>
@@ -216,15 +210,15 @@ function renderOtherMatches(matches) {
         </table>
       </td>
     </tr>`;
-    });
+  });
 
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
         ${sectionLabel(`Other matches · ${matches.length}`)}
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-          ${rows.join("")}
+          ${rows.join('')}
         </table>
       </td>
     </tr>
@@ -233,36 +227,36 @@ function renderOtherMatches(matches) {
 
 // ─── 5. Outreach queue (lightweight) ────────────────────────────
 
-function renderOutreachQueue(vm) {
-    if (vm.outreachQueue.length === 0) return "";
+function renderPeopleToContact(vm) {
+  if (vm.peopleToContact.length === 0) return '';
 
-    const items = vm.outreachQueue.map((c) => {
-        const titleLinks = c.peopleSearchUrls
-            .map(
-                (u) =>
-                    `<a href="${esc(u.url)}" style="font-family:${S.font};font-size:11px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">${esc(u.title)}</a>`,
-            )
-            .join(" · ");
+  const items = vm.peopleToContact.map((c) => {
+    const titleLinks = c.peopleSearchUrls
+      .map(
+        (u) =>
+          `<a href="${esc(u.url)}" style="font-family:${S.font};font-size:11px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">${esc(u.title)}</a>`,
+      )
+      .join(' · ');
 
-        return `
+    return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:14px;">
       <tr>
         <td style="padding:14px 0 0;border-top:1px solid ${S.divider};">
           <p style="margin:0 0 2px;font-family:${S.font};font-size:14px;font-weight:600;color:${S.textPrimary};">${esc(c.company)}</p>
-          <p style="margin:0 0 6px;font-family:${S.font};font-size:12px;color:${S.textSecondary};">${esc(c.roles.join(" · "))}</p>
+          <p style="margin:0 0 6px;font-family:${S.font};font-size:12px;color:${S.textSecondary};">${esc(c.roles.join(' · '))}</p>
           <p style="margin:0 0 6px;font-family:${S.font};font-size:11px;color:${S.textTertiary};">${titleLinks}</p>
-          <p style="margin:0;"><a href="${esc(c.peopleSearchUrls[0]?.url || "#")}" style="font-family:${S.font};font-size:12px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">Find people →</a></p>
+          <p style="margin:0;"><a href="${esc(c.peopleSearchUrls[0]?.url || '#')}" style="font-family:${S.font};font-size:12px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">Find people →</a></p>
         </td>
       </tr>
     </table>`;
-    });
+  });
 
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
-        ${sectionLabel(`Outreach · ${vm.outreachQueue.length} companies`)}
-        ${items.join("")}
+        ${sectionLabel(`Outreach · ${vm.peopleToContact.length} companies`)}
+        ${items.join('')}
       </td>
     </tr>
   </table>`;
@@ -271,14 +265,14 @@ function renderOutreachQueue(vm) {
 // ─── 6. Skill gap (inline, no card) ─────────────────────────────
 
 function renderSkillGap(vm) {
-    if (!vm.skillGap) return "";
-    const { skillGap } = vm;
+  if (!vm.skillGap) return '';
+  const { skillGap } = vm;
 
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td style="padding:14px 0;border-top:1px solid ${S.divider};">
-        ${sectionLabel("Skill gap")}
+        ${sectionLabel('Skill gap')}
         <p style="margin:0;font-family:${S.font};font-size:13px;color:${S.textSecondary};line-height:1.5;">
           <strong style="color:${S.textPrimary};">${esc(skillGap.skill)}</strong> appeared in ${skillGap.frequency}% of relevant jobs. Your profile: ${esc(skillGap.currentLevel)}. Market demand: ${esc(skillGap.marketDemand)}.
         </p>
@@ -290,7 +284,7 @@ function renderSkillGap(vm) {
 // ─── 7. Footer ──────────────────────────────────────────────────
 
 function renderFooter(vm) {
-    return `
+  return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 0;">
     <tr>
       <td style="padding:16px 0 0;border-top:1px solid ${S.divider};">
@@ -303,19 +297,22 @@ function renderFooter(vm) {
 // ─── Main render ─────────────────────────────────────────────────
 
 export function renderEmail(vm) {
-    const sections = [
-        renderHeader(vm),
-        renderSummary(vm),
-        renderPrimaryMatch(vm.primaryMatch),
-        divider(),
-        renderOtherMatches(vm.otherMatches),
-        divider(),
-        renderOutreachQueue(vm),
-        renderSkillGap(vm),
-        renderFooter(vm),
-    ].filter(Boolean);
+  const primaryMatch = vm.topMatches.length > 0 ? vm.topMatches[0] : null;
+  const otherMatches = vm.topMatches.slice(1);
 
-    return `<!DOCTYPE html>
+  const sections = [
+    renderHeader(vm),
+    renderSummary(vm),
+    renderPrimaryMatch(primaryMatch),
+    divider(),
+    renderOtherMatches(otherMatches),
+    divider(),
+    renderPeopleToContact(vm),
+    renderSkillGap(vm),
+    renderFooter(vm),
+  ].filter(Boolean);
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -344,7 +341,7 @@ export function renderEmail(vm) {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;">
   <tr>
     <td style="padding:24px 28px 32px;">
-      ${sections.join("\n")}
+      ${sections.join('\n')}
     </td>
   </tr>
 </table>
@@ -355,78 +352,66 @@ export function renderEmail(vm) {
 // ─── Plain text version ──────────────────────────────────────────
 
 export function renderText(vm) {
-    const lines = [];
-    lines.push("JOBOPS");
-    lines.push("Your daily job briefing");
-    lines.push(vm.date.long);
-    lines.push("");
+  const lines = [];
+  lines.push('JOBOPS');
+  lines.push('Your daily job briefing');
+  lines.push(vm.date.long);
+  lines.push('');
 
-    // Summary
-    const parts = [`${vm.summary.totalScanned} scanned`];
-    if (vm.summary.strongMatches > 0)
-        parts.push(`${vm.summary.strongMatches} strong`);
-    if (vm.summary.worthReviewing > 0)
-        parts.push(`${vm.summary.worthReviewing} to review`);
-    if (vm.summary.withFlags > 0) parts.push(`${vm.summary.withFlags} flagged`);
-    lines.push(parts.join(" · "));
-    lines.push("");
+  // Summary
+  const parts = [`${vm.summary.totalScanned} scanned`];
+  if (vm.summary.strongMatches > 0) parts.push(`${vm.summary.strongMatches} strong`);
+  if (vm.summary.worthReviewing > 0) parts.push(`${vm.summary.worthReviewing} to review`);
+  if (vm.summary.withFlags > 0) parts.push(`${vm.summary.withFlags} flagged`);
+  lines.push(parts.join(' · '));
+  lines.push('');
 
-    // Primary match
-    if (vm.primaryMatch) {
-        const m = vm.primaryMatch;
-        lines.push("TOP MATCH");
-        lines.push("");
-        lines.push(
-            `  ${m.score.overall.toFixed(1)}/5  ${m.verdict.toUpperCase()}`,
-        );
-        lines.push(`  ${m.title}`);
-        lines.push(`  ${m.company}`);
-        lines.push(`  ${m.location} · Posted ${m.posted}`);
-        if (m.matchedSkills.length > 0)
-            lines.push(`  ${m.matchedSkills.join(" · ")}`);
-        if (m.whyMatch.length > 0) lines.push(`  ${m.whyMatch.join(". ")}.`);
-        if (m.redFlags.length > 0)
-            lines.push(`  Watch: ${m.redFlags.join(". ")}`);
-        lines.push(`  ${m.url}`);
-        lines.push("");
+  // Primary match
+  if (vm.topMatches.length > 0) {
+    const m = vm.topMatches[0];
+    lines.push('TOP MATCH');
+    lines.push('');
+    lines.push(`  ${m.score.overall.toFixed(1)}/5  ${m.verdict.toUpperCase()}`);
+    lines.push(`  ${m.title}`);
+    lines.push(`  ${m.company}`);
+    lines.push(`  ${m.location} · Posted ${m.posted}`);
+    if (m.matchedSkills.length > 0) lines.push(`  ${m.matchedSkills.join(' · ')}`);
+    if (m.whyMatch.length > 0) lines.push(`  ${m.whyMatch.join('. ')}.`);
+    if (m.redFlags.length > 0) lines.push(`  Watch: ${m.redFlags.join('. ')}`);
+    lines.push(`  ${m.url}`);
+    lines.push('');
+  }
+
+  // Other matches
+  const otherMatches = vm.topMatches.slice(1);
+  if (otherMatches.length > 0) {
+    lines.push(`OTHER MATCHES · ${otherMatches.length}`);
+    for (const m of otherMatches) {
+      lines.push('');
+      lines.push(`  ${m.score.overall.toFixed(1)}/5  ${m.title} — ${m.company}`);
+      lines.push(`  ${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ''}`);
+      if (m.matchedSkills.length > 0) lines.push(`  ${m.matchedSkills.join(' · ')}`);
+      lines.push(`  ${m.url}`);
     }
+    lines.push('');
+  }
 
-    // Other matches
-    if (vm.otherMatches.length > 0) {
-        lines.push(`OTHER MATCHES · ${vm.otherMatches.length}`);
-        for (const m of vm.otherMatches) {
-            lines.push("");
-            lines.push(
-                `  ${m.score.overall.toFixed(1)}/5  ${m.title} — ${m.company}`,
-            );
-            lines.push(
-                `  ${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ""}`,
-            );
-            if (m.matchedSkills.length > 0)
-                lines.push(`  ${m.matchedSkills.join(" · ")}`);
-            lines.push(`  ${m.url}`);
-        }
-        lines.push("");
+  // Outreach
+  if (vm.peopleToContact.length > 0) {
+    lines.push(`OUTREACH · ${vm.peopleToContact.length} companies`);
+    for (const c of vm.peopleToContact) {
+      lines.push('');
+      lines.push(`  ${c.company}`);
+      lines.push(`  ${c.roles.join(' · ')}`);
+      lines.push(`  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join('  ')}`);
     }
+    lines.push('');
+  }
 
-    // Outreach
-    if (vm.outreachQueue.length > 0) {
-        lines.push(`OUTREACH · ${vm.outreachQueue.length} companies`);
-        for (const c of vm.outreachQueue) {
-            lines.push("");
-            lines.push(`  ${c.company}`);
-            lines.push(`  ${c.roles.join(" · ")}`);
-            lines.push(
-                `  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join("  ")}`,
-            );
-        }
-        lines.push("");
-    }
+  lines.push('JOBOPS');
+  lines.push(
+    `${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced · Human review required`,
+  );
 
-    lines.push("JOBOPS");
-    lines.push(
-        `${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced · Human review required`,
-    );
-
-    return lines.join("\n");
+  return lines.join('\n');
 }

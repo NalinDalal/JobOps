@@ -391,29 +391,41 @@ export function buildViewModel(jobs, meta = {}) {
   const withFlags = jobs.filter((j) => j.evaluation?.redFlags?.length > 0).length;
   const companies = new Set(jobs.map((j) => j.company));
 
-  // Build all matches
-  const allMatches = jobs.map((job, idx) => buildMatch(job, idx, jobs, allSkills, targetLocations));
+  // Build all matches (ranked)
+  const topMatches = jobs.map((job, idx) => buildMatch(job, idx, jobs, allSkills, targetLocations));
 
-  // Split: primary (top scored) + others
-  const primaryMatch = allMatches.length > 0 ? allMatches[0] : null;
-  const otherMatches = allMatches.slice(1);
+  // Actions — one per match that warrants action
+  const actions = [];
+  for (const m of topMatches) {
+    if (m.score.overall >= SCORE_STRONG) {
+      actions.push({
+        label: `Apply to ${m.company}`,
+        url: m.url,
+        reason: `${m.score.overall.toFixed(1)}/5 — Strong Apply`,
+      });
+    } else if (m.score.overall >= SCORE_REVIEW) {
+      actions.push({
+        label: `Tailor CV for ${m.company}`,
+        url: m.url,
+        reason: `${m.score.overall.toFixed(1)}/5 — ${m.verdict}`,
+      });
+    }
+  }
 
-  // Outreach queue — consolidated per company
-  const outreachCompanyMap = new Map();
-  for (const match of allMatches) {
-    if (!outreachCompanyMap.has(match.company)) {
-      outreachCompanyMap.set(match.company, {
+  // People to contact — consolidated per company
+  const peopleCompanyMap = new Map();
+  for (const match of topMatches) {
+    if (!peopleCompanyMap.has(match.company)) {
+      peopleCompanyMap.set(match.company, {
         company: match.company,
         roles: [],
         peopleSearchUrls: buildPeopleSearchUrls(match.company, linkedinTitles),
-        outreachBlurb: '',
       });
     }
-    outreachCompanyMap.get(match.company).roles.push(match.title);
+    peopleCompanyMap.get(match.company).roles.push(match.title);
   }
 
-  // Generate outreach blurbs for outreach queue companies
-  const outreachQueue = [...outreachCompanyMap.values()].slice(0, 5).map((c) => {
+  const peopleToContact = [...peopleCompanyMap.values()].slice(0, 5).map((c) => {
     const firstJob = jobs.find((j) => j.company === c.company);
     return {
       ...c,
@@ -438,9 +450,9 @@ export function buildViewModel(jobs, meta = {}) {
       unscored: jobs.filter((j) => !j.evaluation?.overall).length,
       newCompanies: companies.size,
     },
-    primaryMatch,
-    otherMatches,
-    outreachQueue,
+    topMatches,
+    actions,
+    peopleToContact,
     skillGap,
     footer: {
       scanned: meta.totalScanned || jobs.length,
