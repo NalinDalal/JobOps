@@ -76,15 +76,34 @@ const profile = loadActiveProfile();
 const candidate = getProfileCandidate(profile);
 const outreach = getProfileOutreach(profile);
 
+function extractJDKeywords(text) {
+  if (!text) return [];
+  const stop = new Set(['the','and','for','with','you','your','are','has','have','this','that','will','can','our','job','role','team','work','working','looking','seeking','candidate','experience','years','year','strong','excellent','good','knowledge','using','use','used','etc','including','well','able','must','requirements','required','preferred','plus','bonus',' qualifications','skills','responsibilities']);
+  const lower = String(text).toLowerCase();
+  const tokens = new Set();
+  for (const m of lower.matchAll(/[a-z][a-z0-9+#.\-]{2,}/g)) {
+    const t = m[0];
+    if (!stop.has(t) && t.length >= 3) tokens.add(t);
+  }
+  return [...tokens].slice(0, 30);
+}
+
 function matchSkillsToJob(job, allSkills) {
-  const text = `${job.title} ${job.snippet || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
+  const jdTokens = new Set(extractJDKeywords(`${job.title} ${job.snippet || ''} ${(job.tags || []).join(' ')}`));
   const matched = [];
   for (const skill of allSkills) {
-    if (text.includes(skill.toLowerCase())) {
+    const s = skill.toLowerCase();
+    if (jdTokens.has(s) || `${job.title} ${job.snippet || ''}`.toLowerCase().includes(s)) {
       matched.push(skill);
     }
   }
   return matched;
+}
+
+function isSeniorRole(title, snippet) {
+  const text = `${title} ${snippet || ''}`.toLowerCase();
+  const seniorIndicators = ['senior','staff','principal','lead','manager','director','vp','head of','architect','fellow','distinguished','staff engineer','principal engineer','iii','iv','v','5+ years','6+ years','7+ years','8+ years'];
+  return seniorIndicators.some(ind => text.includes(ind));
 }
 
 function outreachFor(job) {
@@ -93,21 +112,27 @@ function outreachFor(job) {
   const allSkills = getProfileSkills(profile).split(', ').map(s => s.trim()).filter(Boolean);
   const templates = outreach.short_dm || outreach.long_dm || '';
   
-  // Find skills relevant to this specific job
+  // Find skills relevant to this specific job, prioritizing JD keywords
   const matchedSkills = matchSkillsToJob(job, allSkills);
   const topSkills = matchedSkills.slice(0, 3).join(', ') || allSkills.slice(0, 3).join(', ');
   
+  // Check seniority mismatch
+  const seniorMismatch = isSeniorRole(job.title, job.snippet);
+  const experienceLine = seniorMismatch
+    ? `I'm early in my career (0-2 years) and looking for a team that invests in junior engineers.`
+    : `${experience ? `I'm a ${experience}` : `I'm a software engineer`} focused on shipping reliable systems end to end.`;
+  
   // Build personalized outreach regardless of template
+  const companyHook = matchedSkills.length > 0
+    ? `I noticed ${job.company} works with ${matchedSkills[0]} — that's one of my core tools.`
+    : `I'm excited about ${job.company}'s work and this ${job.title} role.`;
+  
   const skillLine = matchedSkills.length > 0
     ? `My experience with ${topSkills} directly aligns with what you're looking for.`
     : `I build production-style projects with ${topSkills} and similar modern stacks.`;
   
-  const companyHook = matchedSkills.length > 0
-    ? `I noticed ${job.company} uses ${matchedSkills[0]} — that's one of my core tools.`
-    : `I'm excited about ${job.company}'s work and this ${job.title} role.`;
-  
   const lines = [
-    `Hi Hiring Manager, I'm ${name} — a ${experience || 'software'} engineer.`,
+    `Hi Hiring Manager, I'm ${name} — ${experienceLine}`,
     companyHook,
     skillLine,
     `I build production-style projects (tests, CI, DevOps-friendly) and can share concise repos${candidate.github ? ` (${candidate.github})` : ''}.`,
@@ -115,7 +140,6 @@ function outreachFor(job) {
   ];
   
   // Only use template if it's a custom template (not the default one without {skills})
-  // The default template doesn't have {skills}, so we always use personalized outreach
   if (templates && templates.includes('{skills}')) {
     return templates
       .replace(/\{Name\}/g, 'Hiring Manager')
@@ -258,47 +282,99 @@ function buildHTML(jobs, dateStr, freshCount) {
   const unscored = jobs.filter(j => !j.evaluation?.overall).length;
 
   const tldrPills = [];
-  if (strongMatches > 0) tldrPills.push(pill(`${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}`, success));
-  if (worthReviewing > 0) tldrPills.push(pill(`${worthReviewing} worth reviewing`, warn));
-  if (unscored > 0) tldrPills.push(pill(`${unscored} unscored`, textSecondary));
-  if (withFlags > 0) tldrPills.push(pill(`${withFlags} with red flags`, danger));
+  if (strongMatches > 0) tldrPills.push(`<a href="#strong-matches" style="color:#fff;text-decoration:none;">${pill(`${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}`, success)}</a>`);
+  if (worthReviewing > 0) tldrPills.push(`<a href="#worth-reviewing" style="color:#fff;text-decoration:none;">${pill(`${worthReviewing} worth reviewing`, warn)}</a>`);
+  if (unscored > 0) tldrPills.push(`<a href="#unscored" style="color:#fff;text-decoration:none;">${pill(`${unscored} unscored`, textSecondary)}</a>`);
+  if (withFlags > 0) tldrPills.push(`<a href="#with-flags" style="color:#fff;text-decoration:none;">${pill(`${withFlags} with red flags`, danger)}</a>`);
   const tldrText = tldrPills.length > 0 ? tldrPills.join(' ') : '<span style="color:' + textSecondary + ';">No strong matches today — keep applying</span>';
 
-  const rows = jobs.map(j => {
-    const score = j.evaluation?.overall ? badge(j.evaluation.overall) : '';
-    const rec = j.evaluation?.recommendation ? `<p style="margin:10px 0 0;font-family:${font};font-style:italic;color:${textSecondary};font-size:13px;">${esc(j.evaluation.recommendation)}</p>` : '';
-    const flags = j.evaluation?.redFlags?.length
-      ? `<p style="margin:10px 0 0;font-family:${font};color:${danger};font-size:13px;line-height:1.45;">${esc(j.evaluation.redFlags.join(' &nbsp;·&nbsp; '))}</p>`
-      : '';
-    const snippet = esc(truncate(j.snippet, 220));
-    const outreach = esc(stripHtml(outreachFor(j)));
-    const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
-    const peopleCells = linkedinTitles.map(t => {
-      const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
-      return `<td style="padding:0 6px 0 0;vertical-align:top;"><a href="${url}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">${esc(t)}</a></td>`;
-    }).join('');
-    return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
-      <tr>
-        <td style="padding:16px 18px;background:${bg};border:1px solid ${border};border-radius:14px;">
-          <p style="margin:0 0 6px;font-family:${font};font-size:15px;font-weight:600;color:${textPrimary};line-height:1.3;">
-            ${score}&nbsp; <a href="${esc(j.url)}" style="color:${textPrimary};text-decoration:underline;text-underline-offset:4px;">${esc(j.title)}</a>
-          </p>
-          <p style="margin:0 0 8px;font-family:${font};color:${textSecondary};font-size:13px;line-height:1.4;">${esc(j.company)} &nbsp;·&nbsp; ${esc(j.location)} &nbsp;·&nbsp; posted ${esc(j.posted)}</p>
-          <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.55;">${snippet}</p>
-          ${rec}
-          ${flags}
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;">
-            <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;padding-top:12px;">&nbsp;</td></tr>
-          </table>
-          <p style="margin:0 0 6px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Outreach draft</p>
-          <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.6;white-space:pre-wrap;">${outreach}</p>
-          <p style="margin:12px 0 4px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">People to contact</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${peopleCells}</tr></table>
-        </td>
-      </tr>
-    </table>`;
-  }).join('');
+  // Group jobs by company to reduce duplicate cards
+  const byCompany = new Map();
+  for (const j of jobs) {
+    const key = esc(j.company).toLowerCase();
+    if (!byCompany.has(key)) byCompany.set(key, { company: j.company, location: j.location, jobs: [] });
+    byCompany.get(key).jobs.push(j);
+  }
+  const companyGroups = [...byCompany.values()];
+
+  // Categorize groups for section jump-links
+  const strongMatchGroups = companyGroups.filter(g => g.jobs.some(j => j.evaluation?.overall >= 4.0));
+  const worthReviewingGroups = companyGroups.filter(g => !strongMatchGroups.includes(g) && g.jobs.some(j => j.evaluation?.overall >= 3.5));
+  const withFlagsGroups = companyGroups.filter(g => g.jobs.some(j => j.evaluation?.redFlags?.length > 0));
+  const unscoredGroups = companyGroups.filter(g => !g.jobs.some(j => j.evaluation?.overall));
+
+  function sectionHeader(id, label, color) {
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 10px;"><tr><td id="${id}" style="font-family:${font};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${color};">${esc(label)}</td></tr></table>`;
+  }
+
+  function renderGroups(groups) {
+    return groups.map((group, idx) => {
+      const primary = group.jobs[0];
+      const score = primary.evaluation?.overall ? badge(primary.evaluation.overall) : '';
+      const rec = primary.evaluation?.recommendation ? `<p style="margin:10px 0 0;font-family:${font};font-style:italic;color:${textSecondary};font-size:13px;">${esc(primary.evaluation.recommendation)}</p>` : '';
+      const flags = primary.evaluation?.redFlags?.length
+        ? `<p style="margin:10px 0 0;font-family:${font};color:${danger};font-size:13px;line-height:1.45;">${esc(primary.evaluation.redFlags.join(' &nbsp;·&nbsp; '))}</p>`
+        : '';
+      const snippet = esc(truncate(primary.snippet, 220));
+      const outreach = esc(stripHtml(outreachFor(primary)));
+      const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
+      const peopleCells = linkedinTitles.map(t => {
+        const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${group.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
+        return `<td style="padding:0 6px 0 0;vertical-align:top;"><a href="${url}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">${esc(t)}</a></td>`;
+      }).join('');
+
+      const anchor = `job-${idx}`;
+      const roleList = group.jobs.length > 1
+        ? `<p style="margin:8px 0 0;font-family:${font};font-size:13px;color:${textSecondary};line-height:1.5;">
+          <span style="font-weight:600;color:${textPrimary};">${group.jobs.length} open roles:</span>
+          ${group.jobs.map(j => `<a href="${esc(j.url)}" style="color:${accent};text-decoration:underline;text-underline-offset:3px;">${esc(j.title)}</a>`).join(' &nbsp;·&nbsp; ')}
+        </p>`
+        : '';
+
+      const actions = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">
+        <tr>
+          <td style="padding:0 8px 0 0;"><a href="${esc(primary.url)}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">View posting</a></td>
+          <td style="padding:0 8px 0 0;"><a href="mailto:?subject=Application: ${esc(primary.title)} at ${esc(group.company)}&body=${encodeURIComponent('I am applying for the ' + primary.title + ' role at ' + group.company + '.')}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">Mark applied</a></td>
+          <td style="padding:0 8px 0 0;"><a href="${esc(primary.url)}" style="font-family:${font};font-size:12px;color:${textSecondary};text-decoration:underline;text-underline-offset:3px;">Dismiss</a></td>
+        </tr>
+      </table>`;
+
+      return `
+      <table id="${anchor}" role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
+        <tr>
+          <td style="padding:16px 18px;background:${bg};border:1px solid ${border};border-radius:14px;">
+            <p style="margin:0 0 6px;font-family:${font};font-size:15px;font-weight:600;color:${textPrimary};line-height:1.3;">
+              ${score}&nbsp; <a href="${esc(primary.url)}" style="color:${textPrimary};text-decoration:underline;text-underline-offset:4px;">${esc(group.company)}</a>
+            </p>
+            <p style="margin:0 0 8px;font-family:${font};color:${textSecondary};font-size:13px;line-height:1.4;">${esc(primary.location)} &nbsp;·&nbsp; posted ${esc(primary.posted)}${primary.location?.toLowerCase().includes('remote') ? ' &nbsp;·&nbsp; <span style="color:' + success + ';font-weight:600;">Remote</span>' : ''}</p>
+            <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.55;">${snippet}</p>
+            ${roleList}
+            ${rec}
+            ${flags}
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;">
+              <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;padding-top:12px;">&nbsp;</td></tr>
+            </table>
+            <p style="margin:0 0 6px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Outreach draft</p>
+            <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.6;white-space:pre-wrap;">${outreach}</p>
+            <p style="margin:12px 0 4px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Roles to search on LinkedIn</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${peopleCells}</tr></table>
+            ${actions}
+          </td>
+        </tr>
+      </table>`;
+    });
+  }
+
+  const rows = [
+    strongMatchGroups.length > 0 ? sectionHeader('strong-matches', `${strongMatches} strong matches`, success) : '',
+    ...renderGroups(strongMatchGroups),
+    worthReviewingGroups.length > 0 ? sectionHeader('worth-reviewing', `${worthReviewing} worth reviewing`, warn) : '',
+    ...renderGroups(worthReviewingGroups),
+    unscoredGroups.length > 0 && withFlagsGroups.length === 0 ? sectionHeader('unscored', `${unscored} unscored`, textSecondary) : '',
+    ...renderGroups(unscoredGroups),
+    withFlagsGroups.length > 0 ? sectionHeader('with-flags', `${withFlags} with red flags`, danger) : '',
+    ...renderGroups(withFlagsGroups),
+  ].filter(Boolean).join('');
 
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f7;padding:24px 0;font-family:${font};color:${textPrimary};">
   <tr><td align="center">
@@ -309,7 +385,8 @@ function buildHTML(jobs, dateStr, freshCount) {
         <p style="margin:0 0 14px;font-size:13px;color:${textSecondary};line-height:1.4;">${freshCount} new job(s) found &nbsp;·&nbsp; ${jobs.length} shown</p>
         ${tldrText ? pillWrap(tldrText) : ''}
         ${rows}
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:6px;">
+        ${freshCount > jobs.length ? `<p style="margin:14px 0 0;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.45;">${freshCount - jobs.length} more job(s) not shown — run <code style="background:${accentLight};padding:2px 6px;border-radius:4px;font-size:11px;">node scripts/digest.mjs</code> locally to see all.</p>` : ''}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:${freshCount > jobs.length ? '4' : '6'}px;">
           <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;">&nbsp;</td></tr>
         </table>
         <p style="margin:16px 0 0;font-size:11px;color:${textSecondary};line-height:1.45;">Generated by JobOps. Scores are estimates — review before applying.</p>
@@ -436,6 +513,19 @@ async function main() {
   const scored = fresh.filter(j => j.evaluation?.overall && j.evaluation.overall >= threshold);
   const unscored = fresh.filter(j => !j.evaluation?.overall);
   const belowThreshold = fresh.filter(j => j.evaluation?.overall && j.evaluation.overall < threshold);
+  
+  // Downgrade senior-mismatch jobs from "strong match" to "worth reviewing"
+  for (const j of [...scored, ...unscored]) {
+    if (isSeniorRole(j.title, j.snippet) && j.evaluation?.overall >= 4.0) {
+      j.evaluation = j.evaluation || {};
+      j.evaluation.overall = Math.min(j.evaluation.overall, 3.5);
+      j.evaluation.recommendation = j.evaluation.recommendation || 'Seniority mismatch — review before applying';
+      if (!j.evaluation.redFlags) j.evaluation.redFlags = [];
+      if (!j.evaluation.redFlags.includes('JD appears senior-level; confirm junior/entry fit')) {
+        j.evaluation.redFlags.push('JD appears senior-level; confirm junior/entry fit');
+      }
+    }
+  }
   
   console.log(`Score filter (>= ${threshold}): ${fresh.length} → ${scored.length} above, ${belowThreshold.length} below, ${unscored.length} unscored`);
 
