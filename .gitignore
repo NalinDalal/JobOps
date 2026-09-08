@@ -17,3 +17,9 @@ data/ats-search-*.json
 reports/digest-*.md
 reports/*-*.md
 reports/tracker-dashboard.html
+
+# Tailored CVs / cover letters contain personal data
+output/
+
+# Runtime state files
+data/*.json

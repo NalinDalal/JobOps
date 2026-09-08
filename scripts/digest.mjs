@@ -88,6 +88,21 @@ function extractJDKeywords(text) {
   return [...tokens].slice(0, 30);
 }
 
+function extractCompRange(text) {
+  if (!text) return null;
+  const patterns = [
+    /(?:₹|rs\.?|inr)\s*[\d,]+(?:\.\d+)?\s*(?:lakh|lac|lpa|k)?/i,
+    /\$[\d,]+(?:\.\d+)?\s*(?:k|per\s*year|\/year|pa|p\.a\.)?/i,
+    /[\d,]+(?:\.\d+)?\s*(?:k|per\s*year|\/year|pa|p\.a\.)/i,
+    /(?:salary|comp|ctc|package)\s*[:\-]?\s*(?:₹|\$|rs\.?|inr)?\s*[\d,]+(?:\.\d+)?\s*(?:lakh|lac|lpa|k)?/i,
+  ];
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m) return m[0].trim();
+  }
+  return null;
+}
+
 function matchSkillsToJob(job, allSkills) {
   const jdTokens = new Set(extractJDKeywords(`${job.title} ${job.snippet || ''} ${(job.tags || []).join(' ')}`));
   const matched = [];
@@ -316,7 +331,23 @@ function buildHTML(jobs, dateStr, freshCount) {
         ? `<p style="margin:10px 0 0;font-family:${font};color:${danger};font-size:13px;line-height:1.45;">${esc(primary.evaluation.redFlags.join(' &nbsp;·&nbsp; '))}</p>`
         : '';
       const snippet = esc(truncate(primary.snippet, 220));
-      const outreach = esc(stripHtml(outreachFor(primary)));
+      const compRange = extractCompRange(primary.snippet || '');
+      const compHtml = compRange ? `<span style="margin:0 8px 0 0;font-family:${font};font-size:12px;font-weight:600;color:${success};">${esc(compRange)}</span>` : '';
+      
+      // Vary outreach by role when there are multiple roles for the same company
+      let outreach = '';
+      if (group.jobs.length === 1) {
+        outreach = esc(stripHtml(outreachFor(primary)));
+      } else {
+        // Generate slightly varied outreach for each role to avoid copy-paste look
+        const roleOutreaches = group.jobs.slice(0, 3).map((j, i) => {
+          const base = outreachFor(j);
+          const variant = i === 0 ? base : base.replace(/I noticed.*?\n/, `I noticed ${j.company} is hiring for ${j.title} — `);
+          return `<p style="margin:0 0 10px;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.6;white-space:pre-wrap;">${esc(variant)}</p>`;
+        }).join('<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:10px 0;"><tr><td style="border-top:1px dashed ${border};font-size:0;line-height:0;">&nbsp;</td></tr></table>');
+        outreach = roleOutreaches;
+      }
+      
       const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
       const peopleCells = linkedinTitles.map(t => {
         const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${group.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
@@ -346,7 +377,7 @@ function buildHTML(jobs, dateStr, freshCount) {
             <p style="margin:0 0 6px;font-family:${font};font-size:15px;font-weight:600;color:${textPrimary};line-height:1.3;">
               ${score}&nbsp; <a href="${esc(primary.url)}" style="color:${textPrimary};text-decoration:underline;text-underline-offset:4px;">${esc(group.company)}</a>
             </p>
-            <p style="margin:0 0 8px;font-family:${font};color:${textSecondary};font-size:13px;line-height:1.4;">${esc(primary.location)} &nbsp;·&nbsp; posted ${esc(primary.posted)}${primary.location?.toLowerCase().includes('remote') ? ' &nbsp;·&nbsp; <span style="color:' + success + ';font-weight:600;">Remote</span>' : ''}</p>
+            <p style="margin:0 0 8px;font-family:${font};color:${textSecondary};font-size:13px;line-height:1.4;">${esc(primary.location)} &nbsp;·&nbsp; posted ${esc(primary.posted)}${primary.location?.toLowerCase().includes('remote') ? ' &nbsp;·&nbsp; <span style="color:' + success + ';font-weight:600;">Remote</span>' : ''}${compHtml ? ' &nbsp;·&nbsp; ' + compHtml : ''}</p>
             <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.55;">${snippet}</p>
             ${roleList}
             ${rec}
@@ -354,8 +385,11 @@ function buildHTML(jobs, dateStr, freshCount) {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;">
               <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;padding-top:12px;">&nbsp;</td></tr>
             </table>
-            <p style="margin:0 0 6px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Outreach draft</p>
-            <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.6;white-space:pre-wrap;">${outreach}</p>
+            ${group.jobs.length > 1 
+              ? `<p style="margin:0 0 10px;font-family:${font};font-size:11px;font-weight:700;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Role-specific outreach</p>`
+              : `<p style="margin:0 0 6px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Outreach draft</p>`
+            }
+            ${outreach}
             <p style="margin:12px 0 4px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Roles to search on LinkedIn</p>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${peopleCells}</tr></table>
             ${actions}
@@ -376,24 +410,31 @@ function buildHTML(jobs, dateStr, freshCount) {
     ...renderGroups(withFlagsGroups),
   ].filter(Boolean).join('');
 
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f7;padding:24px 0;font-family:${font};color:${textPrimary};">
-  <tr><td align="center">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;padding:0 14px;">
-      <tr><td style="margin:0 auto;width:100%;">
-        <p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${textSecondary};">JobOps</p>
-        <h1 style="margin:0 0 18px;font-size:22px;font-weight:600;color:${textPrimary};line-height:1.25;letter-spacing:-0.01em;">Daily Digest</h1>
-        <p style="margin:0 0 14px;font-size:13px;color:${textSecondary};line-height:1.4;">${freshCount} new job(s) found &nbsp;·&nbsp; ${jobs.length} shown</p>
-        ${tldrText ? pillWrap(tldrText) : ''}
-        ${rows}
-        ${freshCount > jobs.length ? `<p style="margin:14px 0 0;font-family:${font};font-size:12px;color:${textSecondary};line-height:1.45;">${freshCount - jobs.length} more job(s) not shown — run <code style="background:${accentLight};padding:2px 6px;border-radius:4px;font-size:11px;">node scripts/digest.mjs</code> locally to see all.</p>` : ''}
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:${freshCount > jobs.length ? '4' : '6'}px;">
-          <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;">&nbsp;</td></tr>
-        </table>
-        <p style="margin:16px 0 0;font-size:11px;color:${textSecondary};line-height:1.45;">Generated by JobOps. Scores are estimates — review before applying.</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>JobOps Daily Digest</title>
+  <style type="text/css">
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #1c1c1e !important; }
+      table[role="presentation"] { background-color: #1c1c1e !important; }
+      td[style*="background:#f5f5f7"] { background-color: #1c1c1e !important; }
+      td[style*="background:#ffffff"] { background-color: #2c2c2e !important; }
+      td[style*="border:1px solid #e5e5ea"] { border-color: #3a3a3c !important; }
+      p[style*="color:#1d1d1f"], td[style*="color:#1d1d1f"] { color: #f5f5f7 !important; }
+      p[style*="color:#6e6e73"], td[style*="color:#6e6e73"] { color: #98989d !important; }
+      a[style*="color:#0a0a0a"] { color: #f5f5f7 !important; }
+      code[style*="background:#f5f5f7"] { background-color: #3a3a3c !important; color: #f5f5f7 !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f7;">
+${rows}
+</body>
+</html>`;
 }
 
 function buildText(jobs, dateStr, freshCount) {
