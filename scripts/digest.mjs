@@ -227,60 +227,96 @@ function truncate(s, maxLen = 200) {
 }
 
 function buildHTML(jobs, dateStr, freshCount) {
-  // Build TL;DR summary
+  const accent = '#0a0a0a';
+  const accentLight = '#f5f5f7';
+  const textPrimary = '#1d1d1f';
+  const textSecondary = '#6e6e73';
+  const success = '#2d6a4f';
+  const warn = '#b45309';
+  const danger = '#c41e3a';
+  const border = '#e5e5ea';
+  const bg = '#ffffff';
+  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+
+  function badge(score) {
+    const bgc = score >= 4 ? '#2d6a4f' : score >= 3.5 ? '#b45309' : '#6e6e73';
+    return `<span style="display:inline-block;background:${bgc};color:#fff;font-size:11px;font-weight:600;letter-spacing:0.02em;padding:2px 10px;border-radius:12px;line-height:18px;">${score.toFixed(1)}/5</span>`;
+  }
+  function pill(label, color) {
+    return `<span style="display:inline-block;background:${color};color:#fff;font-size:11px;font-weight:600;letter-spacing:0.02em;padding:2px 10px;border-radius:12px;line-height:18px;">${esc(label)}</span>`;
+  }
+  function pillWrap(html) {
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px 0;"><tr><td style="padding:14px 16px;background:${accentLight};border:1px solid ${border};border-radius:12px;"><p style="margin:0;font-family:${font};color:${textPrimary};font-size:14px;line-height:1.5;">${html}</p></td></tr></table>`;
+  }
+  function sectionDivider() {
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:22px 0 6px;"><tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
+  }
+
   const strongMatches = jobs.filter(j => j.evaluation?.overall >= 4.0).length;
   const worthReviewing = jobs.filter(j => j.evaluation?.overall >= 3.5 && j.evaluation?.overall < 4.0).length;
   const withFlags = jobs.filter(j => j.evaluation?.redFlags?.length > 0).length;
   const unscored = jobs.filter(j => !j.evaluation?.overall).length;
 
-  const rows = jobs.map(j => {
-    const score = j.evaluation?.overall ? `<span style="background:#111;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold;">${j.evaluation.overall.toFixed(1)}/5</span>` : '';
-    const rec = j.evaluation?.recommendation ? `<p><em>${esc(j.evaluation.recommendation)}</em></p>` : '';
-    const flags = j.evaluation?.redFlags?.length
-      ? `<p style="color:#b91c1c;"> ${esc(j.evaluation.redFlags.join(' • '))}</p>`
-      : '';
-    const outreach = stripHtml(outreachFor(j)).replace(/\n/g, '<br>');
-    const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
-    const linkedinUrls = linkedinTitles.map(t => {
-      const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
-      return `<a href="${url}" style="font-size:11px;color:#2563eb;">${t} at ${j.company}</a>`;
-    }).join(' · ');
-    return `
-  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;">
-    <h3 style="margin:0 0 4px;">${score}&nbsp; <a href="${j.url}" style="color:#111;">${esc(j.title)}</a></h3>
-    <p style="margin:0 0 8px;color:#555;">${esc(j.company)} · ${esc(j.location)} · posted ${esc(j.posted)}</p>
-    ${rec}
-    <p style="color:#333;">${esc(truncate(j.snippet, 200))}</p>
-    ${flags}
-    <div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px;">
-      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#2563eb;">LinkedIn outreach draft</p>
-      <div style="background:#f9fafb;border-radius:6px;padding:10px;font-size:13px;line-height:1.5;">${outreach}</div>
-      <p style="font-size:11px;color:#888;margin:8px 0 4px;">People to contact:</p>
-      <div style="font-size:11px;color:#555;">${linkedinUrls}</div>
-    </div>
-  </div>`;
-  }).join('\n');
+  const tldrPills = [];
+  if (strongMatches > 0) tldrPills.push(pill(`${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}`, success));
+  if (worthReviewing > 0) tldrPills.push(pill(`${worthReviewing} worth reviewing`, warn));
+  if (unscored > 0) tldrPills.push(pill(`${unscored} unscored`, textSecondary));
+  if (withFlags > 0) tldrPills.push(pill(`${withFlags} with red flags`, danger));
+  const tldrText = tldrPills.length > 0 ? tldrPills.join(' ') : '<span style="color:' + textSecondary + ';">No strong matches today — keep applying</span>';
 
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:680px;margin:auto;">
-  <h2>JobOps Daily Digest — ${dateStr}</h2>
-  <p>${freshCount} new job(s) found. ${jobs.length} shown after scoring.</p>
-  
-  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-    <p style="margin:0 0 6px;font-weight:600;color:#0369a1;">TL;DR</p>
-    <p style="margin:0;color:#333;font-size:14px;">
-      ${strongMatches > 0 ? `<strong style="color:#16a34a;">${strongMatches} strong match${strongMatches > 1 ? 'es' : ''}</strong>` : ''}
-      ${strongMatches > 0 && worthReviewing > 0 ? ' · ' : ''}
-      ${worthReviewing > 0 ? `<span style="color:#d97706;">${worthReviewing} worth reviewing</span>` : ''}
-      ${(strongMatches > 0 || worthReviewing > 0) && unscored > 0 ? ' · ' : ''}
-      ${unscored > 0 ? `<span style="color:#6b7280;">${unscored} unscored</span>` : ''}
-      ${withFlags > 0 ? ` · <span style="color:#dc2626;">${withFlags} with red flags</span>` : ''}
-      ${strongMatches === 0 && worthReviewing === 0 && unscored === 0 ? '<span style="color:#6b7280;">No strong matches today — keep applying</span>' : ''}
-    </p>
-  </div>
-  
-  ${rows}
-  <p style="color:#777;font-size:12px;">Generated by JobOps. Scores are AI estimates — review before applying.</p>
-</div>`;
+  const rows = jobs.map(j => {
+    const score = j.evaluation?.overall ? badge(j.evaluation.overall) : '';
+    const rec = j.evaluation?.recommendation ? `<p style="margin:10px 0 0;font-family:${font};font-style:italic;color:${textSecondary};font-size:13px;">${esc(j.evaluation.recommendation)}</p>` : '';
+    const flags = j.evaluation?.redFlags?.length
+      ? `<p style="margin:10px 0 0;font-family:${font};color:${danger};font-size:13px;line-height:1.45;">${esc(j.evaluation.redFlags.join(' &nbsp;·&nbsp; '))}</p>`
+      : '';
+    const snippet = esc(truncate(j.snippet, 220));
+    const outreach = esc(stripHtml(outreachFor(j)));
+    const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
+    const peopleCells = linkedinTitles.map(t => {
+      const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
+      return `<td style="padding:0 6px 0 0;vertical-align:top;"><a href="${url}" style="font-family:${font};font-size:12px;color:${accent};text-decoration:underline;text-underline-offset:3px;">${esc(t)}</a></td>`;
+    }).join('');
+    return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
+      <tr>
+        <td style="padding:16px 18px;background:${bg};border:1px solid ${border};border-radius:14px;">
+          <p style="margin:0 0 6px;font-family:${font};font-size:15px;font-weight:600;color:${textPrimary};line-height:1.3;">
+            ${score}&nbsp; <a href="${esc(j.url)}" style="color:${textPrimary};text-decoration:underline;text-underline-offset:4px;">${esc(j.title)}</a>
+          </p>
+          <p style="margin:0 0 8px;font-family:${font};color:${textSecondary};font-size:13px;line-height:1.4;">${esc(j.company)} &nbsp;·&nbsp; ${esc(j.location)} &nbsp;·&nbsp; posted ${esc(j.posted)}</p>
+          <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.55;">${snippet}</p>
+          ${rec}
+          ${flags}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;">
+            <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;padding-top:12px;">&nbsp;</td></tr>
+          </table>
+          <p style="margin:0 0 6px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">Outreach draft</p>
+          <p style="margin:0;font-family:${font};color:${textPrimary};font-size:13px;line-height:1.6;white-space:pre-wrap;">${outreach}</p>
+          <p style="margin:12px 0 4px;font-family:${font};font-size:11px;font-weight:600;color:${textSecondary};letter-spacing:0.08em;text-transform:uppercase;">People to contact</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${peopleCells}</tr></table>
+        </td>
+      </tr>
+    </table>`;
+  }).join('');
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f7;padding:24px 0;font-family:${font};color:${textPrimary};">
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;padding:0 14px;">
+      <tr><td style="margin:0 auto;width:100%;">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${textSecondary};">JobOps</p>
+        <h1 style="margin:0 0 18px;font-size:22px;font-weight:600;color:${textPrimary};line-height:1.25;letter-spacing:-0.01em;">Daily Digest</h1>
+        <p style="margin:0 0 14px;font-size:13px;color:${textSecondary};line-height:1.4;">${freshCount} new job(s) found &nbsp;·&nbsp; ${jobs.length} shown</p>
+        ${tldrText ? pillWrap(tldrText) : ''}
+        ${rows}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:6px;">
+          <tr><td style="border-top:1px solid ${border};font-size:0;line-height:0;">&nbsp;</td></tr>
+        </table>
+        <p style="margin:16px 0 0;font-size:11px;color:${textSecondary};line-height:1.45;">Generated by JobOps. Scores are estimates — review before applying.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`;
 }
 
 function buildText(jobs, dateStr, freshCount) {
