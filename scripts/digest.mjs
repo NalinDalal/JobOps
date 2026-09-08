@@ -182,8 +182,18 @@ async function evaluateTop(fresh, limit) {
 }
 
 // ─── Email helpers ───────────────────────────────────────────────
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim();
+}
+
 function esc(s) {
-  return String(s || '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/\n/g, '<br>');
+  return stripHtml(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+}
+
+function truncate(s, maxLen = 200) {
+  const clean = stripHtml(s);
+  if (clean.length <= maxLen) return clean;
+  return clean.substring(0, maxLen).replace(/\s+\S*$/, '') + '…';
 }
 
 function buildHTML(jobs, dateStr, freshCount) {
@@ -193,22 +203,25 @@ function buildHTML(jobs, dateStr, freshCount) {
     const flags = j.evaluation?.redFlags?.length
       ? `<p style="color:#b91c1c;">⚠ ${esc(j.evaluation.redFlags.join(' • '))}</p>`
       : '';
-    const outreach = esc(outreachFor(j)).replace(/<br>/g, '\n').replace(/\n/g, '<br>');
+    const outreach = stripHtml(outreachFor(j)).replace(/\n/g, '<br>');
     const linkedinTitles = (getProfileOutreach(loadActiveProfile()).linkedin_titles || ['Engineering Manager', 'Tech Lead', 'CTO', 'HR']).slice(0, 3);
-    const linkedinUrls = linkedinTitles.map(t => `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`).map(url => `<a href="${url}" style="font-size:12px;">${url}</a>`).join('<br>');
+    const linkedinUrls = linkedinTitles.map(t => {
+      const url = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t} at ${j.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
+      return `<a href="${url}" style="font-size:11px;color:#2563eb;">${t} at ${j.company}</a>`;
+    }).join(' · ');
     return `
   <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;">
     <h3 style="margin:0 0 4px;">${score}&nbsp; <a href="${j.url}" style="color:#111;">${esc(j.title)}</a></h3>
     <p style="margin:0 0 8px;color:#555;">${esc(j.company)} · ${esc(j.location)} · posted ${esc(j.posted)}</p>
     ${rec}
-    <p style="color:#333;">${esc(j.snippet)}</p>
+    <p style="color:#333;">${esc(truncate(j.snippet, 200))}</p>
     ${flags}
-    <details style="margin-top:8px;">
-      <summary style="cursor:pointer;color:#2563eb;font-size:14px;">LinkedIn outreach draft</summary>
-      <pre style="white-space:pre-wrap;background:#f9fafb;border-radius:6px;padding:10px;font-family:sans-serif;font-size:13px;">${outreach}</pre>
-      <p style="font-size:12px;color:#555;margin-top:8px;">LinkedIn people search:</p>
-      <div style="font-size:12px;">${linkedinUrls}</div>
-    </details>
+    <div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#2563eb;">LinkedIn outreach draft</p>
+      <div style="background:#f9fafb;border-radius:6px;padding:10px;font-size:13px;line-height:1.5;">${outreach}</div>
+      <p style="font-size:11px;color:#888;margin:8px 0 4px;">People to contact:</p>
+      <div style="font-size:11px;color:#555;">${linkedinUrls}</div>
+    </div>
   </div>`;
   }).join('\n');
 
