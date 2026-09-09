@@ -1,0 +1,41 @@
+reviews:
+  profile: assertive
+
+  auto_review:
+    enabled: true
+
+  path_filters:
+    - "!bun.lock"
+    - "!output/**"
+    - "!reports/**"
+    - "!data/digest-seen.json"
+
+  instructions: |
+    Review JobOps as a production automation system.
+
+    Prioritize:
+    1. Runtime correctness
+    2. Data contract violations
+    3. TypeScript type safety
+    4. AI response validation
+    5. Security and secret handling
+    6. Email delivery reliability
+    7. State mutation safety
+    8. Test coverage for changed behavior
+    9. CLI behavior
+    10. Architectural boundary violations
+
+    Never recommend automatic job application submission.
+
+    Treat the human approval boundary as mandatory.
+
+    Flag:
+    - any use of `any` without justification
+    - direct process.env access outside config/env.ts
+    - subprocess execution between internal JobOps modules
+    - unvalidated AI JSON
+    - renderer access to raw pipeline objects
+    - mutation during preview mode
+    - secrets written to logs
+    - network calls without appropriate error handling
+    - state writes before successful email delivery

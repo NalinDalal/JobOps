@@ -61,6 +61,52 @@ User request
 3. If they want to apply, tailor the CV
 4. Add to tracker
 
+## Code Review
+
+When making code changes, follow the three-level review system:
+
+1. **Local review** (before commit):
+   ```bash
+   cr --agent --type uncommitted
+   ```
+
+2. **Push-to-main review** (via GitHub Actions):
+   - Every push to `main` triggers `.github/workflows/code-review.yml`
+   - Runs typecheck, tests, and CodeRabbit CLI review
+   - Review report posted to GitHub Actions summary
+
+3. **Weekly full audit**:
+   - Deeper review of the entire codebase
+   - Architecture, security, dead code, dependency issues, test gaps
+
+## AI Review Instructions for CodeRabbit
+
+When CodeRabbit reviews JobOps code, prioritize:
+
+1. Runtime correctness
+2. Data contract violations
+3. TypeScript type safety
+4. AI response validation
+5. Security and secret handling
+6. Email delivery reliability
+7. State mutation safety
+8. Test coverage for changed behavior
+9. CLI behavior
+10. Architectural boundary violations
+
+Never recommend automatic job application submission. Treat the human approval boundary as mandatory.
+
+Flag:
+- any use of `any` without justification
+- direct `process.env` access outside `config/env.ts`
+- subprocess execution between internal JobOps modules
+- unvalidated AI JSON
+- renderer access to raw pipeline objects
+- mutation during preview mode
+- secrets written to logs
+- network calls without appropriate error handling
+- state writes before successful email delivery
+
 ## Supported Commands
 
 | Command | Description |

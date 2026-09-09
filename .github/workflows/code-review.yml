@@ -1,0 +1,55 @@
+name: AI Code Review
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: CodeRabbit Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Install CodeRabbit CLI
+        run: |
+          curl -fsSL https://cli.coderabbit.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Authenticate CodeRabbit
+        env:
+          CODERABBIT_API_KEY: ${{ secrets.CODERABBIT_API_KEY }}
+        run: |
+          coderabbit auth login --api-key "$CODERABBIT_API_KEY"
+
+      - name: Review pushed changes
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          coderabbit \
+            --agent \
+            --type committed \
+            --base-commit "$BASE_SHA"
