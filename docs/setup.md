@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) v18+
+- [Bun](https://bun.sh) v1.0+ (recommended) or [Node.js](https://nodejs.org) v18+
 - [Cloudflare](https://dash.cloudflare.com/) account (free tier works for Workers AI)
 - Optional: [Resend](https://resend.com) account for daily digest emails
 - Optional: `pdftotext` from [poppler](https://poppler.freedesktop.org/) for ATS checks (macOS: `brew install poppler`)
@@ -12,7 +12,7 @@
 ```bash
 git clone <your-repo-url>
 cd JobOps
-npm install
+bun install
 ```
 
 ## 2. Environment

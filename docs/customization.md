@@ -9,7 +9,7 @@ JobOps supports multiple named role configurations in `config/profiles/`. Each p
 Copy `config/profile.example.yml` to `config/profiles/backend-python.yaml` and edit. Then activate it:
 
 ```bash
-node -e "require('fs').writeFileSync('config/profiles/active.json', JSON.stringify({slug:'backend-python'}))"
+bun -e "require('fs').writeFileSync('config/profiles/active.json', JSON.stringify({slug:'backend-python'}))"
 ```
 
 Or edit `config/profiles/active.json` directly:

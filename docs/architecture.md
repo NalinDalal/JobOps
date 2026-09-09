@@ -1,38 +1,40 @@
 # Architecture
 
-JobOps is a local-first, script-driven job application pipeline. There is no central server, no database daemon, and no cloud lock-in. Every feature is a Node.js script that reads/writes plain files.
+JobOps is a local-first, TypeScript/Bun application pipeline. There is no central server, no database daemon, and no cloud lock-in. Every feature is a TypeScript module that reads/writes plain files.
 
 ## Data flow
 
 ```
-scan.mjs  →  raw job listings (JSON)
+src/pipeline/scan.ts  →  raw job listings (Job[])
    ↓
-evaluate.mjs  →  5-dimension score + red flags (JSON + markdown report)
+src/pipeline/dedup.ts  →  deduplicated jobs
    ↓
-tailor.mjs  →  ATS-optimized CV + cover letter (markdown)
+src/pipeline/evaluate.ts  →  5-dimension score + red flags (JobEvaluation)
    ↓
-tracker.mjs  →  application state (data/applications.md + CSV)
+src/pipeline/rank.ts  →  ranked shortlist
    ↓
-htmlReport.mjs  →  offline dashboard (reports/tracker-dashboard.html)
+src/tailor/index.ts  →  ATS-optimized CV + cover letter (markdown)
    ↓
-digest.mjs  →  daily email (Resend) or console preview
+src/tracker/index.ts  →  application state (data/applications.md + CSV)
+   ↓
+src/digest/viewModel.ts  →  digest view model
+   ↓
+src/digest/renderer.ts  →  HTML email
+   ↓
+src/digest/mailer.ts  →  daily email (Resend/SMTP) or console preview
 ```
 
-## Script ownership
+## Module ownership
 
-| Script | Owns | Persists |
+| Module | Owns | Persists |
 |--------|------|----------|
-| `scan.mjs` | Fetching jobs from portals, dedup, title/location/company filtering | `data/digest-seen.json` (seen-job IDs for digest dedup) |
-| `evaluate.mjs` | AI scoring via Cloudflare Workers AI | `reports/*.md` evaluation reports |
-| `tailor.mjs` | CV + cover letter generation, fabricated-skill warnings, ATS source checks | `output/*-cv.md`, `output/*-cover-letter.md` |
-| `tracker.mjs` | Application table, interview stages, outcomes, follow-ups, attention queue, CSV export | `data/applications.md`, `data/tracker-export.csv` |
-| `rank.mjs` | Batch scoring of scraped jobs, ranked shortlist | stdout JSON + optional report |
-| `interview.mjs` | Interview prep pack generation from tracker entry | stdout markdown |
-| `upskill.mjs` | Skill gap analysis, learning plan generation | stdout markdown |
-| `salary.mjs` | Salary lookup from local JSON data | stdout |
-| `digest.mjs` | Scan → dedup → score top N → email/preview | `data/digest-seen.json`, `reports/digest-*.md` |
-| `htmlReport.mjs` | Self-contained HTML dashboard from tracker + archives | `reports/tracker-dashboard.html` |
-| `doctor.mjs` | Prerequisite and config validation | stdout |
+| `src/pipeline/scan.ts` | Fetching jobs from portals, dedup, title/location/company filtering | `data/digest-seen.json` (seen-job IDs for digest dedup) |
+| `src/pipeline/evaluate.ts` | AI scoring via Cloudflare Workers AI | `reports/*.md` evaluation reports |
+| `src/tailor/index.ts` | CV + cover letter generation, fabricated-skill warnings, ATS source checks | `output/*-cv.md`, `output/*-cover-letter.md` |
+| `src/tracker/index.ts` | Application table, interview stages, outcomes, follow-ups, attention queue, CSV export | `data/applications.md`, `data/tracker-export.csv` |
+| `src/pipeline/rank.ts` | Batch scoring of scraped jobs, ranked shortlist | stdout JSON + optional report |
+| `src/digest/index.ts` | Scan → dedup → score top N → email/preview | `data/digest-seen.json`, `reports/digest-*.md` |
+| `src/cli/index.ts` | CLI entry point, command routing | stdout |
 
 ## Configuration layers
 
@@ -72,4 +74,4 @@ When `autonomy_level` is `routine-auto`, entries go directly to `Saved`. Use thi
 
 ### Outcome review
 
-After recording outcomes, `tracker.mjs review` analyzes success/rejection patterns and proposes targeting changes without rewriting your profile facts.
+After recording outcomes, the tracker analyzes success/rejection patterns and proposes targeting changes without rewriting your profile facts.

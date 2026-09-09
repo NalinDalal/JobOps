@@ -10,33 +10,24 @@ import { resolve } from "path";
 
 export interface Env {
   // Cloudflare AI
-  cloudflareApiKey: string | undefined;
-  cloudflareAccountId: string | undefined;
+  cloudflareApiKey?: string;
+  cloudflareAccountId?: string;
   cloudflareModel: string;
 
   // Email (Resend)
-  resendApiKey: string | undefined;
-  mailFrom: string | undefined;
-  mailTo: string | undefined;
+  resendApiKey?: string;
+  mailFrom?: string;
+  mailTo?: string;
 
   // Email (SMTP)
-  smtpHost: string | undefined;
-  smtpPort: number | undefined;
-  smtpUser: string | undefined;
-  smtpPass: string | undefined;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
 }
 
 const DEFAULT_ENV: Env = {
-  cloudflareApiKey: undefined,
-  cloudflareAccountId: undefined,
   cloudflareModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-  resendApiKey: undefined,
-  mailFrom: undefined,
-  mailTo: undefined,
-  smtpHost: undefined,
-  smtpPort: undefined,
-  smtpUser: undefined,
-  smtpPass: undefined,
 };
 
 let cachedEnv: Env | undefined;
