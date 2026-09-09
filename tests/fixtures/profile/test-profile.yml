@@ -1,0 +1,55 @@
+candidate:
+  name: "Nalin Dalal"
+  email: "nalindalal@example.com"
+  github: "https://github.com/nalindalal"
+  linkedin: "https://linkedin.com/in/nalindalal"
+
+target_roles:
+  - Software Engineer
+  - Full Stack Developer
+  - Backend Engineer
+
+target_locations:
+  - India
+  - Remote
+  - London
+
+skills:
+  languages:
+    - TypeScript
+    - JavaScript
+    - Python
+    - Bash
+  frameworks:
+    - React
+    - Next.js
+    - Node.js
+    - Express
+  databases:
+    - PostgreSQL
+    - MongoDB
+    - Redis
+  devops:
+    - Docker
+    - GitHub Actions
+    - AWS
+  tools:
+    - Git
+    - Linux
+    - Jest
+
+experience:
+  level: "Junior"
+  years: 1
+
+outreach:
+  short_dm: "Hi {Name}, I'm {candidate_name} — {experience_level} engineer focused on {skills}. I'd love to discuss the {role} opportunity at {company}."
+  linkedin_titles:
+    - Engineering Manager
+    - Tech Lead
+    - CTO
+    - HR
+
+preferences:
+  salary_range: "Negotiable"
+  work_style: "Remote preferred"

@@ -1,12 +1,12 @@
 # API Reference
 
-## scan.mjs
+## scan
 
 Search job boards.
 
-```
-node scripts/scan.mjs <query> <location>
-node scripts/scan.mjs auto <location>
+```bash
+bun run src/cli/index.ts scan <query> <location>
+bun run src/cli/index.ts scan auto <location>
 ```
 
 **Output:** JSON array to stdout.
@@ -15,7 +15,7 @@ node scripts/scan.mjs auto <location>
 
 ```json
 {
-  "id": 1,
+  "id": "company::title::url",
   "title": "Software Engineer",
   "company": "Stripe",
   "location": "Remote",
@@ -27,15 +27,15 @@ node scripts/scan.mjs auto <location>
 }
 ```
 
-## evaluate.mjs
+## evaluate
 
 Score a single job via Cloudflare AI.
 
-```
-node scripts/evaluate.mjs '{"title":"...","company":"...","location":"...","description":"..."}'
+```bash
+bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
-**Output:** Markdown table + `---EVAL_JSON---` followed by raw JSON.
+**Output:** JSON evaluation object.
 
 **JSON schema:**
 
@@ -47,122 +47,48 @@ node scripts/evaluate.mjs '{"title":"...","company":"...","location":"...","desc
   "growthPotential": 4.5,
   "compFit": 4.0,
   "cultureFit": 4.0,
+  "verdict": "strong",
   "recommendation": "Strong Apply",
   "analysis": "...",
   "redFlags": []
 }
 ```
 
-## tailor.mjs
+## tailor
 
 Generate tailored CV + cover letter.
 
-```
-node scripts/tailor.mjs '{"title":"...","company":"...","location":"...","description":"..."}'
+```bash
+bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer"
 ```
 
 **Output:** Two files in `output/`:
 - `{company}-cv.md`
 - `{company}-cover-letter.md`
 
-**Warnings:**
-- Fabricated-skill warnings are printed to stderr if the model adds skills not present in `config/cv.md`.
-- ATS checks run on the generated markdown and warnings are printed.
-
-## tracker.mjs
+## tracker
 
 Application tracker.
 
-```
-node scripts/tracker.mjs list
-node scripts/tracker.mjs add "Company" "Role"
-node scripts/tracker.mjs update "Company" "Status"
-node scripts/tracker.mjs interview "Company" "Stage" ["date"]
-node scripts/tracker.mjs outcome "Company" "Result"
-node scripts/tracker.mjs followup "Company" "Note" ["date"]
-node scripts/tracker.mjs export
-node scripts/tracker.mjs report
-node scripts/tracker.mjs attention
-node scripts/tracker.mjs review
-node scripts/tracker.mjs autonomy
-node scripts/tracker.mjs reset <mode>
+```bash
+bun run src/cli/index.ts tracker list
+bun run src/cli/index.ts tracker add --company "Company" --role "Role"
+bun run src/cli/index.ts tracker update --company "Company" --status "Status"
+bun run src/cli/index.ts tracker interview --company "Company" --stage "Stage" ["date"]
+bun run src/cli/index.ts tracker outcome --company "Company" --outcome "Result"
+bun run src/cli/index.ts tracker followup --company "Company" --note "Note" ["date"]
+bun run src/cli/index.ts tracker export
+bun run src/cli/index.ts tracker report
 ```
 
 **Valid statuses:** `Saved`, `Attention`, `Applied`, `Interviewing`, `Offer`, `Rejected`, `Withdrawn`
 
-**Attention queue:** When `autonomy_level` is `review-each`, new entries start in `Attention` status. You must explicitly move them to `Saved` or `Applied` before applying.
-
-**Outcome review:** `node scripts/tracker.mjs review` prints outcome distribution, success/rejection patterns, and targeting suggestions.
-
-**Autonomy level:** `node scripts/tracker.mjs autonomy` shows the current level. Set via `autonomy_level` in your active profile YAML (`review-each` or `routine-auto`).
-
-**Reset modes:** `profile` (clears tracker rows, keeps header), `documents` (deletes `data/applications/`), `all` (both). Requires typing `RESET` to confirm.
-
-## rank.mjs
-
-Batch score all jobs from a scan.
-
-```
-node scripts/rank.mjs <query> <location> [--limit N] [--min-score 3.5]
-```
-
-**Output:** JSON array sorted by `overall` descending. Each entry includes the full evaluation object.
-
-## interview.mjs
-
-Generate interview prep pack for a tracked application.
-
-```
-node scripts/interview.mjs "Company" ["stage"]
-```
-
-**Output:** Markdown to stdout with:
-- Company overview
-- Role-specific likely questions
-- STAR-mapped answers from `config/cv.md`
-- Questions to ask the interviewer
-
-Requires the company to exist in `data/applications.md`.
-
-## upskill.mjs
-
-Analyze skill gaps between your profile and target jobs.
-
-```
-node scripts/upskill.mjs [--query "software engineer"] [--limit 10]
-```
-
-**Output:** Markdown to stdout with:
-- Gap heatmap (skills you have vs. skills jobs want)
-- Prioritized learning plan with web-searched resources
-- Time estimates per skill
-
-## salary.mjs
-
-Look up salary from local data.
-
-```
-node scripts/salary.mjs "Software Engineer" ["India"]
-```
-
-**Output:** JSON with min/max/median from `data/salary/*.json`.
-
-**Data format (`data/salary/india-tech.json`):**
-
-```json
-{
-  "roles": [
-    { "title": "Software Engineer", "min": 600000, "max": 1800000, "median": 1200000, "currency": "INR", "source": "levels.fyi" }
-  ]
-}
-```
-
-## digest.mjs
+## digest
 
 Daily digest.
 
-```
-node scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "auto|<query>"]
+```bash
+bun run src/cli/index.ts digest [--mode preview|daily] [--max N] [--evaluate N] [--query "auto|<query>"]
 ```
 
 **Flags:**
@@ -174,22 +100,12 @@ node scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query
 
 **Output:** Text + HTML email via Resend, or console preview.
 
-## htmlReport.mjs
+## status
 
-Generate self-contained HTML dashboard.
+System health check.
 
-```
-node scripts/htmlReport.mjs
-```
-
-**Output:** `reports/tracker-dashboard.html` (offline, no external dependencies).
-
-## doctor.mjs
-
-Health check.
-
-```
-node scripts/doctor.mjs
+```bash
+bun run src/cli/index.ts status
 ```
 
 Validates Node version, `.env` presence, config file syntax, and portal connectivity.

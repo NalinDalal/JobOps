@@ -1,36 +1,36 @@
 {
   "name": "jobops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "bin": {
-    "jobops": "./cli.mjs"
+    "jobops": "./src/cli/index.ts"
   },
   "scripts": {
-    "scan": "node cli.mjs scan",
-    "evaluate": "node cli.mjs evaluate",
-    "tailor": "node cli.mjs tailor",
-    "tracker": "node cli.mjs tracker",
-    "report": "node cli.mjs report",
-    "digest": "node cli.mjs digest",
-    "doctor": "node cli.mjs doctor",
-    "rank": "node scripts/rank.mjs",
-    "interview": "node scripts/interview.mjs",
-    "upskill": "node scripts/upskill.mjs",
-    "salary": "node scripts/salary.mjs",
-    "habits": "node scripts/habits.mjs",
-    "atsSearch": "node scripts/atsSearch.mjs",
-    "verifyJob": "node scripts/verifyJob.mjs",
-    "emailOutreach": "node scripts/emailOutreach.mjs",
-    "challenge": "node scripts/challenge.mjs",
-    "reverseEngineer": "node scripts/reverseEngineer.mjs",
-    "loomOutreach": "node scripts/loomOutreach.mjs",
-    "discover": "node scripts/discoverCompanies.mjs",
-    "dev": "node cli.mjs scan"
+    "dev": "bun run src/cli/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "scan": "bun run src/cli/index.ts scan",
+    "evaluate": "bun run src/cli/index.ts evaluate",
+    "tailor": "bun run src/cli/index.ts tailor",
+    "tracker": "bun run src/cli/index.ts tracker",
+    "report": "bun run src/cli/index.ts report",
+    "digest": "bun run src/cli/index.ts digest",
+    "doctor": "bun run src/cli/index.ts doctor",
+    "rank": "bun run src/cli/index.ts rank",
+    "interview": "bun run src/cli/index.ts interview",
+    "upskill": "bun run src/cli/index.ts upskill",
+    "salary": "bun run src/cli/index.ts salary",
+    "discover": "bun run src/cli/index.ts discover"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^26.0.0",
+    "@types/nodemailer": "^8.0.1",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "js-yaml": "^5.3.0"
+    "js-yaml": "^5.3.0",
+    "nodemailer": "^10.0.1",
+    "zod": "^3.23.0"
   }
 }

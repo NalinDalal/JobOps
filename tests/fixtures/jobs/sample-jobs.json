@@ -1,0 +1,57 @@
+[
+  {
+    "title": "Software Engineer (Java)",
+    "company": "Arq",
+    "location": "London",
+    "url": "https://boards.greenhouse.io/arq/jobs/123456",
+    "source": "greenhouse",
+    "snippet": "Build scalable backend systems with Java, TypeScript, and React. Experience with distributed systems preferred.",
+    "postedAt": "2026-09-08",
+    "remote": false,
+    "tags": ["Java", "TypeScript", "React"]
+  },
+  {
+    "title": "Software Engineer II",
+    "company": "Swap",
+    "location": "London",
+    "url": "https://jobs.lever.co/swap/abc123",
+    "source": "lever",
+    "snippet": "Senior role with TypeScript and Node.js. 5+ years experience required.",
+    "postedAt": "2026-09-08",
+    "remote": false,
+    "tags": ["TypeScript", "Node.js"]
+  },
+  {
+    "title": "Software Engineer - AI Platforms",
+    "company": "Figma",
+    "location": "San Francisco, CA · New York, NY · United States",
+    "url": "https://jobs.ashbyhq.com/figma/xyz789",
+    "source": "ashby",
+    "snippet": "Build AI-powered design tools with React, TypeScript, and machine learning.",
+    "postedAt": "2026-08-11",
+    "remote": false,
+    "tags": ["React", "TypeScript", "AI"]
+  },
+  {
+    "title": "Software Engineer",
+    "company": "Figma",
+    "location": "London",
+    "url": "https://jobs.ashbyhq.com/figma/xyz790",
+    "source": "ashby",
+    "snippet": "Frontend engineer role with React and TypeScript.",
+    "postedAt": "2026-09-05",
+    "remote": false,
+    "tags": ["React", "TypeScript"]
+  },
+  {
+    "title": "Software Engineer",
+    "company": "Figma",
+    "location": "London",
+    "url": "https://jobs.ashbyhq.com/figma/xyz791",
+    "source": "ashby",
+    "snippet": "Backend engineer role with TypeScript and Node.js.",
+    "postedAt": "2026-09-04",
+    "remote": false,
+    "tags": ["TypeScript", "Node.js"]
+  }
+]

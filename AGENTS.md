@@ -7,16 +7,16 @@ You are an autonomous job hunting agent. When the user asks you to find, evaluat
 ```
 User request
     ↓
-1. SEARCH    → node scripts/scan.mjs "query" ["location"]
+1. SEARCH    → bun run src/cli/index.ts scan "query" ["location"]
 2. EVALUATE  → Score each job 1-5 across 5 dimensions
-3. TAILOR    → node scripts/tailor.mjs '{...job data...}'
-4. TRACK     → node scripts/tracker.mjs add "Company" "Role"
+3. TAILOR    → bun run src/cli/index.ts tailor --company "Company" --role "Role"
+4. TRACK     → bun run src/cli/index.ts tracker add --company "Company" --role "Role"
 ```
 
 ## How You Execute
 
 ### When user says "find me [role] jobs" or "scan for [role]"
-1. Run `node scripts/scan.mjs "role query" "location"` to get job listings
+1. Run `bun run src/cli/index.ts scan "role query" "location"` to get job listings
 2. Present the results as a numbered list with one-line summaries
 3. Ask which ones to evaluate in detail
 
@@ -27,65 +27,63 @@ User request
 4. Suggest next step: tailor CV if score ≥ 3.5
 
 ### When user says "tailor my CV for job #N"
-1. Run `node scripts/tailor.mjs` with the job data
+1. Run `bun run src/cli/index.ts tailor --company "Company" --role "Role"` with the job data
 2. It reads `config/cv.md` and `config/profile.yml`
 3. Generates ATS-optimized CV + cover letter in `output/`
 4. Show the user where the files are
 
 ### When user says "add to tracker"
-1. Run `node scripts/tracker.mjs add "Company" "Role"`
+1. Run `bun run src/cli/index.ts tracker add --company "Company" --role "Role"`
 2. Confirm it was added
 
 ### When user says "show my tracker" or "show tracker report"
-1. Run `node scripts/tracker.mjs list`
+1. Run `bun run src/cli/index.ts tracker list`
 2. Display the application table
-3. Optionally generate HTML dashboard: `node scripts/tracker.mjs report`
+3. Optionally generate HTML dashboard: `bun run src/cli/index.ts tracker report`
 
 ### When user says "mark interview for [Company]"
-1. Run `node scripts/tracker.mjs interview "Company" "stage" ["date"]`
+1. Run `bun run src/cli/index.ts tracker interview --company "Company" --stage "stage" ["date"]`
 2. Stages: Phone Screen, Technical, Onsite, Final Round, HR Round, Offer, Other
 
 ### When user says "record outcome for [Company]"
-1. Run `node scripts/tracker.mjs outcome "Company" "result"`
+1. Run `bun run src/cli/index.ts tracker outcome --company "Company" --outcome "result"`
 2. Results: Applied, Interviewing, Offer Received, Offer Accepted, Offer Declined, Rejected, Ghosted, Withdrawn
 
 ### When user says "add follow-up for [Company]"
-1. Run `node scripts/tracker.mjs followup "Company" "note" ["date"]`
+1. Run `bun run src/cli/index.ts tracker followup --company "Company" --note "note" ["date"]`
 2. Default date is +7 days from today
 
 ### When user says "search ATS boards" or "find jobs on greenhouse/lever/ashby"
-1. Run `node scripts/atsSearch.mjs "role query" "location" --boards greenhouse,lever,ashby`
-2. Shows Google dorks + direct search URLs for ATS boards
+1. Run `bun run src/cli/index.ts scan "role query" "location"` with portal config
+2. Configure sources in `config/portals.yml`
 3. These jobs are less competitive than LinkedIn postings
 
 ### When user says "verify if a job is real" or "is this job genuine"
-1. Run `node scripts/verifyJob.mjs --company "Company" --role "Role"`
-2. Cross-checks LinkedIn, Wellfound, company page, Greenhouse API, Lever API
+1. Fetch the company careers page, LinkedIn, Wellfound, Greenhouse/Lever/Ashby
+2. Cross-check across platforms
 3. Gives a trust score (80%+ = very likely genuine)
 
 ### When user says "find email for [Company]" or "email outreach"
-1. Run `node scripts/emailOutreach.mjs --company "Company" --role "Role"`
-2. Finds CTO/EM contacts, drafts personalized emails
-3. Tracks outreach in data/outreach.json
-4. Follow up in 4-5 days: `node scripts/emailOutreach.mjs --followup`
+1. Find CTO/EM contacts via Apollo.io, Hunter.io, pattern guessing
+2. Draft personalized emails
+3. Track outreach in data/outreach.json
+4. Follow up in 4-5 days
 
 ### When user says "start 30-day challenge" or "challenge progress"
-1. Run `node scripts/challenge.mjs` — show today's progress
-2. Log outreach: `node scripts/challenge.mjs log "Company" [email|linkedin|call]`
-3. View stats: `node scripts/challenge.mjs stats`
-4. Goal: 300 companies in 30 days (10/day)
+1. Log outreach in `data/challenge.json`
+2. View stats: companies contacted, methods used
+3. Goal: 300 companies in 30 days (10/day)
 
 ### When user says "reverse engineer JDs" or "find skill patterns"
-1. Run `node scripts/reverseEngineer.mjs` — analyze recent jobs
+1. Analyze recent jobs from scan results
 2. Shows skill patterns, company patterns, gap analysis, AI integration angles
 
 ### When user says "loom outreach" or "find companies for loom"
-1. Run `node scripts/loomOutreach.mjs` — find 5 target companies
-2. Deep research: `node scripts/loomOutreach.mjs --company "Razorpay"`
-3. Generates loom script, DM template, who to contact
+1. Research target companies on Wellfound and ATS boards
+2. Generates loom script, DM template, who to contact
 
 ### When user says "export tracker"
-1. Run `node scripts/tracker.mjs export`
+1. Run `bun run src/cli/index.ts tracker export`
 2. CSV saved to `data/tracker-export.csv`
 
 ## Files
@@ -98,56 +96,35 @@ User request
 | `data/applications.md` | Application tracker |
 | `output/` | Generated tailored CVs and cover letters |
 | `reports/` | Evaluation reports and HTML dashboard |
-| `scripts/scan.mjs` | Multi-portal job scanner (RemoteOK, Arbeitnow, Findwork, Remotive, freehire, Greenhouse, Lever, Ashby) |
-| `scripts/evaluate.mjs` | Job evaluator (5-dimension scoring via Cloudflare AI) |
-| `scripts/tailor.mjs` | CV tailor (ATS-optimized via Cloudflare AI) |
-| `scripts/tracker.mjs` | Application tracker with interview stages, outcomes, follow-ups |
-| `scripts/htmlReport.mjs` | Self-contained HTML dashboard generator |
-| `scripts/digest.mjs` | Daily digest (scan → dedup → AI score → outreach → email) |
-| `scripts/doctor.mjs` | System health check |
-| `scripts/atsSearch.mjs` | Google dork scanner for ATS boards (less competitive jobs) |
-| `scripts/verifyJob.mjs` | Job verification (cross-check across platforms) |
-| `scripts/emailOutreach.mjs` | Direct email outreach (find contacts, draft emails, track) |
-| `scripts/challenge.mjs` | 30-day challenge tracker (300 companies goal) |
-| `scripts/reverseEngineer.mjs` | Analyze job patterns, skill gaps, AI integration angles |
-| `scripts/loomOutreach.mjs` | Wellfound company research + loom outreach flow |
-| `scripts/habits.mjs` | Daily habit tracker (apply, DM, outreach, learn) |
-| `scripts/discoverCompanies.mjs` | Discover companies hiring on ATS boards (Greenhouse, Lever, Ashby) |
+| `src/cli/index.ts` | CLI entry point (Bun runtime) |
+| `src/pipeline/scan.ts` | Multi-portal job scanner |
+| `src/pipeline/evaluate.ts` | Job evaluator (5-dimension scoring via Cloudflare AI) |
+| `src/digest.ts` | Daily digest orchestration |
+| `src/tracker/index.ts` | Application tracker with interview stages, outcomes, follow-ups |
 
 ## Rules
 
 1. **Never auto-submit applications** — always present for user review
 2. **Score honestly** — jobs below 3.5/5 are weak matches
-3. **Use real data** — run the scripts, don't make up results
+3. **Use real data** — run the commands, don't make up results
 4. **Mirror keywords** — CV tailoring extracts JD keywords into your experience
 5. **Local-first** — everything runs on the user's machine
 
-## Your Capabilities (via scripts)
+## Your Capabilities
 
-- `scripts/scan.mjs "query" ["location"]` — Search 8+ portals (RemoteOK, Arbeitnow, Findwork, Remotive, freehire, Greenhouse, Lever, Ashby)
-- `scripts/evaluate.mjs '{job data}'` — Score a job using Cloudflare AI (5 dimensions + red flags)
-- `scripts/tailor.mjs '{job data}'` — Generate tailored CV + cover letter
-- `scripts/tracker.mjs list` — Show all applications with interview stages and outcomes
-- `scripts/tracker.mjs add "Company" "Role"` — Add to tracker
-- `scripts/tracker.mjs update "Company" "status"` — Update status
-- `scripts/tracker.mjs interview "Company" "stage" ["date"]` — Record interview stage
-- `scripts/tracker.mjs outcome "Company" "result"` — Record final outcome
-- `scripts/tracker.mjs followup "Company" "note" ["date"]` — Add follow-up reminder
-- `scripts/tracker.mjs export` — Export tracker as CSV
-- `scripts/tracker.mjs report` — Generate HTML dashboard
-- `scripts/htmlReport.mjs` — Generate HTML dashboard directly
-- `scripts/digest.mjs [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest: scan → dedup → AI score top N → outreach blurbs → Resend email (runs automatically at 12:00 IST via `.github/workflows/daily-digest.yml`)
-- `scripts/doctor.mjs` — System health check
-- `scripts/atsSearch.mjs "role query" "location" --boards greenhouse,lever,ashby` — Google dork scanner for ATS boards
-- `scripts/verifyJob.mjs --company "Company" --role "Role"` — Job verification (cross-check platforms)
-- `scripts/emailOutreach.mjs --company "Company" --role "Role"` — Direct email outreach (find contacts, draft emails)
-- `scripts/emailOutreach.mjs --followup` — Show follow-ups due (4-5 days after outreach)
-- `scripts/challenge.mjs` — 30-day challenge tracker (300 companies goal)
-- `scripts/challenge.mjs log "Company" [method]` — Log outreach (email/linkedin/call)
-- `scripts/challenge.mjs stats` — Overall challenge stats
-- `scripts/reverseEngineer.mjs` — Analyze job patterns and skill gaps
-- `scripts/loomOutreach.mjs` — Wellfound company research + loom outreach
-- `scripts/discoverCompanies.mjs --ats greenhouse,lever,ashby` — Discover companies hiring on ATS boards
+- `bun run src/cli/index.ts scan "query" ["location"]` — Search job boards
+- `bun run src/cli/index.ts evaluate --company "Company" --role "Role"` — Score a job using Cloudflare AI
+- `bun run src/cli/index.ts tailor --company "Company" --role "Role"` — Generate tailored CV + cover letter
+- `bun run src/cli/index.ts tracker list` — Show all applications with interview stages and outcomes
+- `bun run src/cli/index.ts tracker add --company "Company" --role "Role"` — Add to tracker
+- `bun run src/cli/index.ts tracker update --company "Company" --status "Status"` — Update status
+- `bun run src/cli/index.ts tracker interview --company "Company" --stage "stage" ["date"]` — Record interview stage
+- `bun run src/cli/index.ts tracker outcome --company "Company" --outcome "result"` — Record final outcome
+- `bun run src/cli/index.ts tracker followup --company "Company" --note "note" ["date"]` — Add follow-up reminder
+- `bun run src/cli/index.ts tracker export` — Export tracker as CSV
+- `bun run src/cli/index.ts tracker report` — Generate HTML dashboard
+- `bun run src/cli/index.ts digest [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest
+- `bun run src/cli/index.ts status` — System health check
 
 ## When user pastes a LinkedIn/Greenhouse/etc URL
 1. Fetch the URL content to extract job details
@@ -161,7 +138,7 @@ User request
 - Whitelist in `config/portals.yml`: only scan jobs from specific companies
 - Configure per-portal search queries in `config/portals.yml`
 
-## Direct Outreach Strategy (from the 30-day challenge)
+## Direct Outreach Strategy
 
 The most effective way to land interviews is NOT applying on job boards. It's:
 

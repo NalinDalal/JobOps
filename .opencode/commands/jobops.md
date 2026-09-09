@@ -7,20 +7,20 @@ user_invocable: true
 
 # JobOps Command
 
-Run `node scripts/doctor.mjs` first to validate setup.
+Run `bun run src/cli/index.ts status` first to validate setup.
 
 Then route the user's prompt to the correct mode:
 
-- If it contains "find", "search", "scan" → Run `node scripts/scan.mjs "query" ["location"]`
-- If it contains "evaluate", "score", "rate" → Run `node scripts/evaluate.mjs '{job data}'`
-- If it contains "tailor", "cv", "cover letter" → Run `node scripts/tailor.mjs '{job data}'`
-- If it contains "tracker", "show tracker", "show my tracker" → Run `node scripts/tracker.mjs list`
-- If it contains "mark interview" → Run `node scripts/tracker.mjs interview "Company" "stage" ["date"]`
-- If it contains "record outcome" → Run `node scripts/tracker.mjs outcome "Company" "result"`
-- If it contains "follow-up" or "followup" → Run `node scripts/tracker.mjs followup "Company" "note" ["date"]`
-- If it contains "export" → Run `node scripts/tracker.mjs export`
-- If it contains "report" or "dashboard" → Run `node scripts/tracker.mjs report` or `node scripts/htmlReport.mjs`
-- If it contains "add [company]" → Run `node scripts/tracker.mjs add "Company" "Role"`
+- If it contains "find", "search", "scan" → Run `bun run src/cli/index.ts scan "query" ["location"]`
+- If it contains "evaluate", "score", "rate" → Run `bun run src/cli/index.ts evaluate --company "Company" --role "Role"`
+- If it contains "tailor", "cv", "cover letter" → Run `bun run src/cli/index.ts tailor --company "Company" --role "Role"`
+- If it contains "tracker", "show tracker", "show my tracker" → Run `bun run src/cli/index.ts tracker list`
+- If it contains "mark interview" → Run `bun run src/cli/index.ts tracker interview --company "Company" --stage "stage" ["date"]`
+- If it contains "record outcome" → Run `bun run src/cli/index.ts tracker outcome --company "Company" --outcome "result"`
+- If it contains "follow-up" or "followup" → Run `bun run src/cli/index.ts tracker followup --company "Company" --note "note" ["date"]`
+- If it contains "export" → Run `bun run src/cli/index.ts tracker export`
+- If it contains "report" or "dashboard" → Run `bun run src/cli/index.ts tracker report`
+- If it contains "add [company]" → Run `bun run src/cli/index.ts tracker add --company "Company" --role "Role"`
 - If it contains URL → Fetch it, extract job details, evaluate
 - If it contains "profile", "setup" → Show config/profile.yml
 

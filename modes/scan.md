@@ -10,7 +10,7 @@ User says: "find me jobs", "search for [role]", "look for [type] jobs", "scan fo
 
 1. **Load profile** — Read `config/profile.yml` for skills, target roles, locations
 2. **Load portal config** — Read `config/portals.yml` for enabled sources, blacklist/whitelist, search queries
-3. **Run scanner** — Execute `node scripts/scan.mjs "query" "location"`
+3. **Run scanner** — Execute `bun run src/cli/index.ts scan "query" "location"`
 4. **Present results** — Show matches as a numbered list with scores
 
 ## Output Format

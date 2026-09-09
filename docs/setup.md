@@ -60,28 +60,26 @@ Edit `config/portals.yml` to enable/disable sources, configure company blacklist
 ## 6. Health check
 
 ```bash
-npm run doctor
-# or
-node scripts/doctor.mjs
+bun run src/cli/index.ts status
 ```
 
 ## 7. First scan
 
 ```bash
-node scripts/scan.mjs "software engineer" "Remote"
-node scripts/scan.mjs auto "Remote"   # uses target_roles from profile.yml
+bun run src/cli/index.ts scan "software engineer" "Remote"
+bun run src/cli/index.ts scan auto "Remote"   # uses target_roles from profile.yml
 ```
 
 ## 8. Evaluate a job
 
 ```bash
-node scripts/evaluate.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
 ## 9. Tailor CV
 
 ```bash
-node scripts/tailor.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer"
 ```
 
 Outputs go to `output/`.
@@ -89,10 +87,10 @@ Outputs go to `output/`.
 ## 10. Track applications
 
 ```bash
-node scripts/tracker.mjs add "Stripe" "Software Engineer"
-node scripts/tracker.mjs update "Stripe" "Applied"
-node scripts/tracker.mjs list
-node scripts/tracker.mjs report
+bun run src/cli/index.ts tracker add --company "Stripe" --role "Software Engineer"
+bun run src/cli/index.ts tracker update --company "Stripe" --status "Applied"
+bun run src/cli/index.ts tracker list
+bun run src/cli/index.ts tracker report
 ```
 
 ## 11. Daily digest
@@ -100,13 +98,13 @@ node scripts/tracker.mjs report
 Preview:
 
 ```bash
-node scripts/digest.mjs
+bun run src/cli/index.ts digest
 ```
 
 Send email (also marks jobs as seen):
 
 ```bash
-node scripts/digest.mjs --mode daily --max 15 --evaluate 5
+bun run src/cli/index.ts digest --mode daily --max 15 --evaluate 5
 ```
 
 Cron (GitHub Actions): `.github/workflows/daily-digest.yml` runs at `30 6 * * *` UTC (12:00 IST).
@@ -114,9 +112,9 @@ Cron (GitHub Actions): `.github/workflows/daily-digest.yml` runs at `30 6 * * *`
 ## 12. Advanced features
 
 ```bash
-node scripts/rank.mjs "software engineer" "Remote"        # batch score all scraped jobs
-node scripts/interview.mjs "Stripe" "Technical"           # interview prep pack
-node scripts/upskill.mjs --query "software engineer"      # skill gap analysis
-node scripts/salary.mjs "Software Engineer" "India"       # salary lookup
-node scripts/tracker.mjs reset "profile"                  # reset tracker (requires confirmation)
+bun run src/cli/index.ts rank "software engineer" "Remote"        # batch score all scraped jobs
+bun run src/cli/index.ts interview "Stripe" "Technical"           # interview prep pack
+bun run src/cli/index.ts upskill --query "software engineer"      # skill gap analysis
+bun run src/cli/index.ts salary "Software Engineer" "India"       # salary lookup
+bun run src/cli/index.ts tracker reset "profile"                  # reset tracker (requires confirmation)
 ```
