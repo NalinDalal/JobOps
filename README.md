@@ -52,15 +52,15 @@ If you have a master resume (`config/resume.md`), you can generate everything in
 
 ```bash
 # 1. Generate profile.yml from resume (one-time)
-node cli.mjs profile
+bun run src/cli/index.ts profile
 
 # 2. Discover 15 target companies on Greenhouse/Lever/Ashby (one-time)
-node cli.mjs discover
+bun run src/cli/index.ts discover
 
 # 3. Copy the output from step 2 into config/portals.yml under greenhouse/lever/ashby sections
 
 # 4. Run daily digest (recurring — runs automatically via GitHub Actions at 12:00 IST)
-node cli.mjs digest --send
+bun run src/cli/index.ts digest --send
 ```
 
 ---
@@ -72,7 +72,7 @@ node cli.mjs digest --send
 ```bash
 git clone <your-repo-url>
 cd JobOps
-npm install
+bun install
 ```
 
 ### 2. Configure environment
@@ -114,7 +114,7 @@ MAIL_TO=your-email@gmail.com
 
 **Option A: Auto-generate from master resume** (recommended)
 ```bash
-node cli.mjs profile --enrich   # also fetches GitHub/LeetCode/Codeforces stats
+bun run src/cli/index.ts profile --enrich   # also fetches GitHub/LeetCode/Codeforces stats
 ```
 This reads `config/resume.md` and generates `config/profile.yml` using AI.
 
@@ -226,38 +226,38 @@ max_per_digest: 10        # max jobs per daily email
 ### 6. Discover target companies (one-time)
 
 ```bash
-node cli.mjs discover --count 15
+bun run src/cli/index.ts discover --count 15
 ```
 This uses AI to find 15 companies hiring for your target roles on Greenhouse/Lever/Ashby. Copy the output into `config/portals.yml` under the appropriate `greenhouse.boards`, `lever.boards`, `ashby.boards` sections.
 
 ### 7. Run health check
 
 ```bash
-npm run doctor
+bun run doctor
 # or
-node scripts/doctor.mjs
+bun run src/cli/index.ts status
 ```
 
 ### 8. Test with mock data
 
 ```bash
-node cli.mjs scan --mock
-node cli.mjs digest --mock
+bun run src/cli/index.ts scan --mock
+bun run src/cli/index.ts digest --mock
 ```
 
 ### 9. Run your first real scan
 
 ```bash
-node cli.mjs scan auto "Remote"
+bun run src/cli/index.ts scan auto "Remote"
 
 # or scan for a specific query
-node cli.mjs scan "software engineer" "Remote"
+bun run src/cli/index.ts scan "software engineer" "Remote"
 ```
 
 ### 8. Evaluate a job
 
 ```bash
-node scripts/evaluate.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"We are looking for a software engineer with experience in React, Node.js, and TypeScript..."}'
+bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
 This returns a 5-dimension score and recommendation.
@@ -265,7 +265,7 @@ This returns a 5-dimension score and recommendation.
 ### 9. Tailor your CV
 
 ```bash
-node scripts/tailor.mjs '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"We are looking for a software engineer with experience in React, Node.js, and TypeScript..."}'
+bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer"
 ```
 
 Check `output/` for your tailored CV and cover letter. ATS source checks run automatically and warnings are printed if contact details or standard headers are missing.
@@ -273,23 +273,23 @@ Check `output/` for your tailored CV and cover letter. ATS source checks run aut
 ### 10. Track applications
 
 ```bash
-node scripts/tracker.mjs add "Stripe" "Software Engineer"
-node scripts/tracker.mjs update "Stripe" "Applied"
-node scripts/tracker.mjs list
+bun run src/cli/index.ts tracker add --company "Stripe" --role "Software Engineer"
+bun run src/cli/index.ts tracker update --company "Stripe" --status "Applied"
+bun run src/cli/index.ts tracker list
 ```
 
 Generate the HTML dashboard:
 
 ```bash
-node scripts/tracker.mjs report
+bun run src/cli/index.ts tracker report
 # or
-npm run report
+bun run report
 ```
 
 ### 11. Batch rank jobs
 
 ```bash
-node scripts/rank.mjs "software engineer" "Remote" --limit 20 --min-score 3.5
+bun run src/cli/index.ts scan "software engineer" "Remote" --evaluate 20
 ```
 
 Scans, evaluates all jobs, and returns a JSON array sorted by overall score descending.
@@ -297,7 +297,7 @@ Scans, evaluates all jobs, and returns a JSON array sorted by overall score desc
 ### 12. Interview prep
 
 ```bash
-node scripts/interview.mjs "Stripe" "Technical"
+bun run src/cli/index.ts tracker interview --company "Stripe" --stage "Technical"
 ```
 
 Generates a stage-specific prep pack: company overview, likely questions, STAR-mapped answers from your CV, and questions to ask the interviewer. Requires the company to exist in the tracker.
@@ -305,7 +305,7 @@ Generates a stage-specific prep pack: company overview, likely questions, STAR-m
 ### 13. Skill gap analysis
 
 ```bash
-node scripts/upskill.mjs --query "software engineer" --limit 20
+bun run src/cli/index.ts scan --query "software engineer" --limit 20
 ```
 
 Scrapes jobs, compares required skills against your profile, and produces a prioritized heatmap + learning plan with resources.
@@ -313,7 +313,7 @@ Scrapes jobs, compares required skills against your profile, and produces a prio
 ### 14. Salary lookup
 
 ```bash
-node scripts/salary.mjs "Software Engineer" "India"
+bun run src/cli/index.ts scan "Software Engineer" "India"
 ```
 
 Looks up salary from local `data/salary/*.json` files. Add your own benchmarks following the schema in `docs/customization.md`.
@@ -324,19 +324,19 @@ JobOps emails you a daily digest of fresh matches at **12:00 PM IST** — scan, 
 
 **Preview locally** (prints instead of emailing):
 ```bash
-node cli.mjs digest
+bun run src/cli/index.ts digest
 # or
-npm run digest
+bun run digest
 ```
 
 **Options:**
 ```bash
-node cli.mjs digest --mode daily          # email + mark jobs as seen (alias: --send)
-node cli.mjs digest --send                # same as --mode daily
-node cli.mjs digest --mock                # use mock data for testing
-node cli.mjs digest --max 10              # cap jobs in the email
-node cli.mjs digest --evaluate 0          # skip AI scoring (no Cloudflare keys)
-node cli.mjs digest --query "backend"     # custom scan query (default: auto from profile)
+bun run src/cli/index.ts digest --mode daily          # email + mark jobs as seen (alias: --send)
+bun run src/cli/index.ts digest --send                # same as --mode daily
+bun run src/cli/index.ts digest --mock                # use mock data for testing
+bun run src/cli/index.ts digest --max 10              # cap jobs in the email
+bun run src/cli/index.ts digest --evaluate 0          # skip AI scoring (no Cloudflare keys)
+bun run src/cli/index.ts digest --query "backend"     # custom scan query (default: auto from profile)
 ```
 
 **Activate the scheduled email (needs GitHub):**
@@ -367,7 +367,7 @@ The system runs on a **three-way split of authority**:
 Key implications:
 
 1. **Push discovery, pull decisions.** The cron flipped the trigger from "ask the agent" to "the system notifies you" — but authority never moved. The automation has no judgment and no accountability; it can't tell you a JD is a stretch, it only scores and emails. Anything that changes your application state still requires you + the agent.
-2. **`digest-seen.json` expiry is automatic, not a human skip.** Jobs marked seen by the cron expire from future digests *without you ever looking at them*. This is accepted: scans are cheap and continuously surface new postings. For judgment calls on the same data, run the agent locally (`node scripts/scan.mjs auto`) — the database only affects the daily email.
+2. **`digest-seen.json` expiry is automatic, not a human skip.** Jobs marked seen by the cron expire from future digests *without you ever looking at them*. This is accepted: scans are cheap and continuously surface new postings. For judgment calls on the same data, run the agent locally (`bun run src/cli/index.ts scan auto`) — the database only affects the daily email.
 3. **Deliberate non-goal: no unattended action stages.** Automating discovery was a conscious, reviewable line. Auto-tailoring on digest hits, auto-adding to the tracker, or auto-applying are *not* wired in and should only ever be added as an explicit design decision — never by accident. Rule #1 in [Rules](#rules) ("Never auto-submit applications") applies to every code path, including CI.
 
 If the automation ever does more than *inform*, this section is the first thing to update.
@@ -410,78 +410,71 @@ You can also run scripts directly without an agent CLI:
 
 ```bash
 # Setup (one-time)
-node cli.mjs profile              # Generate profile.yml from resume.md
-node cli.mjs profile --enrich     # Also fetch GitHub/CP stats
-node cli.mjs discover             # Find 15 target companies on GH/Lever/Ashby
+bun run src/cli/index.ts profile              # Generate profile.yml from resume.md
+bun run src/cli/index.ts profile --enrich     # Also fetch GitHub/CP stats
+bun run src/cli/index.ts discover             # Find 15 target companies on GH/Lever/Ashby
 
 # Search jobs
-node cli.mjs scan "software engineer" "Remote"
-node cli.mjs scan auto            # Use profile target_roles
-node cli.mjs scan --mock          # Test with mock data
+bun run src/cli/index.ts scan "software engineer" "Remote"
+bun run src/cli/index.ts scan auto            # Use profile target_roles
+bun run src/cli/index.ts scan --mock          # Test with mock data
 
 # Evaluate a job
-node cli.mjs evaluate '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+bun run src/cli/index.ts evaluate '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
 
 # Tailor CV + cover letter
-node cli.mjs tailor '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
+bun run src/cli/index.ts tailor '{"title":"Software Engineer","company":"Stripe","location":"Remote","description":"..."}'
 
 # Track applications
-node cli.mjs tracker list
-node cli.mjs tracker add "Stripe" "Software Engineer"
-node cli.mjs tracker update "Stripe" "Applied"
-node cli.mjs tracker interview "Stripe" "Technical" "2025-01-15"
-node cli.mjs tracker outcome "Stripe" "Offer Received"
-node cli.mjs tracker followup "Stripe" "Send thank you email"
-node cli.mjs tracker export
-node cli.mjs tracker report
-node cli.mjs tracker reset profile
-node cli.mjs tracker attention
-node cli.mjs tracker review
-node cli.mjs tracker autonomy
+bun run src/cli/index.ts tracker list
+bun run src/cli/index.ts tracker add "Stripe" "Software Engineer"
+bun run src/cli/index.ts tracker update "Stripe" "Applied"
+bun run src/cli/index.ts tracker interview "Stripe" "Technical" "2025-01-15"
+bun run src/cli/index.ts tracker outcome "Stripe" "Offer Received"
+bun run src/cli/index.ts tracker followup "Stripe" "Send thank you email"
+bun run src/cli/index.ts tracker export
+bun run src/cli/index.ts tracker report
+bun run src/cli/index.ts tracker reset profile
+bun run src/cli/index.ts tracker attention
+bun run src/cli/index.ts tracker review
+bun run src/cli/index.ts tracker autonomy
 
 # Batch rank
-node cli.mjs rank "software engineer" "Remote" --limit 20
+bun run src/cli/index.ts rank "software engineer" "Remote" --limit 20
 
 # Interview prep
-node cli.mjs interview "Stripe" "Technical"
+bun run src/cli/index.ts interview "Stripe" "Technical"
 
 # Skill gaps
-node cli.mjs upskill --query "software engineer" --limit 20
+bun run src/cli/index.ts upskill --query "software engineer" --limit 20
 
 # Salary lookup
-node cli.mjs salary "Software Engineer" "India"
+bun run src/cli/index.ts salary "Software Engineer" "India"
 
 # Daily digest
-node cli.mjs digest                       # Preview
-node cli.mjs digest --send                # Send email (marks seen)
-node cli.mjs digest --mock                # Test with mock data
+bun run src/cli/index.ts digest                       # Preview
+bun run src/cli/index.ts digest --send                # Send email (marks seen)
+bun run src/cli/index.ts digest --mock                # Test with mock data
 
 # Health check
-node cli.mjs doctor
+bun run src/cli/index.ts doctor
 ```
 
 ### NPM Scripts
 
 ```bash
-npm run scan
-npm run evaluate
-npm run tailor
-npm run tracker
-npm run report
-npm run digest
-npm run doctor
-npm run rank
-npm run interview
-npm run upskill
-npm run salary
-npm run habits
-npm run atsSearch
-npm run verifyJob
-npm run emailOutreach
-npm run challenge
-npm run reverseEngineer
-npm run loomOutreach
-npm run discover
+bun run scan
+bun run evaluate
+bun run tailor
+bun run tracker
+bun run report
+bun run digest
+bun run doctor
+bun run rank
+bun run interview
+bun run upskill
+bun run salary
+bun run discover
 ```
 
 ## Commands Reference
@@ -490,22 +483,22 @@ npm run discover
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs profile` | Generate `profile.yml` from `config/resume.md` using AI |
-| `node cli.mjs profile --enrich` | Also fetch GitHub stats and LeetCode/Codeforces data |
-| `node cli.mjs discover [--count N]` | AI finds N target companies on Greenhouse/Lever/Ashby |
+| `bun run src/cli/index.ts profile` | Generate `profile.yml` from `config/resume.md` using AI |
+| `bun run src/cli/index.ts profile --enrich` | Also fetch GitHub stats and LeetCode/Codeforces data |
+| `bun run src/cli/index.ts discover [--count N]` | AI finds N target companies on Greenhouse/Lever/Ashby |
 
 ### Job Search
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs scan "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your active profile. |
-| `node cli.mjs scan --mock` | Test with mock data (no API calls) |
+| `bun run src/cli/index.ts scan "query" ["location"]` | Search all enabled job boards. Use `auto` as query to scan every `target_role` from your active profile. |
+| `bun run src/cli/index.ts scan --mock` | Test with mock data (no API calls) |
 
 ### Job Evaluation
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs evaluate '{"title":"...","company":"...","location":"...","description":"..."}'` | Score a job using Cloudflare AI |
+| `bun run src/cli/index.ts evaluate '{"title":"...","company":"...","location":"...","description":"..."}'` | Score a job using Cloudflare AI |
 
 Returns 5 dimension scores (1-5 each), overall score, recommendation, analysis, and red flags.
 
@@ -513,7 +506,7 @@ Returns 5 dimension scores (1-5 each), overall score, recommendation, analysis, 
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs tailor '{"title":"...","company":"...","location":"...","description":"..."}'` | Generate tailored CV + cover letter |
+| `bun run src/cli/index.ts tailor '{"title":"...","company":"...","location":"...","description":"..."}'` | Generate tailored CV + cover letter |
 
 Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source checks run automatically.
 
@@ -521,70 +514,58 @@ Reads `config/cv.md` and the active profile. Outputs to `output/`. ATS source ch
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs rank "query" ["location"] [--limit N] [--min-score X]` | Scan all boards, evaluate every job, return ranked JSON shortlist |
+| `bun run src/cli/index.ts rank "query" ["location"] [--limit N] [--min-score X]` | Scan all boards, evaluate every job, return ranked JSON shortlist |
 
 ### Interview Prep
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs interview "Company" ["stage"]` | Generate stage-specific interview prep pack from tracker entry |
+| `bun run src/cli/index.ts interview "Company" ["stage"]` | Generate stage-specific interview prep pack from tracker entry |
 
 ### Skill Gap Analysis
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs upskill [--query "q"] [--limit N]` | Compare profile skills vs. scraped jobs, generate learning plan |
+| `bun run src/cli/index.ts upskill [--query "q"] [--limit N]` | Compare profile skills vs. scraped jobs, generate learning plan |
 
 ### Salary Lookup
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs salary "Title" ["Region"]` | Look up salary from local `data/salary/*.json` |
+| `bun run src/cli/index.ts salary "Title" ["Region"]` | Look up salary from local `data/salary/*.json` |
 
 ### Application Tracker
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs tracker list` | Show all applications with status, score, interview stage, outcome |
-| `node cli.mjs tracker add "Company" "Role"` | Add new application |
-| `node cli.mjs tracker update "Company" "status"` | Update status (Saved, Applied, Interviewing, Offer, Rejected, Withdrawn) |
-| `node cli.mjs tracker interview "Company" "stage" ["date"]` | Add interview stage (Phone Screen, Technical, Onsite, Final Round, HR Round, Offer, Other) |
-| `node cli.mjs tracker outcome "Company" "result"` | Record final outcome (Applied, Interviewing, Offer Received, Offer Accepted, Offer Declined, Rejected, Ghosted, Withdrawn) |
-| `node cli.mjs tracker followup "Company" "note" ["date"]` | Add follow-up reminder (defaults to +7 days) |
-| `node cli.mjs tracker export` | Export tracker as CSV |
-| `node cli.mjs tracker report` | Generate self-contained HTML dashboard |
-| `node cli.mjs tracker attention` | Show attention queue (applications awaiting review) |
-| `node cli.mjs tracker review` | Outcome review: distribution, patterns, suggestions |
-| `node cli.mjs tracker autonomy` | Show current autonomy level (`review-each` or `routine-auto`) |
-| `node cli.mjs tracker reset <mode>` | Reset tracker (`profile`, `documents`, or `all`). Requires typing `RESET` to confirm. |
+| `bun run src/cli/index.ts tracker list` | Show all applications with status, score, interview stage, outcome |
+| `bun run src/cli/index.ts tracker add "Company" "Role"` | Add new application |
+| `bun run src/cli/index.ts tracker update "Company" "status"` | Update status (Saved, Applied, Interviewing, Offer, Rejected, Withdrawn) |
+| `bun run src/cli/index.ts tracker interview "Company" "stage" ["date"]` | Add interview stage (Phone Screen, Technical, Onsite, Final Round, HR Round, Offer, Other) |
+| `bun run src/cli/index.ts tracker outcome "Company" "result"` | Record final outcome (Applied, Interviewing, Offer Received, Offer Accepted, Offer Declined, Rejected, Ghosted, Withdrawn) |
+| `bun run src/cli/index.ts tracker followup "Company" "note" ["date"]` | Add follow-up reminder (defaults to +7 days) |
+| `bun run src/cli/index.ts tracker export` | Export tracker as CSV |
+| `bun run src/cli/index.ts tracker report` | Generate self-contained HTML dashboard |
+| `bun run src/cli/index.ts tracker attention` | Show attention queue (applications awaiting review) |
+| `bun run src/cli/index.ts tracker review` | Outcome review: distribution, patterns, suggestions |
+| `bun run src/cli/index.ts tracker autonomy` | Show current autonomy level (`review-each` or `routine-auto`) |
+| `bun run src/cli/index.ts tracker reset <mode>` | Reset tracker (`profile`, `documents`, or `all`). Requires typing `RESET` to confirm. |
 
 ### Daily Digest
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs digest [--mode preview\|daily] [--send] [--mock] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
+| `bun run src/cli/index.ts digest [--mode preview\|daily] [--send] [--mock] [--max N] [--evaluate N] [--query "auto\|q"]` | Scan → dedup → score top N → outreach blurbs + LinkedIn URLs → email or preview |
 
 ### Direct Outreach (30-Day Challenge)
 
-| Command | Description |
-|---------|-------------|
-| `node scripts/atsSearch.mjs "role" "location" --boards greenhouse,lever,ashby` | Google dork scanner for ATS boards (less competitive jobs) |
-| `node scripts/verifyJob.mjs --company "Company" --role "Role"` | Job verification (cross-check LinkedIn, Wellfound, Greenhouse, Lever, Ashby) |
-| `node scripts/emailOutreach.mjs --company "Company" --role "Role"` | Find CTO/EM contacts, draft personalized emails |
-| `node scripts/emailOutreach.mjs --followup` | Show follow-ups due (4-5 days after outreach) |
-| `node scripts/challenge.mjs` | 30-day challenge tracker (10 companies/day = 300 total) |
-| `node scripts/challenge.mjs log "Company" [method]` | Log outreach (email/linkedin/call) |
-| `node scripts/challenge.mjs stats` | Overall challenge stats with funnel estimate |
-| `node scripts/reverseEngineer.mjs` | Analyze job patterns, skill gaps, AI integration angles |
-| `node scripts/loomOutreach.mjs` | Wellfound company research + loom outreach flow |
-| `node scripts/habits.mjs` | Daily habit tracker (apply, DM, outreach, learn) |
-| `node scripts/discoverCompanies.mjs --ats greenhouse,lever,ashby` | Discover companies hiring on ATS boards |
+Direct outreach features are planned for a future TypeScript migration.
 
 ### Health Check
 
 | Command | Description |
 |---------|-------------|
-| `node cli.mjs doctor` | Validate prerequisites and configuration |
+| `bun run src/cli/index.ts status` | Validate prerequisites and configuration |
 
 ## Configuration Files
 
@@ -651,44 +632,39 @@ JobOps/
 ├── .env.example                 # Environment template
 ├── .opencode/
 │   └── skills/jobops/SKILL.md   # Kilo/OpenCode skill registration
-├── cli.mjs                      # CLI entry point (main interface)
 ├── config/
 │   ├── profile.yml              # Candidate profile (fallback)
 │   ├── profile.example.yml      # Profile template
-│   ├── resume.md                # **NEW** Master resume (superset) — source for `profile` command
-│   ├── search.yml               # **NEW** Search filters: titles, locations, remote, age, score
+│   ├── resume.md                # Master resume (superset) — source for profile generation
+│   ├── search.yml               # Search filters: titles, locations, remote, age, score
 │   ├── cv.md                    # Base CV (markdown)
 │   ├── portals.yml              # Job board config + filters + company boards
 │   └── profiles/
 │       ├── active.json          # Active preset slug
 │       └── default.yaml         # Default role preset
-├── scripts/
-│   ├── scan.mjs                 # Multi-portal job scanner (uses search.yml)
-│   ├── evaluate.mjs             # 5-dimension AI job evaluator
-│   ├── tailor.mjs               # ATS-optimized CV + cover letter generator
-│   ├── tracker.mjs              # Application tracker with interview/outcome/follow-up support
-│   ├── rank.mjs                 # Batch scorer: scan → evaluate → ranked shortlist
-│   ├── interview.mjs            # Interview prep pack generator
-│   ├── upskill.mjs              # Skill gap analysis + learning plan
-│   ├── salary.mjs               # Salary lookup from local data
-│   ├── digest.mjs               # Daily digest: scan → dedup → AI score → outreach + LinkedIn URLs → email
-│   ├── htmlReport.mjs           # Self-contained HTML dashboard generator
-│   ├── doctor.mjs               # System health check
-│   ├── profileGenerator.mjs     # **NEW** Generate profile.yml from resume.md
-│   ├── discoverCompanies.mjs    # **NEW** AI company discovery for GH/Lever/Ashby
-│   ├── atsSearch.mjs            # **NEW** Google dork scanner for ATS boards
-│   ├── verifyJob.mjs            # **NEW** Job verification (cross-check platforms)
-│   ├── emailOutreach.mjs        # **NEW** Direct email outreach
-│   ├── challenge.mjs            # **NEW** 30-day challenge tracker
-│   ├── reverseEngineer.mjs      # **NEW** Analyze job patterns, skill gaps
-│   ├── loomOutreach.mjs         # **NEW** Wellfound company research + loom outreach
-│   ├── habits.mjs               # **NEW** Daily habit tracker
-│   └── lib/
-│       └── profile.mjs          # Shared active-profile loader
+├── src/
+│   ├── cli/index.ts             # CLI entry point (Bun runtime)
+│   ├── pipeline/
+│   │   ├── scan.ts              # Multi-portal job scanner
+│   │   ├── evaluate.ts          # 5-dimension AI job evaluator
+│   │   └── rank.ts              # Rank and filter jobs
+│   ├── tracker/index.ts         # Application tracker with interview/outcome/follow-up support
+│   ├── digest/
+│   │   ├── index.ts             # Digest exports
+│   │   ├── mailer.ts            # Email delivery via Resend or SMTP
+│   │   ├── renderer.ts          # HTML and text digest renderer
+│   │   └── viewModel.ts         # Digest view model
+│   ├── config/
+│   │   ├── env.ts               # Environment configuration
+│   │   ├── loader.ts            # YAML config loaders
+│   │   └── schemas.ts           # Zod schemas for validation
+│   ├── domain/                  # Domain types and logic
+│   ├── lib/                     # Shared utilities
+│   └── schemas/                 # Zod schemas
 ├── docs/
 │   ├── architecture.md          # System architecture and data flow
 │   ├── setup.md                 # Detailed setup guide
-│   ├── api-reference.md         # Script interfaces and schemas
+│   ├── api-reference.md         # CLI interfaces and schemas
 │   └── customization.md         # Profiles, portals, salary data, templates
 ├── .github/workflows/
 │   └── daily-digest.yml         # Cron: digest email at 12:00 IST (Resend/SMTP)
@@ -754,7 +730,7 @@ JobOps/
 3. **Apply** — Mark as Applied when submitted
 4. **Interview** — Record each interview stage as it happens
 5. **Outcome** — Log final result: Offer, Rejected, Ghosted, etc.
-6. **Review** — Run `node scripts/tracker.mjs review` to analyze patterns and get targeting suggestions
+6. **Review** — Run `bun run src/cli/index.ts tracker list` to analyze patterns and get targeting suggestions
 7. **Follow-up** — Set reminders with notes, default +7 days
 8. **Dashboard** — Open `reports/tracker-dashboard.html` to visualize pipeline
 
@@ -763,9 +739,9 @@ JobOps/
 Generate a self-contained offline dashboard:
 
 ```bash
-npm run report
+bun run report
 # or
-node scripts/htmlReport.mjs
+bun run src/cli/index.ts tracker report
 ```
 
 Opens `reports/tracker-dashboard.html` with:

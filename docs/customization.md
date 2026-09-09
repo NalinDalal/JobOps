@@ -61,7 +61,7 @@ Jobs are scored 1-5 across 5 equal-weight dimensions by default:
 - Compensation Fit
 - Culture Fit
 
-To change weights, edit the prompt in `scripts/evaluate.mjs` or extend the profile schema with a `scoring_weights` block.
+To change weights, edit the prompt in `src/pipeline/evaluate.ts` or extend the profile schema with a `scoring_weights` block.
 
 ## ATS checks
 
@@ -118,15 +118,9 @@ Set `autonomy_level` in your active profile:
 - `review-each` — new tracker entries go to `Attention` queue. You must approve each before it becomes `Saved` or `Applied`.
 - `routine-auto` — entries go directly to `Saved`. Use only if you fully trust the scoring and dedup.
 
-Check current level:
-
-```bash
-node scripts/tracker.mjs autonomy
-```
-
 ## Verified facts
 
-`tailor.mjs` runs source-level verification on generated CVs:
+`tailor` runs source-level verification on generated CVs:
 
 - Contact details (email, phone, name) must appear in the output
 - Quantified claims must exist in `config/cv.md`
@@ -141,9 +135,9 @@ This prevents the model from inventing experience or credentials you don't have.
 The attention queue is a dedicated buffer for applications that need human review before proceeding. It prevents accidental or premature applications.
 
 ```bash
-node scripts/tracker.mjs attention   # show queue
-node scripts/tracker.mjs update "Company" "Saved"   # approve and move to Saved
-node scripts/tracker.mjs update "Company" "Applied" # approve and mark as Applied
+bun run src/cli/index.ts tracker list   # show queue
+bun run src/cli/index.ts tracker update --company "Company" --status "Saved"   # approve and move to Saved
+bun run src/cli/index.ts tracker update --company "Company" --status "Applied" # approve and mark as Applied
 ```
 
 ## Outcome review
@@ -151,7 +145,7 @@ node scripts/tracker.mjs update "Company" "Applied" # approve and mark as Applie
 After recording outcomes, analyze patterns:
 
 ```bash
-node scripts/tracker.mjs review
+bun run src/cli/index.ts tracker list
 ```
 
 This prints:
