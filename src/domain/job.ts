@@ -39,7 +39,7 @@ export interface Job {
   remote: boolean;
   compensation?: Compensation;
   tags?: string[];
-  evaluation?: import("./evaluation.js").JobEvaluation;
+  evaluation?: import("./evaluation").JobEvaluation;
 }
 
 export function createJobId(job: Pick<Job, "company" | "title" | "url">): string {

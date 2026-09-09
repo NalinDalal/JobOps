@@ -2,17 +2,11 @@
 
 ## Profiles
 
-JobOps supports multiple named role configurations in `config/profiles/`. Each preset is a YAML file that controls search queries, scoring context, location preferences, and outreach copy.
+JobOps supports multiple named role configurations in `config/profiles/`. Each preset is a YAML file that controls search queries, scoring context, and location preferences.
 
 ### Creating a preset
 
-Copy `config/profile.example.yml` to `config/profiles/backend-python.yaml` and edit. Then activate it:
-
-```bash
-bun -e "require('fs').writeFileSync('config/profiles/active.json', JSON.stringify({slug:'backend-python'}))"
-```
-
-Or edit `config/profiles/active.json` directly:
+Copy `config/profile.example.yml` to `config/profiles/backend-python.yaml` and edit. Then activate it by editing `config/profiles/active.json`:
 
 ```json
 { "slug": "backend-python" }
@@ -22,10 +16,8 @@ Or edit `config/profiles/active.json` directly:
 
 - `target_roles` — merged into scan queries when using `auto`
 - `target_locations` — preferred locations for evaluation context
-- `skills` — used in evaluation prompts and digest outreach blurbs
-- `preferences` — salary range, remote preference, company filters
-- `outreach` — optional per-profile LinkedIn DM templates
-- `autonomy_level` — `review-each` (attention queue) or `routine-auto` (direct to Saved)
+- `skills` — used in evaluation prompts
+- `preferences` — remote preference, company filters
 
 ### Backward compatibility
 
@@ -53,7 +45,7 @@ greenhouse:
 
 ## Scoring
 
-Jobs are scored 1-5 across 5 equal-weight dimensions by default:
+Jobs are scored 1-5 across 5 equal-weight dimensions:
 
 - Role Fit
 - Location Fit
@@ -61,7 +53,7 @@ Jobs are scored 1-5 across 5 equal-weight dimensions by default:
 - Compensation Fit
 - Culture Fit
 
-To change weights, edit the prompt in `src/pipeline/evaluate.ts` or extend the profile schema with a `scoring_weights` block.
+To change weights, edit the prompt in `src/pipeline/evaluate.ts`.
 
 ## ATS checks
 
@@ -92,24 +84,7 @@ Add local salary benchmarks as JSON in `data/salary/`. Each file should follow t
 }
 ```
 
-Multiple files are supported; the lookup script merges them and picks the best match by title substring.
-
-## Interview prep
-
-The interview prep pack reads the company and role from `data/applications.md`, then generates:
-
-1. Company research summary
-2. Likely questions for the stated stage
-3. STAR-mapped answers from your base CV
-4. Questions to ask the interviewer
-
-## Skill gap analysis
-
-Upskill compares your `config/profile.yml` skills against the top N scraped jobs and produces:
-
-- A gap heatmap (present vs. missing skills)
-- A prioritized learning plan with curated resources
-- Time estimates per skill
+Multiple files are supported; the lookup merges them and picks the best match by title substring.
 
 ## Autonomy levels
 
@@ -139,17 +114,3 @@ bun run src/cli/index.ts tracker list   # show queue
 bun run src/cli/index.ts tracker update --company "Company" --status "Saved"   # approve and move to Saved
 bun run src/cli/index.ts tracker update --company "Company" --status "Applied" # approve and mark as Applied
 ```
-
-## Outcome review
-
-After recording outcomes, analyze patterns:
-
-```bash
-bun run src/cli/index.ts tracker list
-```
-
-This prints:
-- Outcome distribution
-- Success patterns (companies/roles that got offers)
-- Rejection patterns
-- Targeting suggestions based on data

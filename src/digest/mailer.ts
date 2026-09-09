@@ -5,7 +5,7 @@
  */
 
 import nodemailer from "nodemailer";
-import { loadEnv, type Env } from "../config/env.js";
+import { loadEnv, type Env } from "../config/env";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -49,9 +49,7 @@ async function sendViaResend(
         if (!response.ok) {
             const body = await response.text();
 
-            throw new Error(
-                `Resend ${response.status}: ${body.slice(0, 300)}`,
-            );
+            throw new Error(`Resend ${response.status}: ${body.slice(0, 300)}`);
         }
 
         console.log(`[email] Sent via Resend to ${env.mailTo}`);
@@ -61,8 +59,7 @@ async function sendViaResend(
             provider: "resend",
         };
     } catch (error) {
-        const message =
-            error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
 
         console.error(`[email] Resend failed: ${message}`);
 
@@ -110,8 +107,7 @@ async function sendViaSMTP(
             provider: "smtp",
         };
     } catch (error) {
-        const message =
-            error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
 
         console.error(`[email] SMTP failed: ${message}`);
 

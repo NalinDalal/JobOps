@@ -60,18 +60,16 @@ src/digest/mailer.ts  →  daily email (Resend/SMTP) or console preview
 
 ```
 Automation  →  informs  (digest emails, scan results)
-Agent       →  executes (evaluate, tailor, rank, interview prep, upskill)
+Agent       →  executes (evaluate, tailor)
 Human       →  approves (applying, accepting offers, sending outreach)
 ```
 
 No script auto-submits an application or sends email on your behalf without explicit flags.
 
-### Attention queue
+### Digest delivery
 
-When `autonomy_level` is `review-each`, new tracker entries start in `Attention` status. The human must explicitly move them to `Saved` or `Applied`. This is the "needs human review" buffer between scoring and action.
-
-When `autonomy_level` is `routine-auto`, entries go directly to `Saved`. Use this only if you trust the scoring and filtering completely.
+The digest pipeline marks jobs as seen only after successful email delivery. If email fails or credentials are absent, the seen-job state is preserved. In preview mode, the seen-job state is never modified.
 
 ### Outcome review
 
-After recording outcomes, the tracker analyzes success/rejection patterns and proposes targeting changes without rewriting your profile facts.
+After recording outcomes, the tracker can analyze success/rejection patterns. Use `tracker list` to review current status.

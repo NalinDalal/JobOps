@@ -2,10 +2,9 @@
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) v1.0+ (recommended) or [Node.js](https://nodejs.org) v18+
+- [Bun](https://bun.sh) v1.0+
 - [Cloudflare](https://dash.cloudflare.com/) account (free tier works for Workers AI)
 - Optional: [Resend](https://resend.com) account for daily digest emails
-- Optional: `pdftotext` from [poppler](https://poppler.freedesktop.org/) for ATS checks (macOS: `brew install poppler`)
 
 ## 1. Clone and install
 
@@ -66,8 +65,7 @@ bun run src/cli/index.ts status
 ## 7. First scan
 
 ```bash
-bun run src/cli/index.ts scan "software engineer" "Remote"
-bun run src/cli/index.ts scan auto "Remote"   # uses target_roles from profile.yml
+bun run src/cli/index.ts scan --query "software engineer"
 ```
 
 ## 8. Evaluate a job
@@ -90,7 +88,6 @@ Outputs go to `output/`.
 bun run src/cli/index.ts tracker add --company "Stripe" --role "Software Engineer"
 bun run src/cli/index.ts tracker update --company "Stripe" --status "Applied"
 bun run src/cli/index.ts tracker list
-bun run src/cli/index.ts tracker report
 ```
 
 ## 11. Daily digest
@@ -101,20 +98,10 @@ Preview:
 bun run src/cli/index.ts digest
 ```
 
-Send email (also marks jobs as seen):
+Send email (marks jobs as seen only after successful delivery):
 
 ```bash
-bun run src/cli/index.ts digest --mode daily --max 15 --evaluate 5
+bun run src/cli/index.ts digest --mode daily --send
 ```
 
 Cron (GitHub Actions): `.github/workflows/daily-digest.yml` runs at `30 6 * * *` UTC (12:00 IST).
-
-## 12. Advanced features
-
-```bash
-bun run src/cli/index.ts rank "software engineer" "Remote"        # batch score all scraped jobs
-bun run src/cli/index.ts interview "Stripe" "Technical"           # interview prep pack
-bun run src/cli/index.ts upskill --query "software engineer"      # skill gap analysis
-bun run src/cli/index.ts salary "Software Engineer" "India"       # salary lookup
-bun run src/cli/index.ts tracker reset "profile"                  # reset tracker (requires confirmation)
-```

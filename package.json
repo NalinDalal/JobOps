@@ -9,18 +9,12 @@
     "dev": "bun run src/cli/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "scan": "bun run src/cli/index.ts scan",
+    "digest": "bun run src/cli/index.ts digest",
     "evaluate": "bun run src/cli/index.ts evaluate",
     "tailor": "bun run src/cli/index.ts tailor",
     "tracker": "bun run src/cli/index.ts tracker",
-    "report": "bun run src/cli/index.ts tracker report",
-    "digest": "bun run src/cli/index.ts digest",
-    "doctor": "bun run src/cli/index.ts status",
-    "rank": "bun run src/cli/index.ts rank",
-    "interview": "bun run src/cli/index.ts interview",
-    "upskill": "bun run src/cli/index.ts upskill",
-    "salary": "bun run src/cli/index.ts salary",
-    "discover": "bun run src/cli/index.ts discover"
+    "scan": "bun run src/cli/index.ts scan",
+    "status": "bun run src/cli/index.ts status"
   },
   "devDependencies": {
     "@types/bun": "latest",

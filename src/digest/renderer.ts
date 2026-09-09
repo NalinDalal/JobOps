@@ -6,55 +6,57 @@
  * Score as visual anchor. Skills as compact tags.
  */
 
-import type { DigestViewModel, DigestMatch } from "../domain/digest.js";
-import type { OutreachGroup } from "../domain/outreach.js";
-import type { SkillSignal } from "../domain/skill.js";
-import { SCORE_STRONG, SCORE_REVIEW } from "../lib/constants.js";
-import { escapeHtml } from "../lib/text.js";
+import type { DigestViewModel, DigestMatch } from "../domain/digest";
+import type { OutreachGroup } from "../domain/outreach";
+import type { SkillSignal } from "../domain/skill";
+import { SCORE_STRONG, SCORE_REVIEW } from "../lib/constants";
+import { escapeHtml } from "../lib/text";
 
 // ─── Style tokens ─────────────────────────────────────────────
 
 const S = {
-  font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
-  accent: "#C76B16",
-  textPrimary: "#1d1d1f",
-  textSecondary: "#86868b",
-  textTertiary: "#aeaeb2",
-  textLink: "#0066cc",
-  success: "#2d6a4f",
-  danger: "#c41e3a",
-  divider: "#e8e8ed",
-  tagBg: "#f5f5f7",
-  tagBorder: "#e0e0e5",
+    font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+    accent: "#C76B16",
+    textPrimary: "#1d1d1f",
+    textSecondary: "#86868b",
+    textTertiary: "#aeaeb2",
+    textLink: "#0066cc",
+    success: "#2d6a4f",
+    danger: "#c41e3a",
+    divider: "#e8e8ed",
+    tagBg: "#f5f5f7",
+    tagBorder: "#e0e0e5",
 };
 
 // ─── Component helpers ────────────────────────────────────────
 
 function divider(): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
   <tr><td style="padding:20px 0;border-top:1px solid ${S.divider};font-size:0;line-height:0;">&nbsp;</td></tr>
 </table>`;
 }
 
 function sectionLabel(text: string): string {
-  return `<p style="margin:0 0 12px;font-family:${S.font};font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.textTertiary};">${escapeHtml(text)}</p>`;
+    return `<p style="margin:0 0 12px;font-family:${S.font};font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.textTertiary};">${escapeHtml(text)}</p>`;
 }
 
 function skillTag(skill: string, missing: boolean = false): string {
-  const bg = missing ? "transparent" : S.tagBg;
-  const border = missing ? S.danger : S.tagBorder;
-  const color = missing ? S.danger : S.textSecondary;
-  const prefix = missing ? "× " : "";
-  return `<span style="display:inline-block;background:${bg};border:1px solid ${border};border-radius:4px;padding:2px 8px;margin:0 6px 6px 0;font-family:${S.font};font-size:11px;color:${color};line-height:16px;">${prefix}${escapeHtml(skill)}</span>`;
+    const bg = missing ? "transparent" : S.tagBg;
+    const border = missing ? S.danger : S.tagBorder;
+    const color = missing ? S.danger : S.textSecondary;
+    const prefix = missing ? "× " : "";
+    return `<span style="display:inline-block;background:${bg};border:1px solid ${border};border-radius:4px;padding:2px 8px;margin:0 6px 6px 0;font-family:${S.font};font-size:11px;color:${color};line-height:16px;">${prefix}${escapeHtml(skill)}</span>`;
 }
 
 // ─── 1. Header ────────────────────────────────────────────────
 
 function renderHeader(vm: DigestViewModel): string {
-  const roles = vm.profile.targetRoles.slice(0, 3).join(" · ") || "Software Engineer";
-  const locations = vm.profile.targetLocations.slice(0, 2).join(" · ") || "Remote";
+    const roles =
+        vm.profile.targetRoles.slice(0, 3).join(" · ") || "Software Engineer";
+    const locations =
+        vm.profile.targetLocations.slice(0, 2).join(" · ") || "Remote";
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 20px;">
     <tr>
       <td style="padding:20px 0 0;">
@@ -70,53 +72,57 @@ function renderHeader(vm: DigestViewModel): string {
 // ─── 2. Summary ───────────────────────────────────────────────
 
 function renderSummary(vm: DigestViewModel): string {
-  const { summary } = vm;
-  const parts = [`<strong>${summary.totalScanned}</strong> scanned`];
-  if (summary.worthReviewing > 0) {
-    parts.push(`<strong>${summary.worthReviewing}</strong> worth reviewing`);
-  }
-  if (summary.strongMatches > 0) {
-    parts.push(`<strong style="color:${S.success};">${summary.strongMatches}</strong> strong`);
-  } else {
-    parts.push(`<strong>0</strong> strong matches`);
-  }
+    const { summary } = vm;
+    const parts = [`<strong>${summary.totalScanned}</strong> scanned`];
+    if (summary.worthReviewing > 0) {
+        parts.push(
+            `<strong>${summary.worthReviewing}</strong> worth reviewing`,
+        );
+    }
+    if (summary.strongMatches > 0) {
+        parts.push(
+            `<strong style="color:${S.success};">${summary.strongMatches}</strong> strong`,
+        );
+    } else {
+        parts.push(`<strong>0</strong> strong matches`);
+    }
 
-  return `
+    return `
   <p style="margin:0 0 20px;font-family:${S.font};font-size:14px;color:${S.textSecondary};line-height:1.5;">${parts.join(" · ")}</p>`;
 }
 
 // ─── 3. Primary match (detailed) ──────────────────────────────
 
 function renderPrimaryMatch(match: DigestMatch | undefined): string {
-  if (!match) return "";
+    if (!match) return "";
 
-  const matchedTags = match.matchedSkills
-    .slice(0, 6)
-    .map((s) => skillTag(s))
-    .join("");
+    const matchedTags = match.matchedSkills
+        .slice(0, 6)
+        .map((s) => skillTag(s))
+        .join("");
 
-  const whyHtml =
-    match.whyMatch.length > 0
-      ? `<p style="margin:0;font-family:${S.font};font-size:13px;color:${S.textSecondary};line-height:1.5;">${match.whyMatch.join(". ")}.</p>`
-      : "";
+    const whyHtml =
+        match.whyMatch.length > 0
+            ? `<p style="margin:0;font-family:${S.font};font-size:13px;color:${S.textSecondary};line-height:1.5;">${match.whyMatch.join(". ")}.</p>`
+            : "";
 
-  const watchHtml =
-    match.redFlags.length > 0
-      ? `<p style="margin:10px 0 0;font-family:${S.font};font-size:12px;color:${S.danger};line-height:1.5;">
+    const watchHtml =
+        match.redFlags.length > 0
+            ? `<p style="margin:10px 0 0;font-family:${S.font};font-size:12px;color:${S.danger};line-height:1.5;">
         <span style="font-weight:600;">Watch:</span> ${escapeHtml(match.redFlags.join(". "))}
       </p>`
-      : "";
+            : "";
 
-  const verdictColor =
-    match.score.overall >= SCORE_STRONG
-      ? S.success
-      : match.score.overall >= SCORE_REVIEW
-        ? S.accent
-        : S.textSecondary;
+    const verdictColor =
+        match.score.overall >= SCORE_STRONG
+            ? S.success
+            : match.score.overall >= SCORE_REVIEW
+              ? S.accent
+              : S.textSecondary;
 
-  const label = match.label || "Highest-ranked";
+    const label = match.label || "Highest-ranked";
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
@@ -158,22 +164,22 @@ function renderPrimaryMatch(match: DigestMatch | undefined): string {
 // ─── 4. Other matches (compact) ───────────────────────────────
 
 function renderOtherMatches(matches: DigestMatch[]): string {
-  if (matches.length === 0) return "";
+    if (matches.length === 0) return "";
 
-  const rows = matches.map((m) => {
-    const verdictColor =
-      m.score.overall >= SCORE_STRONG
-        ? S.success
-        : m.score.overall >= SCORE_REVIEW
-          ? S.accent
-          : S.textSecondary;
+    const rows = matches.map((m) => {
+        const verdictColor =
+            m.score.overall >= SCORE_STRONG
+                ? S.success
+                : m.score.overall >= SCORE_REVIEW
+                  ? S.accent
+                  : S.textSecondary;
 
-    const skillTags = m.matchedSkills
-      .slice(0, 4)
-      .map((s) => skillTag(s))
-      .join("");
+        const skillTags = m.matchedSkills
+            .slice(0, 4)
+            .map((s) => skillTag(s))
+            .join("");
 
-    return `
+        return `
     <tr>
       <td style="padding:14px 0;border-top:1px solid ${S.divider};vertical-align:top;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -200,9 +206,9 @@ function renderOtherMatches(matches: DigestMatch[]): string {
         </table>
       </td>
     </tr>`;
-  });
+    });
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
@@ -218,22 +224,23 @@ function renderOtherMatches(matches: DigestMatch[]): string {
 // ─── 5. Outreach queue (lightweight) ──────────────────────────
 
 function renderPeopleToContact(vm: DigestViewModel): string {
-  if (vm.peopleToContact.length === 0) return "";
+    if (vm.peopleToContact.length === 0) return "";
 
-  const items = vm.peopleToContact.map((c) => {
-    const titleLinks = c.peopleSearchUrls
-      .slice(0, 3)
-      .map(
-        (u) =>
-          `<a href="${escapeHtml(u.url)}" style="font-family:${S.font};font-size:11px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">${escapeHtml(u.title)}</a>`
-      )
-      .join(" · ");
+    const items = vm.peopleToContact.map((c) => {
+        const titleLinks = c.peopleSearchUrls
+            .slice(0, 3)
+            .map(
+                (u) =>
+                    `<a href="${escapeHtml(u.url)}" style="font-family:${S.font};font-size:11px;color:${S.textLink};text-decoration:underline;text-underline-offset:2px;">${escapeHtml(u.title)}</a>`,
+            )
+            .join(" · ");
 
-    const roleSummary = c.roleCount > 1
-      ? `${c.roleCount} relevant roles`
-      : c.roles[0] || "";
+        const roleSummary =
+            c.roleCount > 1
+                ? `${c.roleCount} relevant roles`
+                : c.roles[0] || "";
 
-    return `
+        return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:14px;">
       <tr>
         <td style="padding:14px 0 0;border-top:1px solid ${S.divider};">
@@ -244,9 +251,9 @@ function renderPeopleToContact(vm: DigestViewModel): string {
         </td>
       </tr>
     </table>`;
-  });
+    });
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td>
@@ -260,14 +267,21 @@ function renderPeopleToContact(vm: DigestViewModel): string {
 // ─── 6. Skill gap (inline, no card) ───────────────────────────
 
 function renderSkillGap(vm: DigestViewModel): string {
-  if (!vm.skillGap) return "";
-  const { skillGap } = vm;
+    if (!vm.skillGap) return "";
+    const { skillGap } = vm;
 
-  // Skip garbage terms
-  const garbageTerms = ["software", "engineer", "development", "system", "platform", "data"];
-  if (garbageTerms.includes(skillGap.skill.toLowerCase())) return "";
+    // Skip garbage terms
+    const garbageTerms = [
+        "software",
+        "engineer",
+        "development",
+        "system",
+        "platform",
+        "data",
+    ];
+    if (garbageTerms.includes(skillGap.skill.toLowerCase())) return "";
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;">
     <tr>
       <td style="padding:14px 0;border-top:1px solid ${S.divider};">
@@ -295,11 +309,12 @@ function renderSkillGap(vm: DigestViewModel): string {
 // ─── 7. Footer ────────────────────────────────────────────────
 
 function renderFooter(vm: DigestViewModel): string {
-  const unscoredNote = vm.footer.unscoredCount > 0
-    ? `<p style="margin:6px 0 0;font-family:${S.font};font-size:11px;color:${S.textTertiary};">${vm.footer.unscoredCount} additional jobs were not scored</p>`
-    : "";
+    const unscoredNote =
+        vm.footer.unscoredCount > 0
+            ? `<p style="margin:6px 0 0;font-family:${S.font};font-size:11px;color:${S.textTertiary};">${vm.footer.unscoredCount} additional jobs were not scored</p>`
+            : "";
 
-  return `
+    return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 0;">
     <tr>
       <td style="padding:16px 0 0;border-top:1px solid ${S.divider};">
@@ -313,22 +328,23 @@ function renderFooter(vm: DigestViewModel): string {
 // ─── Main render ──────────────────────────────────────────────
 
 export function renderEmail(vm: DigestViewModel): string {
-  const primaryMatch = vm.topMatches.length > 0 ? vm.topMatches[0] : undefined;
-  const otherMatches = vm.topMatches.slice(1);
+    const primaryMatch =
+        vm.topMatches.length > 0 ? vm.topMatches[0] : undefined;
+    const otherMatches = vm.topMatches.slice(1);
 
-  const sections = [
-    renderHeader(vm),
-    renderSummary(vm),
-    renderPrimaryMatch(primaryMatch),
-    divider(),
-    renderOtherMatches(otherMatches),
-    divider(),
-    renderPeopleToContact(vm),
-    renderSkillGap(vm),
-    renderFooter(vm),
-  ].filter(Boolean);
+    const sections = [
+        renderHeader(vm),
+        renderSummary(vm),
+        renderPrimaryMatch(primaryMatch),
+        divider(),
+        renderOtherMatches(otherMatches),
+        divider(),
+        renderPeopleToContact(vm),
+        renderSkillGap(vm),
+        renderFooter(vm),
+    ].filter(Boolean);
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -368,82 +384,109 @@ export function renderEmail(vm: DigestViewModel): string {
 // ─── Plain text version ───────────────────────────────────────
 
 export function renderText(vm: DigestViewModel): string {
-  const lines: string[] = [];
-  lines.push("JOBOPS");
-  lines.push("Your daily job briefing");
-  lines.push(vm.date.long);
-  lines.push("");
-
-  // Summary
-  const parts = [`${vm.summary.totalScanned} scanned`];
-  if (vm.summary.worthReviewing > 0) parts.push(`${vm.summary.worthReviewing} worth reviewing`);
-  if (vm.summary.strongMatches > 0) parts.push(`${vm.summary.strongMatches} strong`);
-  else parts.push("0 strong matches");
-  lines.push(parts.join(" · "));
-  lines.push("");
-
-  // Primary match
-  if (vm.topMatches.length > 0) {
-    const m = vm.topMatches[0]!;
-    lines.push(m.label?.toUpperCase() || "HIGHEST-RANKED");
+    const lines: string[] = [];
+    lines.push("JOBOPS");
+    lines.push("Your daily job briefing");
+    lines.push(vm.date.long);
     lines.push("");
-    lines.push(`  ${m.score.overall.toFixed(1)}/5  ${m.verdict.toUpperCase()}`);
-    lines.push(`  ${m.title}`);
-    lines.push(`  ${m.company}`);
-    lines.push(`  ${m.location} · Posted ${m.posted}`);
-    if (m.matchedSkills.length > 0) lines.push(`  ${m.matchedSkills.join(" · ")}`);
-    if (m.whyMatch.length > 0) lines.push(`  ${m.whyMatch.join(". ")}.`);
-    if (m.redFlags.length > 0) lines.push(`  Watch: ${m.redFlags.join(". ")}`);
-    lines.push(`  ${m.url}`);
-    lines.push("");
-  }
 
-  // Other matches
-  const otherMatches = vm.topMatches.slice(1);
-  if (otherMatches.length > 0) {
-    lines.push(`OTHER MATCHES · ${otherMatches.length}`);
-    for (const m of otherMatches) {
-      lines.push("");
-      lines.push(`  ${m.score.overall.toFixed(1)}/5  ${m.title} · ${m.company}`);
-      lines.push(`  ${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ""}`);
-      if (m.matchedSkills.length > 0) lines.push(`  ${m.matchedSkills.join(" · ")}`);
-      lines.push(`  ${m.url}`);
+    // Summary
+    const parts = [`${vm.summary.totalScanned} scanned`];
+    if (vm.summary.worthReviewing > 0)
+        parts.push(`${vm.summary.worthReviewing} worth reviewing`);
+    if (vm.summary.strongMatches > 0)
+        parts.push(`${vm.summary.strongMatches} strong`);
+    else parts.push("0 strong matches");
+    lines.push(parts.join(" · "));
+    lines.push("");
+
+    // Primary match
+    if (vm.topMatches.length > 0) {
+        const m = vm.topMatches[0]!;
+        lines.push(m.label?.toUpperCase() || "HIGHEST-RANKED");
+        lines.push("");
+        lines.push(
+            `  ${m.score.overall.toFixed(1)}/5  ${m.verdict.toUpperCase()}`,
+        );
+        lines.push(`  ${m.title}`);
+        lines.push(`  ${m.company}`);
+        lines.push(`  ${m.location} · Posted ${m.posted}`);
+        if (m.matchedSkills.length > 0)
+            lines.push(`  ${m.matchedSkills.join(" · ")}`);
+        if (m.whyMatch.length > 0) lines.push(`  ${m.whyMatch.join(". ")}.`);
+        if (m.redFlags.length > 0)
+            lines.push(`  Watch: ${m.redFlags.join(". ")}`);
+        lines.push(`  ${m.url}`);
+        lines.push("");
     }
-    lines.push("");
-  }
 
-  // Outreach
-  if (vm.peopleToContact.length > 0) {
-    lines.push(`OUTREACH · ${vm.peopleToContact.length} companies`);
-    for (const c of vm.peopleToContact) {
-      lines.push("");
-      lines.push(`  ${c.company}`);
-      const roleSummary = c.roleCount > 1 ? `${c.roleCount} relevant roles` : c.roles[0] || "";
-      lines.push(`  ${roleSummary}`);
-      lines.push(`  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join("  ")}`);
+    // Other matches
+    const otherMatches = vm.topMatches.slice(1);
+    if (otherMatches.length > 0) {
+        lines.push(`OTHER MATCHES · ${otherMatches.length}`);
+        for (const m of otherMatches) {
+            lines.push("");
+            lines.push(
+                `  ${m.score.overall.toFixed(1)}/5  ${m.title} · ${m.company}`,
+            );
+            lines.push(
+                `  ${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ""}`,
+            );
+            if (m.matchedSkills.length > 0)
+                lines.push(`  ${m.matchedSkills.join(" · ")}`);
+            lines.push(`  ${m.url}`);
+        }
+        lines.push("");
     }
-    lines.push("");
-  }
 
-  // Skill gap
-  if (vm.skillGap) {
-    const garbageTerms = ["software", "engineer", "development", "system", "platform", "data"];
-    if (!garbageTerms.includes(vm.skillGap.skill.toLowerCase())) {
-      lines.push("SKILL SIGNAL");
-      lines.push("");
-      lines.push(`  ${vm.skillGap.skill} appeared in ${vm.skillGap.frequency}% of relevant jobs.`);
-      lines.push(`  Your profile: ${vm.skillGap.currentLevel}`);
-      lines.push(`  Market demand: ${vm.skillGap.marketDemand}`);
-      lines.push("");
+    // Outreach
+    if (vm.peopleToContact.length > 0) {
+        lines.push(`OUTREACH · ${vm.peopleToContact.length} companies`);
+        for (const c of vm.peopleToContact) {
+            lines.push("");
+            lines.push(`  ${c.company}`);
+            const roleSummary =
+                c.roleCount > 1
+                    ? `${c.roleCount} relevant roles`
+                    : c.roles[0] || "";
+            lines.push(`  ${roleSummary}`);
+            lines.push(
+                `  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join("  ")}`,
+            );
+        }
+        lines.push("");
     }
-  }
 
-  // Footer
-  lines.push("JOBOPS");
-  lines.push(`${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced`);
-  if (vm.footer.unscoredCount > 0) {
-    lines.push(`${vm.footer.unscoredCount} additional jobs were not scored`);
-  }
+    // Skill gap
+    if (vm.skillGap) {
+        const garbageTerms = [
+            "software",
+            "engineer",
+            "development",
+            "system",
+            "platform",
+            "data",
+        ];
+        if (!garbageTerms.includes(vm.skillGap.skill.toLowerCase())) {
+            lines.push("SKILL SIGNAL");
+            lines.push("");
+            lines.push(
+                `  ${vm.skillGap.skill} appeared in ${vm.skillGap.frequency}% of relevant jobs.`,
+            );
+            lines.push(`  Your profile: ${vm.skillGap.currentLevel}`);
+            lines.push(`  Market demand: ${vm.skillGap.marketDemand}`);
+            lines.push("");
+        }
+    }
 
-  return lines.join("\n");
+    // Footer
+    lines.push("JOBOPS");
+    lines.push(`${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced`);
+    if (vm.footer.unscoredCount > 0) {
+        lines.push(
+            `${vm.footer.unscoredCount} additional jobs were not scored`,
+        );
+    }
+
+    return lines.join("\n");
 }

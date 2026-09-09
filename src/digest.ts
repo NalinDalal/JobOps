@@ -1,73 +1,71 @@
 /**
  * digest.ts — Daily job digest orchestration
  *
- * This is the main entry point for the digest pipeline.
- * It replaces the old digest.mjs with a clean TypeScript implementation.
- *
  * Architecture:
  *   scan → dedup → evaluate → rank → ViewModel → render → send
  *
- * Usage:
- *   bun run src/digest.ts                          — preview to console
- *   bun run src/digest.ts --mode daily             — email digest
- *   bun run src/digest.ts --mock                   — use mock data
+ * Behavior:
+ *   - preview mode: prints digest to console, never writes digest-seen.json
+ *   - daily mode: sends email, then writes fresh job IDs to digest-seen.json
+ *   - if email delivery fails or credentials are absent, seen state is preserved
+ *   - if no jobs meet the score threshold, digest-seen.json is unchanged
+ *
+ * Usage (CLI boundary):
+ *   bun run src/cli/index.ts digest [--mode preview|daily] [--query "..."] [--max N] [--evaluate N] [--mock]
  */
 
 import { resolve } from "path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { load as yamlLoad } from "js-yaml";
 
 // ─── Domain & Pipeline ────────────────────────────────────────
-import type { Job } from "./domain/job.js";
-import { createJobId } from "./domain/job.js";
-import { loadEnv, hasCloudflareKeys } from "./config/env.js";
-import { loadSearchConfig } from "./config/loader.js";
-import { loadActiveProfile, getProfileTargetRoles } from "./lib/profile.js";
-import { IST_OFFSET_HOURS, MS_PER_HOUR } from "./lib/constants.js";
+import { createJobId } from "./domain/job";
+import { loadEnv, hasCloudflareKeys } from "./config/env";
+import { loadSearchConfig } from "./config/loader";
+import { IST_OFFSET_HOURS, MS_PER_HOUR } from "./lib/constants";
 
 // ─── Pipeline ─────────────────────────────────────────────────
-import { scanJobs } from "./pipeline/scan.js";
-import { deduplicateJobs, filterSeenJobs } from "./pipeline/dedup.js";
-import { evaluateJobs } from "./pipeline/evaluate.js";
-import { rankJobs, filterForDigest } from "./pipeline/rank.js";
+import { scanJobs } from "./pipeline/scan";
+import { filterSeenJobs } from "./pipeline/dedup";
+import { evaluateJobs } from "./pipeline/evaluate";
+import { rankJobs, filterForDigest } from "./pipeline/rank";
 
 // ─── Digest ───────────────────────────────────────────────────
-import { buildViewModel } from "./digest/viewModel.js";
-import { renderEmail, renderText } from "./digest/renderer.js";
-import { sendEmail } from "./digest/mailer.js";
+import { buildViewModel } from "./digest/viewModel";
+import { renderEmail, renderText } from "./digest/renderer";
+import { sendEmail } from "./digest/mailer";
 
 // ─── Paths ────────────────────────────────────────────────────
 
 const ROOT = resolve(import.meta.dir, "..");
 const SEEN_PATH = resolve(ROOT, "data/digest-seen.json");
 
-// ─── Args ─────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
-
-function argVal(name: string, fallback: string): string {
-    const idx = args.indexOf(`--${name}`);
-    if (idx === -1 || idx === args.length - 1) return fallback;
-    return args[idx + 1]!;
+export interface DigestOptions {
+    mode: string;
+    query: string;
+    max: number;
+    evaluate: number;
+    mock: boolean;
 }
 
-function argFlag(name: string): boolean {
-    return args.includes(`--${name}`);
+export interface DigestResult {
+    scanned: number;
+    fresh: number;
+    digestJobs: number;
+    unscored: number;
+    sent: boolean;
+    provider?: "resend" | "smtp";
+    mode: string;
 }
-
-const MODE =
-    argFlag("send") || argFlag("daily") ? "daily" : argVal("mode", "preview");
-const MAX_JOBS = parseInt(argVal("max", "50"), 10) || 50;
-const EVAL_TOP = parseInt(argVal("evaluate", "5"), 10) || 0;
-const QUERY = argVal("query", "auto");
-const MOCK_MODE = argFlag("mock");
 
 // ─── Seen database (dedup) ────────────────────────────────────
 
-function loadSeen(): Set<string> {
+export function loadSeen(root?: string): Set<string> {
+    const seenPath = root ? resolve(root, "data/digest-seen.json") : SEEN_PATH;
     try {
-        if (existsSync(SEEN_PATH)) {
-            const data = JSON.parse(readFileSync(SEEN_PATH, "utf-8"));
+        if (existsSync(seenPath)) {
+            const data = JSON.parse(readFileSync(seenPath, "utf-8"));
             return new Set(data.seen || []);
         }
     } catch (e) {
@@ -78,10 +76,12 @@ function loadSeen(): Set<string> {
     return new Set();
 }
 
-function saveSeen(seen: Set<string>): void {
-    mkdirSync(resolve(ROOT, "data"), { recursive: true });
+export function saveSeen(seen: Set<string>, root?: string): void {
+    const seenPath = root ? resolve(root, "data/digest-seen.json") : SEEN_PATH;
+    const dir = resolve(seenPath, "..");
+    mkdirSync(dir, { recursive: true });
     writeFileSync(
-        SEEN_PATH,
+        seenPath,
         JSON.stringify(
             { seen: [...seen].sort(), updated: new Date().toISOString() },
             null,
@@ -90,16 +90,57 @@ function saveSeen(seen: Set<string>): void {
     );
 }
 
+// ─── Args parsing ─────────────────────────────────────────────
+
+export function parseDigestArgs(argv: string[]): DigestOptions {
+    const args = argv.slice(2);
+
+    function argVal(name: string, fallback: string): string {
+        const idx = args.indexOf(`--${name}`);
+        if (idx === -1 || idx === args.length - 1) return fallback;
+        return args[idx + 1]!;
+    }
+
+    function argFlag(name: string): boolean {
+        return args.includes(`--${name}`);
+    }
+
+    const mode =
+        argFlag("send") || argFlag("daily")
+            ? "daily"
+            : argVal("mode", "preview");
+
+    return {
+        mode,
+        query: argVal("query", "auto"),
+        max: parseInt(argVal("max", "50"), 10) || 50,
+        evaluate: parseInt(argVal("evaluate", "5"), 10) || 0,
+        mock: argFlag("mock"),
+    };
+}
+
 // ─── Main ─────────────────────────────────────────────────────
 
 export async function main(
-    args?: Record<string, string | boolean>,
-): Promise<void> {
+    options?: Record<string, string | boolean>,
+    root?: string,
+): Promise<DigestResult> {
+    // Parse options: use provided options, or fall back to defaults
+    const opts: DigestOptions = options
+        ? {
+              mode: String(options.mode || "preview"),
+              query: String(options.query || "auto"),
+              max: parseInt(String(options.max || "50"), 10) || 50,
+              evaluate: parseInt(String(options.evaluate || "5"), 10) || 0,
+              mock: Boolean(options.mock),
+          }
+        : { mode: "preview", query: "auto", max: 50, evaluate: 5, mock: false };
+
     // Load env
-    const env = loadEnv();
+    const env = loadEnv(root);
 
     console.log(
-        `Digest mode=${MODE} query="${QUERY}" max=${MAX_JOBS} evaluate=${hasCloudflareKeys(env) ? EVAL_TOP : 0} mock=${MOCK_MODE}`,
+        `Digest mode=${opts.mode} query="${opts.query}" max=${opts.max} evaluate=${hasCloudflareKeys(env) ? opts.evaluate : 0} mock=${opts.mock}`,
     );
 
     const searchConfig = loadSearchConfig();
@@ -108,17 +149,17 @@ export async function main(
     );
 
     // Scan
-    const scanResult = await scanJobs({ query: QUERY, mock: MOCK_MODE });
+    const scanResult = await scanJobs({ query: opts.query, mock: opts.mock });
     const allJobs = scanResult.jobs;
 
     // Dedup against seen jobs
-    const seen = loadSeen();
+    const seen = loadSeen(root);
     const fresh = filterSeenJobs(allJobs, seen);
     console.log(`Scanned: ${allJobs.length} jobs | Fresh: ${fresh.length}`);
 
     // Evaluate top N jobs
-    if (hasCloudflareKeys(env) && EVAL_TOP > 0) {
-        await evaluateJobs(fresh, { concurrent: EVAL_TOP });
+    if (hasCloudflareKeys(env) && opts.evaluate > 0) {
+        await evaluateJobs(fresh, { concurrent: opts.evaluate });
     }
 
     // Rank and filter
@@ -129,23 +170,17 @@ export async function main(
         `Digest: ${digestJobs.length} scored jobs (unscored ${ranked.unscored.length} excluded from email)`,
     );
 
+    // ── No jobs meet threshold: preserve seen state, return early ──
     if (digestJobs.length === 0) {
         console.log("No jobs met the score threshold. Digest skipped.");
-        if (MODE === "daily") {
-            for (const job of fresh) {
-                seen.add(createJobId(job));
-            }
-            saveSeen(seen);
-        }
-        return;
-    }
-
-    // Mark jobs as seen
-    if (MODE === "daily") {
-        for (const job of fresh) {
-            seen.add(createJobId(job));
-        }
-        saveSeen(seen);
+        return {
+            scanned: allJobs.length,
+            fresh: fresh.length,
+            digestJobs: 0,
+            unscored: ranked.unscored.length,
+            sent: false,
+            mode: opts.mode,
+        };
     }
 
     // Build view model
@@ -173,13 +208,13 @@ export async function main(
     })();
 
     // Render
-    const reportsDir = resolve(ROOT, "reports");
+    const reportsDir = resolve(root || ROOT, "reports");
     if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
 
     const html = renderEmail(viewModel);
     const text = renderText(viewModel);
 
-    // Save full report (local only)
+    // Save full report (local only, not in CI)
     const isCI = Boolean(process.env.CI);
     if (!isCI) {
         const fullReportFile = resolve(
@@ -190,11 +225,23 @@ export async function main(
         console.log(`Full report: ${fullReportFile}`);
     }
 
-    // Send email
+    // ── Send email ──
     const result = await sendEmail({ subject, text, html });
-    const sent = result.sent;
 
-    // Save digest
+    // ── Mark seen ONLY after successful delivery in daily mode ──
+    // In preview mode, never write to digest-seen.json.
+    // In daily mode, only write if email was sent successfully.
+    if (opts.mode === "daily" && result.sent) {
+        for (const job of fresh) {
+            seen.add(createJobId(job));
+        }
+        saveSeen(seen, root);
+        console.log(`Marked ${fresh.length} jobs as seen.`);
+    } else if (opts.mode === "daily" && !result.sent) {
+        console.log("Email not sent — preserving existing seen-job state.");
+    }
+
+    // Save digest markdown (always, for audit trail)
     const digestFile = resolve(
         reportsDir,
         `digest-${ist.toISOString().split("T")[0]}.md`,
@@ -202,13 +249,18 @@ export async function main(
     writeFileSync(digestFile, `# JobOps Digest — ${dateStr}\n\n${text}\n`);
     console.log(`\nDigest saved to: ${digestFile}`);
     console.log(
-        sent
+        result.sent
             ? "Done."
             : "Preview only — configure RESEND_API_KEY or SMTP credentials to email.",
     );
-}
 
-main().catch((e) => {
-    console.error(`Digest failed: ${(e as Error).message}`);
-    process.exit(1);
-});
+    return {
+        scanned: allJobs.length,
+        fresh: fresh.length,
+        digestJobs: digestJobs.length,
+        unscored: ranked.unscored.length,
+        sent: result.sent,
+        provider: result.provider,
+        mode: opts.mode,
+    };
+}

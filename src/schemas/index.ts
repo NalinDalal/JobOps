@@ -3,44 +3,44 @@
  */
 
 export {
-  JobSchema,
-  JobSourceSchema,
-  CompensationSchema,
-  validateJob,
-  validateJobSafe,
-  type JobInput,
-} from "./job.js";
+    JobSchema,
+    JobSourceSchema,
+    CompensationSchema,
+    validateJob,
+    validateJobSafe,
+    type JobInput,
+} from "./job";
 
 export {
-  JobEvaluationSchema,
-  VerdictSchema,
-  validateEvaluation,
-  validateEvaluationSafe,
-  type EvaluationInput,
-} from "./evaluation.js";
+    JobEvaluationSchema,
+    VerdictSchema,
+    validateEvaluation,
+    validateEvaluationSafe,
+    type EvaluationInput,
+} from "./evaluation";
 
 export {
-  ProfileSchema,
-  CandidateSchema,
-  ProfileSkillsSchema,
-  validateProfile,
-  validateProfileSafe,
-  type ProfileInput,
-} from "./profile.js";
+    ProfileSchema,
+    CandidateSchema,
+    ProfileSkillsSchema,
+    validateProfile,
+    validateProfileSafe,
+    type ProfileInput,
+} from "./profile";
 
 export {
-  SearchConfigSchema,
-  PortalsConfigSchema,
-  PortalEntrySchema,
-  type SearchConfigInput,
-  type PortalsConfigInput,
-} from "./config.js";
+    SearchConfigSchema,
+    PortalsConfigSchema,
+    PortalEntrySchema,
+    type SearchConfigInput,
+    type PortalsConfigInput,
+} from "./config";
 
 export {
-  ApplicationSchema,
-  ApplicationStatusSchema,
-  InterviewStageSchema,
-  validateApplication,
-  validateApplicationSafe,
-  type ApplicationInput,
-} from "./tracker.js";
+    ApplicationSchema,
+    ApplicationStatusSchema,
+    InterviewStageSchema,
+    validateApplication,
+    validateApplicationSafe,
+    type ApplicationInput,
+} from "./tracker";
