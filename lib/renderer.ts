@@ -309,11 +309,17 @@ export function renderEmail(vm: DigestViewModel): string {
       td[style*="background:#ffffff"] { background:#1c1c1e !important; border-color:#2c2c2e !important; }
       p[style*="color:#111111"] { color:#f5f5f7 !important; }
       p[style*="color:#2b2b2e"] { color:#d6d6d8 !important; }
-      p[style*="color:#6e6e73"] { color:#98989d !important; }
+      p[style*="color:#6e6e73"], span[style*="color:#6e6e73"] { color:#a1a1a6 !important; }
       td[style*="border-top:1px solid #e8e8ed"], td[style*="border-top:1px solid #f0f0f3"] { border-color:#2c2c2e !important; }
       table[style*="border-top:1px solid #f0f0f3"] { border-color:#2c2c2e !important; }
       td[style*="background:#e8e8ed"] { background:#2c2c2e !important; }
       span[style*="background:#f2f2f5"] { background:#2c2c2e !important; border-color:#3a3a3c !important; color:#a1a1a6 !important; }
+      /* score pills — pale light bg stays pale in Gmail's auto-invert, so force dark amber/green */
+      span[style*="background:#fef3c7"] { background:#2d2413 !important; color:#fde68a !important; border-color:#854d0e !important; }
+      span[style*="background:#dcfce7"] { background:#132e1f !important; color:#86efac !important; border-color:#166534 !important; }
+      span[style*="color:#925400"] { color:#fde68a !important; }
+      span[style*="color:#1a7f37"] { color:#86efac !important; }
+      span[style*="color:#b42318"] { color:#fca5a5 !important; }
       a[style*="background:#111111"] { background:#f5f5f7 !important; color:#111111 !important; }
     }
     @media only screen and (max-width: 600px) {
