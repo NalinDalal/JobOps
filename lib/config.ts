@@ -149,12 +149,22 @@ export function loadEnv(root?: string): Env {
 
   if (existsSync(envPath)) {
     const lines = readFileSync(envPath, "utf-8").split("\n");
-    for (const line of lines) {
-      if (!line.trim() || line.trim().startsWith("#")) continue;
+    for (let rawLine of lines) {
+      let line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      if (line.startsWith("export ")) line = line.slice(7).trim();
       const eqIdx = line.indexOf("=");
       if (eqIdx === -1) continue;
-      const key = line.slice(0, eqIdx).trim();
-      const val = line.slice(eqIdx + 1).trim();
+      let key = line.slice(0, eqIdx).trim();
+      let val = line.slice(eqIdx + 1).trim();
+      // strip surrounding quotes
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      } else {
+        // strip trailing inline comment (unquoted #)
+        const hash = val.indexOf(" #");
+        if (hash !== -1) val = val.slice(0, hash).trim();
+      }
       if (key) process.env[key] = val;
     }
   }
@@ -186,6 +196,7 @@ export function hasEmailConfig(env: Env): boolean {
   return Boolean(env.resendApiKey) || Boolean(env.smtpUser && env.smtpPass);
 }
 
+
 // ─── Config Loaders ────────────────────────────────────────────
 
 export function loadSearchConfig(): SearchConfigInput {
@@ -193,7 +204,23 @@ export function loadSearchConfig(): SearchConfigInput {
 }
 
 export function loadPortalsConfig(): PortalsConfigInput {
-  return loadYaml(PORTALS_CONFIG_PATH, DEFAULT_PORTALS_CONFIG);
+  const raw = loadYaml(PORTALS_CONFIG_PATH, {} as Record<string, unknown>) as Record<string, unknown>;
+  const pickBoards = (key: string): import("./types").PortalEntry[] => {
+    const v = raw[key] as { boards?: import("./types").PortalEntry[] } | import("./types").PortalEntry[] | undefined;
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    if (v.boards && Array.isArray(v.boards)) return v.boards;
+    return [];
+  };
+  return {
+    greenhouse: pickBoards("greenhouse"),
+    lever: pickBoards("lever"),
+    ashby: pickBoards("ashby"),
+    blacklist: (raw.blacklist as PortalsConfigInput["blacklist"]) || undefined,
+    whitelist: (raw.whitelist as PortalsConfigInput["whitelist"]) || undefined,
+    title_filter: (raw.title_filter as PortalsConfigInput["title_filter"]) || undefined,
+    search_queries: (raw.search_queries as PortalsConfigInput["search_queries"]) || undefined,
+  };
 }
 
 export function loadAcceleratorsConfig(): { accelerators: RawAccelerator[] } {

@@ -423,7 +423,8 @@ export interface SearchConfigInput {
 
 export interface PortalEntry {
   name: string;
-  url: string;
+  slug: string;
+  url?: string;
   enabled?: boolean;
 }
 
@@ -433,6 +434,8 @@ export interface PortalsConfigInput {
   ashby: PortalEntry[];
   blacklist?: { enabled: boolean; companies: string[] };
   whitelist?: { enabled: boolean; companies: string[] };
+  title_filter?: { positive: string[]; negative: string[] };
+  search_queries?: Array<{ name: string; query: string; location: string; enabled: boolean }>;
 }
 
 // ─── Env types ───────────────────────────────────────────────────

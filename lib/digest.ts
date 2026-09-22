@@ -15,10 +15,10 @@ import { resolve } from "path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import type { DigestOptions, DigestResult, Job } from "./types";
 import { createJobId } from "./types";
-import { loadEnv, hasCloudflareKeys, loadSearchConfig, ROOT } from "./config";
+import { loadEnv, hasCloudflareKeys, loadSearchConfig, loadActiveProfile, getProfileSkills, getProfileTargetRoles, ROOT } from "./config";
 import { IST_OFFSET_HOURS, MS_PER_HOUR } from "./constants";
 import { scanJobs } from "./scan";
-import { filterSeenJobs } from "./dedup";
+import { deduplicateJobs, filterSeenJobs } from "./dedup";
 import { evaluateJobs } from "./evaluate";
 import { rankJobs, filterForDigest } from "./rank";
 import { researchAccelerators } from "./research";
@@ -127,7 +127,14 @@ export async function main(
 
   // Scan
   const scanResult = await scanJobs({ query: opts.query, mock: opts.mock });
-  const allJobs = scanResult.jobs;
+  let allJobs = scanResult.jobs;
+
+  // Cross-portal dedup (same company::title::url from multiple sources)
+  const deduped = deduplicateJobs(allJobs);
+  if (deduped.duplicates > 0) {
+    console.log(`Deduped ${deduped.duplicates} cross-portal duplicates`);
+    allJobs = deduped.unique;
+  }
 
   // Dedup against seen jobs
   const seen = loadSeen(root);
@@ -149,6 +156,14 @@ export async function main(
   // Evaluate top N jobs
   if (hasCloudflareKeys(env) && opts.evaluate > 0) {
     await evaluateJobs(fresh, { concurrent: opts.evaluate });
+  }
+
+  // Heuristic fallback for unscored jobs (when Cloudflare not configured or top-N limit left many unscored)
+  const unscoredBefore = fresh.filter((j) => !j.evaluation?.overall).length;
+  if (unscoredBefore > 0) {
+    applyHeuristicScores(fresh);
+    const scored = fresh.filter((j) => j.evaluation?.overall).length;
+    if (unscoredBefore !== scored) console.log(`Heuristic scored ${scored - (fresh.length - unscoredBefore)} jobs (no AI keys / beyond top-N)`);
   }
 
   // Rank and filter
@@ -272,4 +287,56 @@ export async function main(
     provider: result.provider,
     mode: opts.mode,
   };
+}
+
+// ─── Heuristic scoring (no AI keys) ───────────────────────────
+
+function applyHeuristicScores(jobs: Job[]): void {
+  // Lightweight keyword overlap scoring when Cloudflare AI is not configured.
+  // Keeps digest useful in preview/local without keys — caps at 3.6 so AI-scored jobs still rank higher.
+  try {
+    const profile = loadActiveProfile();
+    const skills: string[] = getProfileSkills(profile)
+      .split(",")
+      .map((s: string) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const targetRoles = getProfileTargetRoles(profile).map((r: string) => r.toLowerCase());
+
+    for (const job of jobs) {
+      if (job.evaluation?.overall) continue;
+      const hay = `${job.title} ${job.snippet || ""} ${job.description || ""} ${(job.tags || []).join(" ")}`.toLowerCase();
+
+      let skillHits = 0;
+      for (const s of skills) if (hay.includes(s)) skillHits++;
+      const skillScore = Math.min(2, skillHits * 0.35); // 0-2
+
+      let roleBonus = 0;
+      for (const r of targetRoles) if (hay.includes(r)) roleBonus = 0.6;
+
+      let seniorPenalty = 0;
+      if (/(senior|staff|principal|lead|manager|director|5\+ years|8\+ years)/.test(hay)) seniorPenalty = 0.8;
+
+      const remoteBonus = job.remote || /remote/.test(hay) ? 0.2 : 0;
+
+      // base 3.0 so borderline jobs appear in "to review" rather than vanishing
+      const overall = Math.max(1, Math.min(3.6, 3.0 + skillScore + roleBonus + remoteBonus - seniorPenalty));
+      const verdict = (overall >= 4 ? "strong" : overall >= 3.5 ? "review" : overall >= 3 ? "maybe" : "skip") as NonNullable<Job["evaluation"]>["verdict"];
+
+      job.evaluation = {
+        overall: Math.round(overall * 10) / 10,
+        roleFit: Math.round((3.0 + skillScore) * 10) / 10,
+        locationFit: job.remote ? 4 : 3,
+        growth: 3.3,
+        compensationFit: 3.2,
+        cultureFit: 3.3,
+        verdict,
+        recommendation: verdict === "strong" || verdict === "review" ? "Heuristic match — review posting" : "Heuristic — low overlap",
+        whyMatch: skillHits ? [`${skillHits} skill overlap`] : [],
+        matchedSkills: skills.filter((s) => hay.includes(s)).slice(0, 4),
+        redFlags: seniorPenalty ? ["May be senior-level"] : [],
+      };
+    }
+  } catch {
+    // never block digest on heuristic
+  }
 }
