@@ -353,60 +353,70 @@ async function scanLever(query: string, location: string): Promise<Job[]> {
     return jobs;
 }
 
-async function scanWellfound(_query: string, _location: string): Promise<Job[]> {
-  const jobs: Job[] = [];
-  // Wellfound startup jobs — SSR HTML at /jobs embeds listings; no API key needed.
-  // Fetch the main jobs feed (remote role pages are JS-heavy, /jobs is static).
-  const pageUrl = "https://wellfound.com/jobs";
-  try {
-    const res = await fetchWithTimeout(pageUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    if (!res.ok) return jobs;
-    const html = await res.text();
-    const re = /<a[^>]+href="\/jobs\/([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?<span[^>]*>([^<]+?)(?:<!--[^>]*>)?\s*•\s*<\/span>[\s\S]*?<span[^>]*class="text-gray-700"[^>]*>([^<]+)/g;
-    let m: RegExpExecArray | null;
-    let count = 0;
-    while ((m = re.exec(html)) !== null && count < 35) {
-      const slug = m[1]!;
-      let title = m[2]!.trim().replace(/&amp;/g, "&");
-      const company = m[3]!.trim();
-      const metaRaw = m[4]!.trim(); // e.g. "In office • New York City • $80k – $120k • today" or "Remote only • United States • $70k"
-      if (!title || !company || title === "Create profile") continue;
-      const parts = metaRaw.split("•").map((p) => p.trim());
-      // parts[0] is work mode (Remote / In office), parts[1] is location if present
-      const mode = parts[0] || "";
-      const locPart = parts[1] || mode;
-      const isRemote = /remote/i.test(metaRaw);
-      const location = normalizeLocation(locPart || (isRemote ? "Remote" : mode));
-      const url = `https://wellfound.com/jobs/${slug}`;
-      const snippet = `${title} at ${company} — ${metaRaw}`.substring(0, SNIPPET_MAX_LENGTH);
-      const job: Job = {
-        id: "",
-        title,
-        company,
-        location,
-        url,
-        description: snippet,
-        snippet,
-        postedAt: undefined,
-        source: "wellfound",
-        remote: isRemote,
-        tags: [],
-      };
-      job.id = createJobId(job);
-      if (!jobs.some((j) => j.id === job.id)) {
-        jobs.push(job);
-        count++;
-      }
+async function scanWellfound(
+    _query: string,
+    _location: string,
+): Promise<Job[]> {
+    const jobs: Job[] = [];
+    // Wellfound startup jobs — SSR HTML at /jobs embeds listings; no API key needed.
+    // Fetch the main jobs feed (remote role pages are JS-heavy, /jobs is static).
+    const pageUrl = "https://wellfound.com/jobs";
+    try {
+        const res = await fetchWithTimeout(pageUrl, {
+            headers: {
+                "User-Agent":
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                Accept: "text/html,application/xhtml+xml",
+            },
+        });
+        if (!res.ok) return jobs;
+        const html = await res.text();
+        const re =
+            /<a[^>]+href="\/jobs\/([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?<span[^>]*>([^<]+?)(?:<!--[^>]*>)?\s*•\s*<\/span>[\s\S]*?<span[^>]*class="text-gray-700"[^>]*>([^<]+)/g;
+        let m: RegExpExecArray | null;
+        let count = 0;
+        while ((m = re.exec(html)) !== null && count < 35) {
+            const slug = m[1]!;
+            let title = m[2]!.trim().replace(/&amp;/g, "&");
+            const company = m[3]!.trim();
+            const metaRaw = m[4]!.trim(); // e.g. "In office • New York City • $80k – $120k • today" or "Remote only • United States • $70k"
+            if (!title || !company || title === "Create profile") continue;
+            const parts = metaRaw.split("•").map((p) => p.trim());
+            // parts[0] is work mode (Remote / In office), parts[1] is location if present
+            const mode = parts[0] || "";
+            const locPart = parts[1] || mode;
+            const isRemote = /remote/i.test(metaRaw);
+            const location = normalizeLocation(
+                locPart || (isRemote ? "Remote" : mode),
+            );
+            const url = `https://wellfound.com/jobs/${slug}`;
+            const snippet = `${title} at ${company} — ${metaRaw}`.substring(
+                0,
+                SNIPPET_MAX_LENGTH,
+            );
+            const job: Job = {
+                id: "",
+                title,
+                company,
+                location,
+                url,
+                description: snippet,
+                snippet,
+                postedAt: undefined,
+                source: "wellfound",
+                remote: isRemote,
+                tags: [],
+            };
+            job.id = createJobId(job);
+            if (!jobs.some((j) => j.id === job.id)) {
+                jobs.push(job);
+                count++;
+            }
+        }
+    } catch (e) {
+        console.warn(`Wellfound scan failed: ${e}`);
     }
-  } catch (e) {
-    console.warn(`Wellfound scan failed: ${e}`);
-  }
-  return jobs;
+    return jobs;
 }
 
 async function scanAshby(query: string, location: string): Promise<Job[]> {

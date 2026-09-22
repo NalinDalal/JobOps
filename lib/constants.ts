@@ -66,9 +66,9 @@ export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
  * Get today's date as YYYY-MM-DD string
  */
 export function todayKey(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 }

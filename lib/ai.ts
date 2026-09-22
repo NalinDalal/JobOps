@@ -12,65 +12,65 @@ import type { AIEvaluationPrompt, AIEvaluationResult, Verdict } from "./types";
 // ─── Cloudflare AI ────────────────────────────────────────────
 
 export async function callCloudflareAI(
-  prompt: string,
-  env?: Env,
+    prompt: string,
+    env?: Env,
 ): Promise<string> {
-  const config = env || loadEnv();
+    const config = env || loadEnv();
 
-  if (!hasCloudflareKeys(config)) {
-    throw new Error("No Cloudflare AI keys found");
-  }
+    if (!hasCloudflareKeys(config)) {
+        throw new Error("No Cloudflare AI keys found");
+    }
 
-  const accountId = config.cloudflareAccountId;
-  const apiKey = config.cloudflareApiKey;
-  const model = config.cloudflareModel;
+    const accountId = config.cloudflareAccountId;
+    const apiKey = config.cloudflareApiKey;
+    const model = config.cloudflareModel;
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a job evaluation AI. Return ONLY valid JSON, no markdown, no explanation.",
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
         },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }),
-  });
+        body: JSON.stringify({
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "You are a job evaluation AI. Return ONLY valid JSON, no markdown, no explanation.",
+                },
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
+        }),
+    });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(
-      `Cloudflare AI ${res.status}: ${body.substring(0, 300)}`,
-    );
-  }
+    if (!res.ok) {
+        const body = await res.text();
+        throw new Error(
+            `Cloudflare AI ${res.status}: ${body.substring(0, 300)}`,
+        );
+    }
 
-  const data = (await res.json()) as {
-    success: boolean;
-    result?: { response?: string };
-  };
+    const data = (await res.json()) as {
+        success: boolean;
+        result?: { response?: string };
+    };
 
-  if (!data.success || !data.result?.response) {
-    throw new Error("Cloudflare AI returned empty response");
-  }
+    if (!data.success || !data.result?.response) {
+        throw new Error("Cloudflare AI returned empty response");
+    }
 
-  return data.result.response;
+    return data.result.response;
 }
 
 // ─── Evaluation ───────────────────────────────────────────────
 
 export function buildEvaluationPrompt(prompt: AIEvaluationPrompt): string {
-  return `Evaluate this job for the candidate. Return ONLY a JSON object.
+    return `Evaluate this job for the candidate. Return ONLY a JSON object.
 
 CANDIDATE:
 Skills: ${prompt.skills}
@@ -110,44 +110,44 @@ Scoring guide:
 }
 
 export function parseEvaluationResponse(
-  response: string,
+    response: string,
 ): AIEvaluationResult | null {
-  try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    try {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
 
-    if (
-      typeof parsed.overall !== "number" ||
-      typeof parsed.roleFit !== "number" ||
-      typeof parsed.locationFit !== "number" ||
-      typeof parsed.growth !== "number" ||
-      typeof parsed.compFit !== "number" ||
-      typeof parsed.cultureFit !== "number"
-    ) {
-      return null;
+        if (
+            typeof parsed.overall !== "number" ||
+            typeof parsed.roleFit !== "number" ||
+            typeof parsed.locationFit !== "number" ||
+            typeof parsed.growth !== "number" ||
+            typeof parsed.compFit !== "number" ||
+            typeof parsed.cultureFit !== "number"
+        ) {
+            return null;
+        }
+
+        return {
+            overall: parsed.overall,
+            roleFit: parsed.roleFit,
+            locationFit: parsed.locationFit,
+            growth: parsed.growth,
+            compFit: parsed.compFit,
+            cultureFit: parsed.cultureFit,
+            entryLevelFit: parsed.entryLevelFit,
+            recommendation: parsed.recommendation || "",
+            redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
+        };
+    } catch {
+        return null;
     }
-
-    return {
-      overall: parsed.overall,
-      roleFit: parsed.roleFit,
-      locationFit: parsed.locationFit,
-      growth: parsed.growth,
-      compFit: parsed.compFit,
-      cultureFit: parsed.cultureFit,
-      entryLevelFit: parsed.entryLevelFit,
-      recommendation: parsed.recommendation || "",
-      redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
-    };
-  } catch {
-    return null;
-  }
 }
 
 export function scoreToVerdict(score: number): Verdict {
-  if (score >= SCORE_STRONG) return "strong";
-  if (score >= SCORE_REVIEW) return "review";
-  if (score >= 2) return "maybe";
-  return "skip";
+    if (score >= SCORE_STRONG) return "strong";
+    if (score >= SCORE_REVIEW) return "review";
+    if (score >= 2) return "maybe";
+    return "skip";
 }
