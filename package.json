@@ -1,20 +1,22 @@
 {
   "name": "jobops",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "bin": {
-    "jobops": "./src/cli/index.ts"
+    "jobops": "./index.ts"
   },
   "scripts": {
-    "dev": "bun run src/cli/index.ts",
+    "dev": "bun run index.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "digest": "bun run src/cli/index.ts digest",
-    "evaluate": "bun run src/cli/index.ts evaluate",
-    "tailor": "bun run src/cli/index.ts tailor",
-    "tracker": "bun run src/cli/index.ts tracker",
-    "scan": "bun run src/cli/index.ts scan",
-    "status": "bun run src/cli/index.ts status"
+    "digest": "bun run index.ts digest",
+    "evaluate": "bun run index.ts evaluate",
+    "tailor": "bun run index.ts tailor",
+    "tracker": "bun run index.ts tracker",
+    "scan": "bun run index.ts scan",
+    "research": "bun run index.ts research",
+    "outreach": "bun run index.ts outreach",
+    "status": "bun run index.ts status"
   },
   "devDependencies": {
     "@types/bun": "latest",

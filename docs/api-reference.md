@@ -5,7 +5,7 @@
 Search job boards.
 
 ```bash
-bun run src/cli/index.ts scan --query "software engineer"
+bun run index.ts scan --query "software engineer"
 ```
 
 **Output:** Job listings to stdout.
@@ -31,7 +31,7 @@ bun run src/cli/index.ts scan --query "software engineer"
 Score a single job via Cloudflare AI.
 
 ```bash
-bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
+bun run index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
 **Output:** JSON evaluation object.
@@ -59,8 +59,8 @@ bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
 Generate tailored CV + cover letter.
 
 ```bash
-bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer"
-bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer" --description "JD text..."
+bun run index.ts tailor --company "Stripe" --role "Software Engineer"
+bun run index.ts tailor --company "Stripe" --role "Software Engineer" --description "JD text..."
 ```
 
 **Output:** Two files in `output/`:
@@ -72,13 +72,13 @@ bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer" --
 Application tracker.
 
 ```bash
-bun run src/cli/index.ts tracker list
-bun run src/cli/index.ts tracker add --company "Company" --role "Role"
-bun run src/cli/index.ts tracker update --company "Company" --status "Status"
-bun run src/cli/index.ts tracker interview --company "Company" --stage "Stage"
-bun run src/cli/index.ts tracker outcome --company "Company" --outcome "Result"
-bun run src/cli/index.ts tracker followup --company "Company" --note "Note"
-bun run src/cli/index.ts tracker export
+bun run index.ts tracker list
+bun run index.ts tracker add --company "Company" --role "Role"
+bun run index.ts tracker update --company "Company" --status "Status"
+bun run index.ts tracker interview --company "Company" --stage "Stage"
+bun run index.ts tracker outcome --company "Company" --outcome "Result"
+bun run index.ts tracker followup --company "Company" --note "Note"
+bun run index.ts tracker export
 ```
 
 **Valid statuses:** `Saved`, `Attention`, `Applied`, `Interviewing`, `Offer`, `Rejected`, `Withdrawn`
@@ -92,7 +92,7 @@ bun run src/cli/index.ts tracker export
 Daily digest.
 
 ```bash
-bun run src/cli/index.ts digest [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]
+bun run index.ts digest [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]
 ```
 
 **Flags:**
@@ -113,7 +113,7 @@ bun run src/cli/index.ts digest [--mode preview|daily] [--max N] [--evaluate N] 
 Show system configuration status.
 
 ```bash
-bun run src/cli/index.ts status
+bun run index.ts status
 ```
 
 Shows Cloudflare AI, Resend, and SMTP configuration status.

@@ -59,25 +59,25 @@ Edit `config/portals.yml` to enable/disable sources, configure company blacklist
 ## 6. Health check
 
 ```bash
-bun run src/cli/index.ts status
+bun run index.ts status
 ```
 
 ## 7. First scan
 
 ```bash
-bun run src/cli/index.ts scan --query "software engineer"
+bun run index.ts scan --query "software engineer"
 ```
 
 ## 8. Evaluate a job
 
 ```bash
-bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
+bun run index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
 ## 9. Tailor CV
 
 ```bash
-bun run src/cli/index.ts tailor --company "Stripe" --role "Software Engineer"
+bun run index.ts tailor --company "Stripe" --role "Software Engineer"
 ```
 
 Outputs go to `output/`.
@@ -85,9 +85,9 @@ Outputs go to `output/`.
 ## 10. Track applications
 
 ```bash
-bun run src/cli/index.ts tracker add --company "Stripe" --role "Software Engineer"
-bun run src/cli/index.ts tracker update --company "Stripe" --status "Applied"
-bun run src/cli/index.ts tracker list
+bun run index.ts tracker add --company "Stripe" --role "Software Engineer"
+bun run index.ts tracker update --company "Stripe" --status "Applied"
+bun run index.ts tracker list
 ```
 
 ## 11. Daily digest
@@ -95,13 +95,13 @@ bun run src/cli/index.ts tracker list
 Preview:
 
 ```bash
-bun run src/cli/index.ts digest
+bun run index.ts digest
 ```
 
 Send email (marks jobs as seen only after successful delivery):
 
 ```bash
-bun run src/cli/index.ts digest --mode daily --send
+bun run index.ts digest --mode daily --send
 ```
 
 Cron (GitHub Actions): `.github/workflows/daily-digest.yml` runs at `30 6 * * *` UTC (12:00 IST).

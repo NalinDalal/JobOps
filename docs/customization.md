@@ -110,7 +110,7 @@ This prevents the model from inventing experience or credentials you don't have.
 The attention queue is a dedicated buffer for applications that need human review before proceeding. It prevents accidental or premature applications.
 
 ```bash
-bun run src/cli/index.ts tracker list   # show queue
-bun run src/cli/index.ts tracker update --company "Company" --status "Saved"   # approve and move to Saved
-bun run src/cli/index.ts tracker update --company "Company" --status "Applied" # approve and mark as Applied
+bun run index.ts tracker list   # show queue
+bun run index.ts tracker update --company "Company" --status "Saved"   # approve and move to Saved
+bun run index.ts tracker update --company "Company" --status "Applied" # approve and mark as Applied
 ```

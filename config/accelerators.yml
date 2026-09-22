@@ -1,0 +1,85 @@
+# JobOps Accelerator Configuration
+# Configure accelerator programs to research for companies.
+
+# ─── Accelerators ───────────────────────────────────────────────
+
+accelerators:
+  - name: Y Combinator
+    slug: yc
+    enabled: true
+    batch_urls:
+      - url: https://www.ycombinator.com/companies?batch=Winter+2026
+        batch: W26
+        label: Winter 2026
+      - url: https://www.ycombinator.com/companies?batch=Summer+2026
+        batch: S26
+        label: Summer 2026
+    company_list_url: https://www.ycombinator.com/companies
+    careers_pattern: "https://www.ycombinator.com/companies/{slug}"
+    tags:
+      - Developer Tools
+      - Open Source
+      - Artificial Intelligence
+      - B2B
+      - SaaS
+
+  - name: MetaDAO
+    slug: metadao
+    enabled: true
+    batch_urls:
+      - url: https://metadao.fi/companies
+        batch: current
+        label: Current Portfolio
+    company_list_url: https://metadao.fi/companies
+    careers_pattern: "https://metadao.fi/companies/{slug}"
+    tags:
+      - Crypto
+      - DeFi
+      - Web3
+      - Rust
+      - Solidity
+
+  - name: OrangeDAO
+    slug: orangedao
+    enabled: true
+    batch_urls:
+      - url: https://orangedao.xyz/ecosystem
+        batch: ecosystem
+        label: Ecosystem
+      - url: https://launchcaster.xyz
+        batch: W25
+        label: W25 Demo Day
+    company_list_url: https://orangedao.xyz/ecosystem
+    careers_pattern: "https://orangedao.xyz/ecosystem/{slug}"
+    tags:
+      - Crypto
+      - Web3
+      - Pre-seed
+      - DAO
+
+  - name: Alliance DAO
+    slug: alliance
+    enabled: true
+    batch_urls:
+      - url: https://alliance.xyz/companies
+        batch: ALL16
+        label: ALL16
+      - url: https://alliance.xyz/companies
+        batch: Batch12
+        label: Batch 12
+    company_list_url: https://alliance.xyz/companies
+    careers_pattern: "https://alliance.xyz/companies/{slug}"
+    tags:
+      - Crypto
+      - Web3
+      - Infrastructure
+      - Gaming
+
+# ─── Research Settings ──────────────────────────────────────────
+
+research:
+  max_companies_per_accelerator: 20
+  include_careers_urls: true
+  include_tech_stack_hints: true
+  output_dir: output/research
+  outreach_dir: output/outreach

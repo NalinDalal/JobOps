@@ -34,7 +34,7 @@ src/digest/mailer.ts  →  daily email (Resend/SMTP) or console preview
 | `src/tracker/index.ts` | Application table, interview stages, outcomes, follow-ups, attention queue, CSV export | `data/applications.md`, `data/tracker-export.csv` |
 | `src/pipeline/rank.ts` | Batch scoring of scraped jobs, ranked shortlist | stdout JSON + optional report |
 | `src/digest/index.ts` | Scan → dedup → score top N → email/preview | `data/digest-seen.json`, `reports/digest-*.md` |
-| `src/cli/index.ts` | CLI entry point, command routing | stdout |
+| `index.ts` | CLI entry point, command routing | stdout |
 
 ## Configuration layers
 

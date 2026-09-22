@@ -31,10 +31,10 @@ cp .env.example .env
 # Edit .env with your Cloudflare credentials
 
 # Scan for jobs
-bun run src/cli/index.ts scan --query "software engineer"
+bun run index.ts scan --query "software engineer"
 
 # Run daily digest
-bun run src/cli/index.ts digest --send
+bun run index.ts digest --send
 ```
 
 ## Setup
@@ -124,29 +124,31 @@ Edit `config/portals.yml` to enable/disable sources, configure blacklists/whitel
 
 ## CLI Commands
 
-All commands are run via `bun run src/cli/index.ts <command>`.
+All commands are run via `bun run index.ts <command>`.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `digest` | Run daily job digest | `bun run src/cli/index.ts digest --mode preview` |
-| `evaluate` | Score a job via Cloudflare AI | `bun run src/cli/index.ts evaluate --company "Acme" --role "Engineer"` |
-| `tailor` | Generate ATS-optimized CV + cover letter | `bun run src/cli/index.ts tailor --company "Acme" --role "Engineer"` |
-| `tracker` | Manage application tracker | `bun run src/cli/index.ts tracker list` |
-| `scan` | Scan job boards | `bun run src/cli/index.ts scan --query "react developer"` |
-| `status` | Show system configuration | `bun run src/cli/index.ts status` |
-| `help` | Show help | `bun run src/cli/index.ts help` |
+| `digest` | Run daily job digest | `bun run index.ts digest --mode preview` |
+| `evaluate` | Score a job via Cloudflare AI | `bun run index.ts evaluate --company "Acme" --role "Engineer"` |
+| `tailor` | Generate ATS-optimized CV + cover letter | `bun run index.ts tailor --company "Acme" --role "Engineer"` |
+| `tracker` | Manage application tracker | `bun run index.ts tracker list` |
+| `scan` | Scan job boards | `bun run index.ts scan --query "react developer"` |
+| `research` | Research accelerator companies | `bun run index.ts research --accelerator yc` |
+| `outreach` | Generate outreach DM/email drafts | `bun run index.ts outreach --company "Acme" --role "Engineer"` |
+| `status` | Show system configuration | `bun run index.ts status` |
+| `help` | Show help | `bun run index.ts help` |
 
 ### Digest
 
 Preview mode (prints to console, never writes seen state):
 ```bash
-bun run src/cli/index.ts digest
-bun run src/cli/index.ts digest --query "backend" --max 10
+bun run index.ts digest
+bun run index.ts digest --query "backend" --max 10
 ```
 
 Daily mode (sends email, then marks jobs as seen):
 ```bash
-bun run src/cli/index.ts digest --mode daily --send
+bun run index.ts digest --mode daily --send
 ```
 
 Options:
@@ -159,14 +161,14 @@ Options:
 ### Evaluate
 
 ```bash
-bun run src/cli/index.ts evaluate --company "Stripe" --role "Software Engineer"
+bun run index.ts evaluate --company "Stripe" --role "Software Engineer"
 ```
 
 ### Tailor
 
 ```bash
-bun run src/cli/index.ts tailor --company "Acme" --role "Engineer"
-bun run src/cli/index.ts tailor --company "Acme" --role "Engineer" --description "JD text..."
+bun run index.ts tailor --company "Acme" --role "Engineer"
+bun run index.ts tailor --company "Acme" --role "Engineer" --description "JD text..."
 ```
 
 Output goes to `output/`.
@@ -175,55 +177,66 @@ Output goes to `output/`.
 
 ```bash
 # List all applications
-bun run src/cli/index.ts tracker list
+bun run index.ts tracker list
 
 # Add application
-bun run src/cli/index.ts tracker add --company "Acme" --role "Engineer"
+bun run index.ts tracker add --company "Acme" --role "Engineer"
 
 # Update status
-bun run src/cli/index.ts tracker update --company "Acme" --status "Applied"
+bun run index.ts tracker update --company "Acme" --status "Applied"
 
 # Record interview
-bun run src/cli/index.ts tracker interview --company "Acme" --stage "Technical"
+bun run index.ts tracker interview --company "Acme" --stage "Technical"
 
 # Record outcome
-bun run src/cli/index.ts tracker outcome --company "Acme" --outcome "Rejected"
+bun run index.ts tracker outcome --company "Acme" --outcome "Rejected"
 
 # Add follow-up
-bun run src/cli/index.ts tracker followup --company "Acme" --note "Check status"
+bun run index.ts tracker followup --company "Acme" --note "Check status"
 
 # Export CSV
-bun run src/cli/index.ts tracker export
+bun run index.ts tracker export
 ```
 
 ### Scan
 
 ```bash
-bun run src/cli/index.ts scan --query "software engineer"
-bun run src/cli/index.ts scan auto    # uses target_roles from profile.yml
+bun run index.ts scan --query "software engineer"
+bun run index.ts scan auto    # uses target_roles from profile.yml
 ```
 
 ## Architecture
 
 ```
-src/
-├── cli/index.ts          — CLI entry point (only process.argv parsing)
-├── digest.ts             — Digest orchestration (importable, no side effects)
-├── digest/
-│   ├── viewModel.ts      — Builds DigestViewModel from jobs
-│   ├── renderer.ts       — Renders HTML and text email
-│   └── mailer.ts         — Sends via Resend or SMTP
-├── pipeline/
-│   ├── scan.ts           — Multi-portal job scanner
-│   ├── dedup.ts          — Job deduplication
-│   ├── evaluate.ts       — Cloudflare AI evaluation
-│   └── rank.ts           — Job ranking and filtering
-├── tailor/index.ts       — CV + cover letter generation
-├── tracker/index.ts      — Application tracker
-├── domain/               — TypeScript domain types
-├── schemas/              — Zod validation schemas
-├── config/               — Environment and YAML config loading
-└── lib/                  — Shared utilities (constants, text, profile)
+JobOps/
+├── index.ts                  — CLI entry point (bun run index.ts)
+├── lib/                      — All source (flat, Bun-native)
+│   ├── config.ts             — Env + YAML + profile loader
+│   ├── types.ts              — All domain types
+│   ├── constants.ts          — Score thresholds, timeouts
+│   ├── text.ts               — Text utilities
+│   ├── scan.ts               — Multi-portal job scanner
+│   ├── evaluate.ts           — AI evaluation (Cloudflare)
+│   ├── rank.ts               — Ranking + filtering
+│   ├── dedup.ts              — Deduplication
+│   ├── research.ts           — Accelerator research
+│   ├── outreach.ts           — Outreach draft generation
+│   ├── tailor.ts             — CV + cover letter tailoring
+│   ├── tracker.ts            — Application tracker
+│   ├── digest.ts             — Digest orchestration
+│   ├── mailer.ts             — Email delivery (Resend/SMTP)
+│   ├── renderer.ts           — Premium briefing email
+│   ├── viewModel.ts          — Digest view model
+│   └── ai.ts                 — Cloudflare AI client
+├── config/                   — YAML configuration
+│   ├── profile.yml           — Candidate profile
+│   ├── cv.md                 — Base CV
+│   ├── portals.yml           — Job board config
+│   ├── search.yml            — Search filters
+│   └── accelerators.yml      — Accelerator research config
+├── data/                     — Runtime data (tracker, seen jobs)
+├── output/                   — Generated CVs, outreach drafts
+└── reports/                  — HTML digest reports
 ```
 
 ## Design Principles
