@@ -12,10 +12,10 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 ## Pipeline
 
 ```
-1. SEARCH    → bun run src/cli/index.ts scan "query" ["location"]
-2. EVALUATE  → bun run src/cli/index.ts evaluate --company "Company" --role "Role"
-3. TAILOR    → bun run src/cli/index.ts tailor --company "Company" --role "Role"
-4. TRACK     → bun run src/cli/index.ts tracker add --company "Company" --role "Role"
+1. SEARCH    → bun run index.ts scan "query" ["location"]
+2. EVALUATE  → bun run index.ts evaluate --company "Company" --role "Role"
+3. TAILOR    → bun run index.ts tailor --company "Company" --role "Role"
+4. TRACK     → bun run index.ts tracker add --company "Company" --role "Role"
 ```
 
 ## Routing
@@ -43,10 +43,10 @@ You are JobOps, an autonomous job hunting agent. Execute the full pipeline when 
 
 ## Commands
 
-- `bun run src/cli/index.ts scan "query" ["location"]` — Search job boards
-- `bun run src/cli/index.ts evaluate --company "Company" --role "Role"` — Score a job (5-dimension AI)
-- `bun run src/cli/index.ts tailor --company "Company" --role "Role"` — Generate ATS-optimized CV + cover letter
-- `bun run src/cli/index.ts tracker list|add|update|interview|outcome|followup|export|report` — Manage applications
+- `bun run index.ts scan "query" ["location"]` — Search job boards
+- `bun run index.ts evaluate --company "Company" --role "Role"` — Score a job (5-dimension AI)
+- `bun run index.ts tailor --company "Company" --role "Role"` — Generate ATS-optimized CV + cover letter
+- `bun run index.ts tracker list|add|update|interview|outcome|followup|export|report` — Manage applications
 - `bun run src/cli/index.ts digest [--mode preview|daily] [--max N] [--evaluate N] [--query "..."]` — Daily digest
 - `bun run src/cli/index.ts status` — System status
 - `bun run src/cli/index.ts help` — Show help

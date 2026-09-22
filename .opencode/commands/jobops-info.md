@@ -27,5 +27,5 @@ JobOps is an AI job hunting agent that turns this CLI into a full job search com
 | `config/cv.md` | Your base CV (markdown) |
 | `config/portals.yml` | Job board configurations, blacklists, whitelists |
 | `data/applications.md` | Application tracker |
-| `src/cli/index.ts` | CLI entry point |
+| `index.ts` | CLI entry point |
 | `src/**/*.ts` | TypeScript source (Bun runtime) |
