@@ -9,7 +9,7 @@
  * - Mobile: stats 2+2, list full-width.
  */
 
-import type { DigestViewModel, DigestMatch } from "./types";
+import type { DigestViewModel } from "./types";
 import { SCORE_STRONG, SCORE_REVIEW } from "./constants";
 import { escapeHtml } from "./text";
 
@@ -21,7 +21,7 @@ const S = {
     ink: "#111111",
     body: "#2b2b2e",
     muted: "#6e6e73",
-    faint: "#6e6e73", // was #86868b — darkened to pass 4.5:1 on bg
+    faint: "#6e6e73",
     line: "#e8e8ed",
     subLine: "#f0f0f3",
     accent: "#111111",
@@ -36,12 +36,10 @@ const S = {
 // ── tiny atoms ──
 
 function tinyLabel(text: string): string {
-    // craft-floor: no eyebrow above heading — this is only for brand + stats, not section headings
     return `<p style="margin:0;font-family:${F};font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${S.faint};">${escapeHtml(text)}</p>`;
 }
 
 function sectionTitle(text: string): string {
-    // UI-core Typography: headline max 2 lines, no eyebrow, weight 600, no uppercase tracking spam
     return `<p style="margin:0 0 14px;font-family:${F};font-size:13px;font-weight:600;color:${S.ink};line-height:1.3;letter-spacing:-0.01em;">${escapeHtml(text)}</p>`;
 }
 
@@ -73,34 +71,25 @@ function verdictText(v: string, score: number): string {
 
 // ── sections ──
 
-function header(vm: DigestViewModel): string {
-    const roles =
-        vm.profile.targetRoles.slice(0, 2).join(" · ") || "Software Engineer";
-    const locs =
-        vm.profile.targetLocations.slice(0, 2).join(" · ") || "Remote · India";
+function greeting(vm: DigestViewModel): string {
+    const name = vm.profile.name || "there";
+    const total = vm.summary.totalScanned;
+    const strong = vm.summary.strongMatches;
+    const review = vm.summary.worthReviewing;
+    const matches = strong + review;
     return `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="padding:0 0 22px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td style="vertical-align:bottom;">
-            ${tinyLabel("JobOps")}
-            <p style="margin:5px 0 0;font-family:${F};font-size:24px;font-weight:700;color:${S.ink};line-height:1.1;letter-spacing:-0.025em;">Daily briefing</p>
-          </td>
-          <td style="vertical-align:bottom;text-align:right;padding-left:16px;">
-            <p style="margin:0;font-family:${F};font-size:11px;color:${S.muted};white-space:nowrap;">${escapeHtml(vm.date.long)}</p>
-            <p style="margin:2px 0 0;font-family:${F};font-size:11px;color:${S.faint};">${escapeHtml(vm.date.short)}</p>
-          </td>
-        </tr>
-      </table>
-      <p style="margin:12px 0 0;font-family:${F};font-size:12px;color:${S.muted};line-height:1.5;max-width:65ch;">${escapeHtml(roles)} <span style="color:${S.line};">·</span> ${escapeHtml(locs)}</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+    <tr><td style="padding:0;">
+      ${tinyLabel("JobOps")}
+      <p style="margin:5px 0 0;font-family:${F};font-size:24px;font-weight:700;color:${S.ink};line-height:1.1;letter-spacing:-0.025em;">Your job search, distilled.</p>
+      <p style="margin:10px 0 0;font-family:${F};font-size:13px;color:${S.body};line-height:1.55;max-width:65ch;">Good morning, ${escapeHtml(name)}.</p>
+      <p style="margin:4px 0 0;font-family:${F};font-size:13px;color:${S.body};line-height:1.55;max-width:65ch;">${total} new roles matched your profile today. ${matches} are worth your time.</p>
     </td></tr>
   </table>`;
 }
 
 function stats(vm: DigestViewModel): string {
     const s = vm.summary;
-    // editorial: no card, no border-radius, just numbers with hairline separators
     const strongColor = s.strongMatches > 0 ? S.success : S.ink;
     const reviewColor = s.worthReviewing > 0 ? S.ink : S.muted;
     return `
@@ -135,7 +124,7 @@ function stats(vm: DigestViewModel): string {
   </table>`;
 }
 
-function featured(m: DigestMatch | undefined): string {
+function featured(m: DigestViewModel["heroJob"], vm: DigestViewModel): string {
     if (!m) return "";
     const tags = m.matchedSkills.slice(0, 5).map(tag).join("");
     const why = m.whyMatch.length
@@ -146,28 +135,45 @@ function featured(m: DigestMatch | undefined): string {
         : "";
     const posted = m.posted !== "Unknown" ? ` · ${escapeHtml(m.posted)}` : "";
     const comp = m.compensation ? ` · ${escapeHtml(m.compensation)}` : "";
+    const whyJobOps = vm.whyJobOps;
+    const whyLines =
+        whyJobOps?.matchReasons
+            .map(
+                (r) =>
+                    `<li style="margin:4px 0;font-family:${F};font-size:12px;color:${S.body};line-height:1.5;">${escapeHtml(r)}</li>`,
+            )
+            .join("") || "";
+    const whySection = whyLines
+        ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;border-top:1px solid ${S.subLine};padding-top:14px;">
+            <tr><td>
+              <p style="margin:0 0 8px;font-family:${F};font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">Why JobOps picked this</p>
+              <ul style="margin:0;padding:0 0 0 18px;">${whyLines}</ul>
+            </td></tr>
+          </table>`
+        : "";
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td>
-      ${sectionTitle(m.label === "Top match" ? "Featured" : m.label || "Featured")}
+      ${sectionTitle("Today's best match")}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${S.card};border:1px solid ${S.line};border-radius:${S.r};overflow:hidden;">
-        <tr><td style="padding:20px 20px 18px;">
-          <p style="margin:0 0 10px;">${scoreBadge(m.score.overall)} <span style="margin-left:10px;">${verdictText(m.verdict, m.score.overall)}</span></p>
-          <p style="margin:0;font-family:${F};font-size:17px;font-weight:700;color:${S.ink};line-height:1.3;letter-spacing:-0.01em;">${escapeHtml(m.title)}</p>
-          <p style="margin:4px 0 0;font-family:${F};font-size:13px;font-weight:500;color:${S.body};">${escapeHtml(m.company)}</p>
+        <tr><td style="padding:22px 22px 20px;">
+          <p style="margin:0 0 12px;">${scoreBadge(m.score.overall)} <span style="margin-left:10px;">${verdictText(m.verdict, m.score.overall)}</span></p>
+          <p style="margin:0;font-family:${F};font-size:20px;font-weight:700;color:${S.ink};line-height:1.25;letter-spacing:-0.02em;">${escapeHtml(m.title)}</p>
+          <p style="margin:4px 0 0;font-family:${F};font-size:14px;font-weight:500;color:${S.body};">${escapeHtml(m.company)}</p>
           <p style="margin:8px 0 0;font-family:${F};font-size:11px;color:${S.faint};">${escapeHtml(m.location)}${posted}${comp}</p>
           ${tags ? `<div style="margin:14px 0 0;">${tags}</div>` : ""}
           ${why}
           ${warn}
           ${m.snippet ? `<p style="margin:14px 0 0;font-family:${F};font-size:12.5px;color:${S.body};line-height:1.65;max-width:65ch;">${escapeHtml(m.snippet)}</p>` : ""}
+          ${whySection}
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 0;">
             <tr>
               <td>
                 <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${S.accent}" style="border-radius:8px;padding:10px 16px;"><![endif]-->
-                <a href="${escapeHtml(m.url)}" style="display:inline-block;font-family:${F};font-size:12px;font-weight:600;color:#ffffff;background:${S.accent};padding:10px 16px;border-radius:8px;text-decoration:none;mso-padding-alt:10px 16px;">View posting →</a>
+                <a href="${escapeHtml(m.url)}" style="display:inline-block;font-family:${F};font-size:12px;font-weight:600;color:#ffffff;background:${S.accent};padding:10px 16px;border-radius:8px;text-decoration:none;mso-padding-alt:10px 16px;">Apply to role →</a>
                 <!--[if mso]></td></tr></table><![endif]-->
               </td>
-              <td style="padding-left:14px;"><a href="${escapeHtml(m.url)}" style="font-family:${F};font-size:12px;color:${S.muted};text-decoration:underline;">Details</a></td>
+              <td style="padding-left:14px;"><a href="${escapeHtml(m.url)}" style="font-family:${F};font-size:12px;color:${S.muted};text-decoration:underline;">View posting</a></td>
             </tr>
           </table>
         </td></tr>
@@ -176,20 +182,20 @@ function featured(m: DigestMatch | undefined): string {
   </table>`;
 }
 
-function listSection(matches: DigestMatch[]): string {
+function moreMatches(matches: DigestViewModel["moreJobs"]): string {
     if (!matches.length) return "";
     const rows = matches
         .map((m) => {
             const tags = m.matchedSkills.slice(0, 3).map(tag).join("");
             const flag = m.redFlags.length
-                ? `<p style="margin:8px 0 0;font-family:${F};font-size:11px;color:${S.danger};line-height:1.5;">${escapeHtml(m.redFlags[0]!)}</p>`
+                ? `<p style="margin:6px 0 0;font-family:${F};font-size:11px;color:${S.danger};line-height:1.5;">${escapeHtml(m.redFlags[0]!)}</p>`
                 : "";
             const comp = m.compensation
                 ? ` · ${escapeHtml(m.compensation)}`
                 : "";
             return `
       <tr>
-        <td style="padding:16px 0;border-top:1px solid ${S.subLine};vertical-align:top;">
+        <td style="padding:14px 0;border-top:1px solid ${S.subLine};vertical-align:top;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="vertical-align:top;width:42px;padding-right:12px;">
@@ -200,7 +206,7 @@ function listSection(matches: DigestMatch[]): string {
                 <p style="margin:0;font-family:${F};font-size:13px;font-weight:600;color:${S.ink};line-height:1.35;letter-spacing:-0.01em;"><a href="${escapeHtml(m.url)}" style="color:${S.ink};text-decoration:none;">${escapeHtml(m.title)}</a></p>
                 <p style="margin:3px 0 0;font-family:${F};font-size:12px;color:${S.muted};">${escapeHtml(m.company)}</p>
                 <p style="margin:6px 0 0;font-family:${F};font-size:10.5px;color:${S.faint};">${escapeHtml(m.location)} · ${escapeHtml(m.posted)}${comp}</p>
-                ${tags ? `<div style="margin:10px 0 0;">${tags}</div>` : ""}
+                ${tags ? `<div style="margin:8px 0 0;">${tags}</div>` : ""}
                 ${flag}
               </td>
               <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:12px;">
@@ -216,9 +222,31 @@ function listSection(matches: DigestMatch[]): string {
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td>
-      ${sectionTitle(`More matches · ${matches.length}`)}
+      ${sectionTitle(`More worth your time · ${matches.length}`)}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         ${rows}
+      </table>
+    </td></tr>
+  </table>`;
+}
+
+function marketSignal(signal: DigestViewModel["marketSignal"]): string {
+    if (!signal) return "";
+    const tone = signal.marketDemand === "High" ? S.success : S.warn;
+    return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+    <tr><td>
+      ${sectionTitle("One thing I noticed")}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${S.subLine};padding-top:14px;">
+        <tr><td>
+          <p style="margin:0;font-family:${F};font-size:12.5px;color:${S.body};line-height:1.6;max-width:65ch;"><span style="font-weight:700;color:${S.ink};">${escapeHtml(signal.skill)}</span> appeared in ${signal.frequency}% of matches <span style="color:${S.faint};">(${signal.count} jobs)</span></p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 0;">
+            <tr>
+              <td style="padding-right:24px;"><p style="margin:0;font-family:${F};font-size:10px;color:${S.faint};letter-spacing:0.08em;text-transform:uppercase;">You</p><p style="margin:3px 0 0;font-family:${F};font-size:11px;font-weight:600;color:${S.ink};">${escapeHtml(signal.currentLevel)}</p></td>
+              <td><p style="margin:0;font-family:${F};font-size:10px;color:${S.faint};letter-spacing:0.08em;text-transform:uppercase;">Demand</p><p style="margin:3px 0 0;font-family:${F};font-size:11px;font-weight:700;color:${tone};">${escapeHtml(signal.marketDemand)}</p></td>
+            </tr>
+          </table>
+        </td></tr>
       </table>
     </td></tr>
   </table>`;
@@ -254,7 +282,7 @@ function outreachSection(vm: DigestViewModel): string {
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td>
-      ${sectionTitle("Outreach")}
+      ${sectionTitle("People to reach out to")}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         ${items}
       </table>
@@ -262,35 +290,27 @@ function outreachSection(vm: DigestViewModel): string {
   </table>`;
 }
 
-function signalSection(vm: DigestViewModel): string {
-    if (!vm.skillGap) return "";
-    const g = vm.skillGap;
-    if (
-        [
-            "software",
-            "engineer",
-            "development",
-            "system",
-            "platform",
-            "data",
-        ].includes(g.skill.toLowerCase())
-    )
-        return "";
-    const tone = g.marketDemand === "High" ? S.success : S.warn;
+function yourMoveSection(vm: DigestViewModel): string {
+    if (!vm.yourMove.length) return "";
+    const items = vm.yourMove
+        .slice(0, 4)
+        .map((a, i) => {
+            const top =
+                i === 0
+                    ? `border-top:1px solid ${S.subLine};`
+                    : `border-top:1px solid ${S.subLine};`;
+            return `<tr><td style="padding:14px 0;${top}">
+      <p style="margin:0;font-family:${F};font-size:12px;font-weight:600;color:${S.ink};"><a href="${escapeHtml(a.url)}" style="color:${S.ink};text-decoration:none;">${String(i + 1).padStart(2, "0")}  ${escapeHtml(a.label)}</a></p>
+      <p style="margin:3px 0 0;font-family:${F};font-size:11px;color:${S.muted};">${escapeHtml(a.reason)}</p>
+    </td></tr>`;
+        })
+        .join("");
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td>
-      ${sectionTitle("Signal")}
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${S.subLine};padding-top:14px;">
-        <tr><td>
-          <p style="margin:0;font-family:${F};font-size:12.5px;color:${S.body};line-height:1.6;max-width:65ch;"><span style="font-weight:700;color:${S.ink};">${escapeHtml(g.skill)}</span> appeared in ${g.frequency}% of matches <span style="color:${S.faint};">(${g.count} jobs)</span></p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 0;">
-            <tr>
-              <td style="padding-right:24px;"><p style="margin:0;font-family:${F};font-size:10px;color:${S.faint};letter-spacing:0.08em;text-transform:uppercase;">You</p><p style="margin:3px 0 0;font-family:${F};font-size:11px;font-weight:600;color:${S.ink};">${escapeHtml(g.currentLevel)}</p></td>
-              <td><p style="margin:0;font-family:${F};font-size:10px;color:${S.faint};letter-spacing:0.08em;text-transform:uppercase;">Demand</p><p style="margin:3px 0 0;font-family:${F};font-size:11px;font-weight:700;color:${tone};">${escapeHtml(g.marketDemand)}</p></td>
-            </tr>
-          </table>
-        </td></tr>
+      ${sectionTitle("Your move")}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${items}
       </table>
     </td></tr>
   </table>`;
@@ -329,7 +349,7 @@ function footer(vm: DigestViewModel): string {
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;">
     <tr><td style="padding:16px 0 0;border-top:1px solid ${S.line};">
-      <p style="margin:0;font-family:${F};font-size:11px;color:${S.faint};">JobOps · ${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced</p>
+      <p style="margin:0;font-family:${F};font-size:11px;color:${S.faint};">JobOps · ${vm.footer.scanned} analyzed · ${vm.footer.filtered} worth your attention</p>
       ${unscored}
       <p style="margin:12px 0 0;font-family:${F};font-size:10px;color:${S.faint};line-height:1.5;max-width:65ch;">You get this because you enabled the daily digest. Preview never marks jobs as seen.</p>
     </td></tr>
@@ -337,16 +357,15 @@ function footer(vm: DigestViewModel): string {
 }
 
 export function renderEmail(vm: DigestViewModel): string {
-    const primary = vm.topMatches[0];
-    const rest = vm.topMatches.slice(1);
     const sections = [
-        header(vm),
+        greeting(vm),
         stats(vm),
-        featured(primary),
-        listSection(rest),
-        accelSection(vm),
+        featured(vm.heroJob, vm),
+        moreMatches(vm.moreJobs),
+        marketSignal(vm.marketSignal),
         outreachSection(vm),
-        signalSection(vm),
+        yourMoveSection(vm),
+        accelSection(vm),
         footer(vm),
     ]
         .filter(Boolean)
@@ -372,7 +391,6 @@ export function renderEmail(vm: DigestViewModel): string {
       table[style*="border-top:1px solid #f0f0f3"] { border-color:#2c2c2e !important; }
       td[style*="background:#e8e8ed"] { background:#2c2c2e !important; }
       span[style*="background:#f2f2f5"] { background:#2c2c2e !important; border-color:#3a3a3c !important; color:#a1a1a6 !important; }
-      /* score pills — pale light bg stays pale in Gmail's auto-invert, so force dark amber/green */
       span[style*="background:#fef3c7"] { background:#2d2413 !important; color:#fde68a !important; border-color:#854d0e !important; }
       span[style*="background:#dcfce7"] { background:#132e1f !important; color:#86efac !important; border-color:#166534 !important; }
       span[style*="color:#925400"] { color:#fde68a !important; }
@@ -410,12 +428,12 @@ export function renderText(vm: DigestViewModel): string {
     L.push(vm.date.long);
     L.push("");
     L.push(
-        `${vm.summary.totalScanned} scanned · ${vm.summary.freshCount} fresh · ${vm.summary.strongMatches} strong · ${vm.summary.worthReviewing} to review`,
+        `${vm.summary.totalScanned} analyzed · ${vm.summary.freshCount} fresh · ${vm.summary.strongMatches} strong · ${vm.summary.worthReviewing} to review`,
     );
     L.push("");
-    if (vm.topMatches[0]) {
-        const m = vm.topMatches[0];
-        L.push(`${(m.label || "Featured").toUpperCase()}`);
+    if (vm.heroJob) {
+        const m = vm.heroJob;
+        L.push("TODAY'S BEST MATCH");
         L.push(
             `${m.score.overall.toFixed(1)}/5 ${m.verdict.toUpperCase()} — ${m.title} @ ${m.company}`,
         );
@@ -428,9 +446,9 @@ export function renderText(vm: DigestViewModel): string {
         L.push(m.url);
         L.push("");
     }
-    const rest = vm.topMatches.slice(1);
+    const rest = vm.moreJobs;
     if (rest.length) {
-        L.push(`MORE MATCHES · ${rest.length}`);
+        L.push(`MORE WORTH YOUR TIME · ${rest.length}`);
         for (const m of rest) {
             L.push("");
             L.push(
@@ -444,8 +462,18 @@ export function renderText(vm: DigestViewModel): string {
         }
         L.push("");
     }
+    if (vm.marketSignal) {
+        const g = vm.marketSignal;
+        L.push(
+            `ONE THING I NOTICED — ${g.skill} in ${g.frequency}% of matches (${g.count} jobs) — ${g.marketDemand} demand`,
+        );
+        L.push(`You: ${g.currentLevel}`);
+        L.push("");
+    }
     if (vm.peopleToContact.length) {
-        L.push(`OUTREACH · ${vm.peopleToContact.length} companies`);
+        L.push(
+            `PEOPLE TO REACH OUT TO · ${vm.peopleToContact.length} companies`,
+        );
         for (const c of vm.peopleToContact) {
             L.push(
                 `  ${c.company} — ${c.roleCount > 1 ? `${c.roleCount} roles` : c.roles[0] || ""}`,
@@ -453,6 +481,14 @@ export function renderText(vm: DigestViewModel): string {
             L.push(
                 `  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join(" | ")}`,
             );
+        }
+        L.push("");
+    }
+    if (vm.yourMove.length) {
+        L.push("YOUR MOVE");
+        for (const a of vm.yourMove) {
+            L.push(`  ${a.label} — ${a.reason}`);
+            L.push(`  ${a.url}`);
         }
         L.push("");
     }
@@ -469,25 +505,9 @@ export function renderText(vm: DigestViewModel): string {
         }
         L.push("");
     }
-    if (
-        vm.skillGap &&
-        ![
-            "software",
-            "engineer",
-            "development",
-            "system",
-            "platform",
-            "data",
-        ].includes(vm.skillGap.skill.toLowerCase())
-    ) {
-        L.push(
-            `SIGNAL — ${vm.skillGap.skill} in ${vm.skillGap.frequency}% of matches (${vm.skillGap.count} jobs) — ${vm.skillGap.marketDemand} demand`,
-        );
-        L.push("");
-    }
     L.push(`—`);
     L.push(
-        `JobOps · ${vm.footer.scanned} scanned · ${vm.footer.filtered} surfaced${vm.footer.unscoredCount ? ` · ${vm.footer.unscoredCount} unscored` : ""}`,
+        `JobOps · ${vm.footer.scanned} analyzed · ${vm.footer.filtered} surfaced${vm.footer.unscoredCount ? ` · ${vm.footer.unscoredCount} unscored` : ""}`,
     );
     return L.join("\n");
 }

@@ -182,11 +182,27 @@ export interface DigestViewModel {
     profile: DigestProfile;
     summary: DigestSummary;
     topMatches: DigestMatch[];
-    actions: DigestAction[];
+    heroJob: DigestMatch | null;
+    moreJobs: DigestMatch[];
+    whyJobOps: WhyJobOpsSection | null;
     peopleToContact: OutreachGroup[];
-    skillGap: SkillSignal | null;
+    marketSignal: SkillSignal | null;
+    yourMove: YourMoveAction[];
     acceleratorResearch: AcceleratorResearchSection | null;
     footer: DigestFooter;
+}
+
+export interface WhyJobOpsSection {
+    matchReasons: string[];
+    requirementMatches: string[];
+    missingRequirements: string[];
+}
+
+export interface YourMoveAction {
+    label: string;
+    url: string;
+    reason: string;
+    priority: 1 | 2 | 3;
 }
 
 export interface AcceleratorResearchSection {
@@ -241,6 +257,7 @@ export interface DigestMatch {
     recommendation: string;
     redFlags: string[];
     snippet: string;
+    whyJobOps?: string;
 }
 
 export interface MatchScore {

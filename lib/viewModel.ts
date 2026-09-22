@@ -29,6 +29,8 @@ import type {
     OutreachGroup,
     PeopleSearchUrl,
     SkillSignal,
+    WhyJobOpsSection,
+    YourMoveAction,
 } from "./types";
 
 // ─── Keyword extraction ───────────────────────────────────────
@@ -525,22 +527,37 @@ export function buildViewModel(
         buildMatch(job, idx, allSkills, targetLocations),
     );
 
-    const actions: Array<{ label: string; url: string; reason: string }> = [];
+    const skillGap = analyzeSkillGaps(jobs, allSkills);
+
+    const actions: Array<{ label: string; url: string; reason: string; priority: number }> = [];
     for (const m of topMatches) {
         if (m.score.overall >= SCORE_STRONG) {
             actions.push({
                 label: `Apply to ${m.company}`,
                 url: m.url,
-                reason: `${m.score.overall.toFixed(1)}/5 — Strong Apply`,
+                reason: `Strongest match today — ${m.score.overall.toFixed(1)}/5`,
+                priority: 1,
             });
         } else if (m.score.overall >= SCORE_REVIEW) {
             actions.push({
-                label: `Tailor CV for ${m.company}`,
+                label: `Review ${m.company}`,
                 url: m.url,
-                reason: `${m.score.overall.toFixed(1)}/5 — ${m.verdict}`,
+                reason: `Good match — ${m.score.overall.toFixed(1)}/5`,
+                priority: 2,
             });
         }
     }
+
+    if (skillGap) {
+        actions.push({
+            label: `Learn ${skillGap.skill}`,
+            url: `#skill-gap-${skillGap.skill.toLowerCase()}`,
+            reason: `Appeared in ${skillGap.frequency}% of target roles (${skillGap.count} jobs)`,
+            priority: 3,
+        });
+    }
+
+    actions.sort((a, b) => a.priority - b.priority);
 
     const peopleCompanyMap = new Map<string, OutreachGroup>();
     for (const match of topMatches) {
@@ -577,7 +594,65 @@ export function buildViewModel(
             };
         });
 
-    const skillGap = analyzeSkillGaps(jobs, allSkills);
+    const heroJob = topMatches[0] ?? null;
+    const moreJobs = topMatches.slice(1, 4);
+
+    const whyJobOps = heroJob?.score.overall
+        ? (() => {
+              const matched = heroJob.matchedSkills.length;
+              const totalReqs =
+                  (heroJob.whyMatch?.length || 0) +
+                  (heroJob.matchedSkills?.length || 0) || 5;
+              const matchReasons: string[] = [];
+              if (matched > 0) {
+                  matchReasons.push(
+                      `${matched} of ~${totalReqs} core requirements matched`,
+                  );
+              }
+              if (heroJob.matchedSkills.length > 0) {
+                  matchReasons.push(
+                      `Key overlaps: ${heroJob.matchedSkills.slice(0, 4).join(", ")}`,
+                  );
+              }
+              if (heroJob.isRemote) {
+                  matchReasons.push("Remote — matches your preference");
+              }
+              if (heroJob.score.overall >= SCORE_STRONG) {
+                  matchReasons.push("Strong overall fit");
+              }
+              const missingRequirements = allSkills
+                  .map((s) => s.toLowerCase())
+                  .filter(
+                      (s) =>
+                          !heroJob.matchedSkills
+                              .map((m) => m.toLowerCase())
+                              .includes(s),
+                  )
+                  .slice(0, 3);
+              return {
+                  matchReasons,
+                  requirementMatches: heroJob.matchedSkills.slice(0, 6),
+                  missingRequirements,
+              };
+          })()
+        : null;
+
+    const marketSignal = skillGap
+        ? {
+              skill: skillGap.skill,
+              frequency: skillGap.frequency,
+              count: skillGap.count,
+              currentLevel: skillGap.currentLevel,
+              marketDemand: skillGap.marketDemand,
+          }
+        : null;
+
+    const yourMove: YourMoveAction[] = actions.map((a) => ({
+        label: a.label,
+        url: a.url,
+        reason: a.reason,
+        priority: a.priority as 1 | 2 | 3,
+    }));
 
     return {
         date: { full: dateStr, long: dateLong, short: dateShort },
@@ -590,9 +665,12 @@ export function buildViewModel(
             newCompanies: companies.size,
         },
         topMatches,
-        actions,
+        heroJob,
+        moreJobs,
+        whyJobOps,
         peopleToContact,
-        skillGap,
+        marketSignal,
+        yourMove,
         acceleratorResearch: options.acceleratorResearch || null,
         footer: {
             scanned: options.totalScanned || jobs.length,
