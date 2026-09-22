@@ -31,7 +31,7 @@ reviews:
 
     Flag:
     - any use of `any` without justification
-    - direct process.env access outside config/env.ts
+    - direct process.env access outside lib/config.ts
     - subprocess execution between internal JobOps modules
     - unvalidated AI JSON
     - renderer access to raw pipeline objects

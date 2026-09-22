@@ -1,7 +1,8 @@
 # JobOps Portal Configuration
 # Configure which job boards to scan and what to search for.
 
-# ─── Search Filters ────────────────────────────────────────────
+# ─── Search Filters (alias — canonical lives in search.yml:include_titles) ─
+# Both this and search.yml are checked (AND). Keep this minimal; tune search.yml as primary.
 title_filter:
   positive:
     - Software Engineer
@@ -31,7 +32,8 @@ whitelist:
   enabled: false
   companies: []
 
-# ─── Portals ───────────────────────────────────────────────────
+# ─── Portals (reference — actual toggles live in search.yml:portals) ───
+# This list documents live sources. The true on/off is search.yml → portals: {api_portals, greenhouse…}
 portals:
   - name: RemoteOK
     enabled: true
@@ -154,18 +156,19 @@ ashby:
     - name: Scale AI
       slug: scaleai
 
-# ─── Instahyre (India-focused portal) ────────────────────────
+# ─── Instahyre — placeholder (scanner not yet implemented) ─
 instahyre:
-  enabled: true
-  # Instahyre doesn't use slugs - it scans broadly for India jobs
-  # Filter by skills/location in the query
+  enabled: false
 
-# ─── Wellfound (AngelList startups) ──────────────────────────
+# ─── Wellfound — live (scrapes remote role pages, no API key) ────
 wellfound:
   enabled: true
-  # Wellfound scans broadly - filter by query in profile.yml
+  # Scrapes https://wellfound.com/role/r/software-engineer (+backend/frontend)
+  # Filter by query via title_filter in search.yml
 
-# ─── Custom Search Queries ────────────────────────────────────
+# ─── Custom Search Queries (reference only — not yet wired) ────────────
+# lib/scan.ts currently runs ONE query (search.yml:custom_query or "software engineer").
+# These illustrate India/Remote targeting for when multi-query lands.
 search_queries:
   - name: "React Developer Remote"
     query: "react developer"

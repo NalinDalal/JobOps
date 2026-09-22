@@ -92,15 +92,16 @@ score_threshold: 3.5
 max_per_digest: 10
 
 # ─── Portal Selection ────────────────────────────────────────────
-# Which portal groups to scan (all enabled by default)
+# Which portal groups to scan. Only the first 4 are wired to lib/scan.ts today.
 portals:
-  api_portals: true      # RemoteOK, Arbeitnow, Findwork, Remotive, freehire
-  greenhouse: true       # Greenhouse boards from portals.yml
-  lever: true            # Lever boards from portals.yml
-  ashby: true            # Ashby boards from portals.yml
-  linkedin: true         # LinkedIn guest/public job listings
-  instahyre: true        # Instahyre (India-focused)
-  wellfound: true        # Wellfound/AngelList (global startups)
+  api_portals: true      # RemoteOK, Arbeitnow, Findwork, Remotive, freehire (live)
+  greenhouse: true       # Greenhouse boards from portals.yml (live — 14 boards)
+  lever: true            # Lever boards from portals.yml (live — 15 boards)
+  ashby: true            # Ashby boards from portals.yml (live — 6 boards)
+  # Placeholders — toggles exist so config validates, scanners not yet implemented:
+  linkedin: false        # LinkedIn guest listings — coming later
+  instahyre: false       # Instahyre (India) — coming later
+  wellfound: true        # Wellfound / AngelList — live (scrapes remote role pages)
 
 # ─── Search Behavior ─────────────────────────────────────────────
 # Query mode: "auto" = derive from profile.yml target_roles, or custom string

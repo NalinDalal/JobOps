@@ -304,12 +304,14 @@ export function renderEmail(vm: DigestViewModel): string {
   <title>JobOps · Daily briefing</title>
   <style>
     @media (prefers-color-scheme: dark) {
-      body { background:${S.bg} !important; }
+      body { background:#121214 !important; }
+      table[style*="background:${S.bg}"] { background:#121214 !important; }
       td[style*="background:#ffffff"] { background:#1c1c1e !important; border-color:#2c2c2e !important; }
       p[style*="color:#111111"] { color:#f5f5f7 !important; }
       p[style*="color:#2b2b2e"] { color:#d6d6d8 !important; }
       p[style*="color:#6e6e73"] { color:#98989d !important; }
       td[style*="border-top:1px solid #e8e8ed"], td[style*="border-top:1px solid #f0f0f3"] { border-color:#2c2c2e !important; }
+      table[style*="border-top:1px solid #f0f0f3"] { border-color:#2c2c2e !important; }
       td[style*="background:#e8e8ed"] { background:#2c2c2e !important; }
       span[style*="background:#f2f2f5"] { background:#2c2c2e !important; border-color:#3a3a3c !important; color:#a1a1a6 !important; }
       a[style*="background:#111111"] { background:#f5f5f7 !important; color:#111111 !important; }
