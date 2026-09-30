@@ -6,7 +6,7 @@ import { parseEvaluationResponse } from "../lib/ai";
 import { applyHeuristicScores, prioritizeForAi, parseDigestArgs } from "../lib/digest";
 import { buildViewModel } from "../lib/viewModel";
 import { renderEmail } from "../lib/renderer";
-import { buildScanSources } from "../lib/scan";
+import { buildScanSources, filterJobs } from "../lib/scan";
 import {
   loadPortalsConfig,
   loadActiveProfile,
@@ -438,6 +438,71 @@ describe("shared seniority rule", () => {
     }
     const canonical = await Bun.file("lib/seniority.ts").text();
     expect(canonical).toContain("SENIOR_TITLE_PATTERNS");
+  });
+});
+
+describe("title exclusion filters", () => {
+  // Regression: exclude_titles was matched against `title + description`, so a
+  // junior role was deleted whenever its posting copy mentioned a senior word
+  // as an ordinary noun. 84 of 199 real jobs were lost this way.
+  test("a junior title survives senior words in the description", () => {
+    const samples: Array<[string, string]> = [
+      ["Junior Developer", "You will work with a staff of engineers."],
+      ["Graduate Software Engineer", "Our leadership team ships weekly."],
+      ["Backend Engineer", "The team is led by three principal engineers."],
+      ["Frontend Engineer", "Great managers here who invest in juniors."],
+      ["Software Engineer", "We have an architect of the solution."],
+    ];
+    for (const [title, description] of samples) {
+      const job = mkJob({
+        company: "Acme",
+        title,
+        url: `https://acme.com/${title}`,
+        description,
+      });
+      expect(filterJobs([job], "")).toHaveLength(1);
+    }
+  });
+
+  test("senior titles are still excluded", () => {
+    const seniors = [
+      "Senior Backend Engineer",
+      "Staff Product Designer",
+      "Principal Engineer",
+      "Engineering Manager",
+      "Director of Engineering",
+      "Software Engineer III",
+      "Software Engineer IV",
+    ];
+    for (const title of seniors) {
+      const job = mkJob({
+        company: "Acme",
+        title,
+        url: `https://acme.com/${title}-${Math.random()}`,
+        description: "Totally unrelated description with no senior words.",
+      });
+      expect(filterJobs([job], "")).toHaveLength(0);
+    }
+  });
+
+  // "Lead" must not swallow "Leadership".
+  test("exclusion is word-boundary safe", () => {
+    const job = mkJob({
+      company: "Acme",
+      title: "Backend Engineer, Leadership Tooling",
+      url: "https://acme.com/leadership",
+    });
+    expect(filterJobs([job], "")).toHaveLength(1);
+  });
+
+  // A "Junior" prefix does not rescue a standalone senior word.
+  test("a standalone indicator excludes even with a junior prefix", () => {
+    const job = mkJob({
+      company: "Acme",
+      title: "Junior Programme Manager",
+      url: "https://acme.com/jpm",
+    });
+    expect(filterJobs([job], "")).toHaveLength(0);
   });
 });
 

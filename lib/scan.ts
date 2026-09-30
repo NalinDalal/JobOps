@@ -477,6 +477,24 @@ async function scanAshby(query: string, location: string): Promise<Job[]> {
 
 // ─── Filtering ────────────────────────────────────────────────
 
+/**
+ * Case-insensitive, word-boundary-safe containment.
+ *
+ * Plain `includes()` is unsafe for these terms: "Lead" also matches
+ * "Leadership" and "Manager" also matches "management", so titles like
+ * "Leadership Development Engineer" were discarded.
+ */
+function matchesTerm(haystack: string, term: string): boolean {
+    const t = term.trim().toLowerCase();
+    if (!t) return false;
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Anchor only where the term begins/ends on a word character, so phrases
+    // like "5+ years" still match.
+    const left = /^\w/.test(t) ? "\\b" : "";
+    const right = /\w$/.test(t) ? "\\b" : "";
+    return new RegExp(`${left}${escaped}${right}`).test(haystack);
+}
+
 function matchesTitleFilters(
     job: Job,
     searchConfig: ReturnType<typeof loadSearchConfig>,
@@ -486,14 +504,17 @@ function matchesTitleFilters(
     const desc = (job.description || job.snippet || "").toLowerCase();
     const haystack = `${title} ${desc}`;
 
-    // portals.yml title_filter (positive = must match at least one if non-empty)
+    // Positive filters are permissive: matching on the description only
+    // admits more candidates, never fewer, so a vague title is not lost.
     const pos = portalsConfig.title_filter?.positive || [];
     const neg = portalsConfig.title_filter?.negative || [];
     if (pos.length > 0 && !pos.some((p) => haystack.includes(p.toLowerCase())))
         return false;
-    if (neg.some((n) => haystack.includes(n.toLowerCase()))) return false;
 
-    // search.yml include/exclude
+    // search.yml include_titles — permissive. Deliberately plain substring:
+    // boundary matching here rejected descriptions like "Software Engineering
+    // team" (the term ends mid-word), which cost 43 real candidates. Being
+    // too loose on an inclusive filter only admits extra jobs.
     if (
         searchConfig.include_titles.length > 0 &&
         !searchConfig.include_titles.some((t) =>
@@ -501,11 +522,14 @@ function matchesTitleFilters(
         )
     )
         return false;
-    if (
-        searchConfig.exclude_titles.some((t) =>
-            haystack.includes(t.toLowerCase()),
-        )
-    )
+
+    // Exclusions are the opposite direction: a false positive here silently
+    // deletes a job the candidate wanted. Senior words like "staff", "lead"
+    // and "manager" are everyday nouns in posting copy ("join a staff of
+    // engineers", "led by three principal engineers"), so these must match the
+    // TITLE alone and on word boundaries.
+    if (neg.some((n) => matchesTerm(title, n))) return false;
+    if (searchConfig.exclude_titles.some((t) => matchesTerm(title, t)))
         return false;
 
     return true;
