@@ -115,6 +115,8 @@ Flag:
 | `evaluate` | Score a job via Cloudflare AI |
 | `tailor` | Generate ATS-optimized CV + cover letter |
 | `tracker` | Manage application tracker (list, add, update, interview, outcome, followup, export) |
+| `outreach` | Generate a referral or outreach draft for a company |
+| `research` | Research accelerator companies and their open roles |
 | `scan` | Scan job boards |
 | `status` | Show system configuration status |
 | `help` | Show help |
@@ -123,21 +125,37 @@ Flag:
 
 | File | Purpose |
 |------|---------|
+| `index.ts` | CLI entry point (Bun runtime) |
 | `config/profile.yml` | Your skills, preferences, target roles |
 | `config/cv.md` | Your base CV (markdown) |
 | `config/portals.yml` | Job board configuration, blacklists, search queries |
+| `config/search.yml` | Thresholds, AI budget, digest limits, portal toggles |
 | `data/applications.md` | Application tracker |
 | `output/` | Generated tailored CVs and cover letters |
 | `reports/` | Evaluation reports and HTML dashboard |
-| `index.ts` | CLI entry point (Bun runtime) |
-| `lib/digest.ts` | Daily digest orchestration (scan → rank → email) |
-| `lib/scan.ts` | Multi-portal job scanner |
-| `lib/evaluate.ts` | Job evaluator (5-dimension scoring via Cloudflare AI) |
-| `lib/tracker.ts` | Application tracker |
-| `lib/renderer.ts` | Premium briefing email (Apple/Linear style) |
+
+### Modules
+
+| Module | Purpose |
+|--------|---------|
+| `lib/digest.ts` | Daily digest orchestration (scan → dedup → evaluate → rank → email) |
+| `lib/scan.ts` | Multi-portal job scanner, source wiring (`buildScanSources`) |
+| `lib/evaluate.ts` | Job evaluator (5-dimension scoring via Cloudflare AI) + batch pool |
+| `lib/rank.ts` | Ranking, senior-role exclusion, digest filtering |
+| `lib/seniority.ts` | Senior-level role detection (single source of truth) |
+| `lib/ai.ts` | Cloudflare AI client, prompts, response validation |
 | `lib/viewModel.ts` | Digest view model |
+| `lib/renderer.ts` | Daily briefing email, HTML + plaintext |
+| `lib/mailer.ts` | Email delivery (Resend / SMTP) |
+| `lib/tracker.ts` | Application tracker |
+| `lib/tailor.ts` | CV + cover letter tailoring |
+| `lib/outreach.ts` | Outreach draft generation |
+| `lib/research.ts` | Accelerator company research |
+| `lib/dedup.ts` | Job deduplication and seen-job filtering |
 | `lib/config.ts` | Env + YAML + profile loader |
+| `lib/constants.ts` | Score thresholds, timeouts, AI budget |
 | `lib/types.ts` | All domain types |
+| `lib/text.ts` | Text processing utilities |
 
 ## Rules
 

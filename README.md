@@ -12,13 +12,6 @@ A local-first job hunting agent: **scan** job boards, **evaluate** fit with AI, 
 5. DIGEST   → Daily email with fresh jobs + AI scores
 ```
 
-## Prerequisites
-
-- [Bun](https://bun.sh) v1.0+
-- [Cloudflare](https://dash.cloudflare.com/) account (free tier works for Workers AI)
-- Optional: [Resend](https://resend.com) account for daily digest emails
-- Optional: Gmail App Password for SMTP email (alternative to Resend)
-
 ## Quick Start
 
 ```bash
@@ -155,7 +148,13 @@ Options:
 - `--mode preview|daily` — preview prints to console, daily sends email
 - `--query "..."` — custom scan query (default: auto from profile)
 - `--max N` — max jobs in digest (default: 50)
-- `--evaluate N` — evaluate top N jobs with AI (default: 5)
+- `--evaluate N` — AI-score the N best-fitting jobs (default: 25)
+
+The AI budget goes to the highest keyword-overlap candidates, not the first N
+scanned. Jobs beyond the budget fall back to keyword scoring, which is capped
+below the strong-match threshold — so a job outside the budget can never be
+reported as a strong match. Raise `--evaluate` if your daily token ceiling
+allows.
 - `--mock` — use mock data
 
 ### Evaluate
@@ -204,48 +203,6 @@ bun run index.ts tracker export
 bun run index.ts scan --query "software engineer"
 bun run index.ts scan auto    # uses target_roles from profile.yml
 ```
-
-## Architecture
-
-```
-JobOps/
-├── index.ts                  — CLI entry point (bun run index.ts)
-├── lib/                      — All source (flat, Bun-native)
-│   ├── config.ts             — Env + YAML + profile loader
-│   ├── types.ts              — All domain types
-│   ├── constants.ts          — Score thresholds, timeouts
-│   ├── text.ts               — Text utilities
-│   ├── scan.ts               — Multi-portal job scanner
-│   ├── evaluate.ts           — AI evaluation (Cloudflare)
-│   ├── rank.ts               — Ranking + filtering
-│   ├── dedup.ts              — Deduplication
-│   ├── research.ts           — Accelerator research
-│   ├── outreach.ts           — Outreach draft generation
-│   ├── tailor.ts             — CV + cover letter tailoring
-│   ├── tracker.ts            — Application tracker
-│   ├── digest.ts             — Digest orchestration
-│   ├── mailer.ts             — Email delivery (Resend/SMTP)
-│   ├── renderer.ts           — Premium briefing email
-│   ├── viewModel.ts          — Digest view model
-│   └── ai.ts                 — Cloudflare AI client
-├── config/                   — YAML configuration
-│   ├── profile.yml           — Candidate profile
-│   ├── cv.md                 — Base CV
-│   ├── portals.yml           — Job board config
-│   ├── search.yml            — Search filters
-│   └── accelerators.yml      — Accelerator research config
-├── data/                     — Runtime data (tracker, seen jobs)
-├── output/                   — Generated CVs, outreach drafts
-└── reports/                  — HTML digest reports
-```
-
-## Design Principles
-
-1. **Local-first** — all data stored locally, no accounts required
-2. **No auto-submit** — human review required before any application action
-3. **No cloud lock-in** — runs entirely on your machine
-4. **Typed boundaries** — Zod schemas validate all external data
-5. **Importable modules** — no module-level side effects
 
 ## Daily Digest Workflow
 

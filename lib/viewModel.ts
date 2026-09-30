@@ -13,6 +13,7 @@ import type {
     AcceleratorResearchSection,
 } from "./types";
 import { scoreToVerdict, topLabel } from "./types";
+import { isSeniorRole } from "./seniority";
 import {
     loadActiveProfile,
     getProfileSkills,
@@ -170,34 +171,6 @@ function extractCompRange(text: string): string | undefined {
 }
 
 // ─── Seniority detection ──────────────────────────────────────
-
-const SENIOR_INDICATORS = [
-    "senior",
-    "staff",
-    "principal",
-    "lead",
-    "manager",
-    "director",
-    "vp",
-    "head of",
-    "architect",
-    "fellow",
-    "distinguished",
-    "staff engineer",
-    "principal engineer",
-    "iii",
-    "iv",
-    "v",
-    "5+ years",
-    "6+ years",
-    "7+ years",
-    "8+ years",
-];
-
-function isSeniorRole(title: string, snippet?: string): boolean {
-    const text = `${title} ${snippet || ""}`.toLowerCase();
-    return SENIOR_INDICATORS.some((ind) => text.includes(ind));
-}
 
 // ─── Outreach blurb generation ────────────────────────────────
 
@@ -434,23 +407,32 @@ function buildMatch(
         culture: evaluation?.cultureFit || 0,
     };
 
-    const whyMatch: string[] = [];
-    if (matchedSkills.length > 0) {
-        whyMatch.push(
-            `${matchedSkills.slice(0, 4).join(", ")} match your profile`,
-        );
+    // Prefer the model's own per-posting reasoning. The template is only a
+    // fallback for heuristic-scored or unscored jobs, which carry no
+    // model reasoning — without it their whyMatch would be empty.
+    let whyMatch: string[] = [];
+    if (evaluation?.whyMatch?.length) {
+        whyMatch = evaluation.whyMatch.slice(0, 3);
+    } else {
+        if (matchedSkills.length > 0) {
+            whyMatch.push(
+                `${matchedSkills.slice(0, 4).join(", ")} match your profile`,
+            );
+        }
+        if (
+            job.location?.toLowerCase().includes("remote") ||
+            targetLocations.some((l) =>
+                job.location?.toLowerCase().includes(l.toLowerCase()),
+            )
+        ) {
+            whyMatch.push("Remote preference matches");
+        }
     }
-    if (
-        job.location?.toLowerCase().includes("remote") ||
-        targetLocations.some((l) =>
-            job.location?.toLowerCase().includes(l.toLowerCase()),
-        )
-    ) {
-        whyMatch.push("Remote preference matches");
-    }
-    if (evaluation && evaluation.overall >= SCORE_STRONG) {
-        whyMatch.push("Strong overall fit");
-    }
+
+    // Model skills when it named them; otherwise fall back to overlap.
+    const skills = evaluation?.matchedSkills?.length
+        ? evaluation.matchedSkills
+        : matchedSkills;
 
     return {
         rank: idx + 1,
@@ -467,7 +449,7 @@ function buildMatch(
             : "Unscored",
         label: evaluation?.overall ? topLabel(evaluation.overall) : "Unscored",
         whyMatch,
-        matchedSkills: matchedSkills.slice(0, 6),
+        matchedSkills: skills.slice(0, 6),
         recommendation: evaluation?.recommendation || "",
         redFlags: evaluation?.redFlags || [],
         snippet: truncate(job.snippet, 220),
@@ -535,14 +517,15 @@ export function buildViewModel(
             actions.push({
                 label: `Apply to ${m.company}`,
                 url: m.url,
-                reason: `Strongest match today — ${m.score.overall.toFixed(1)}/5`,
+                // The score is already in the badge next to this row.
+                reason: "Best unscored match today",
                 priority: 1,
             });
         } else if (m.score.overall >= SCORE_REVIEW) {
             actions.push({
                 label: `Review ${m.company}`,
                 url: m.url,
-                reason: `Good match — ${m.score.overall.toFixed(1)}/5`,
+                reason: "Worth a look today",
                 priority: 2,
             });
         }

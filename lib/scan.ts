@@ -5,7 +5,14 @@
  * This is the entry point for the scanning pipeline.
  */
 
-import type { Job, JobSource, ScanOptions, ScanResult } from "./types";
+import type {
+    Job,
+    JobSource,
+    ScanOptions,
+    ScanResult,
+    ScanSource,
+    SearchConfigInput,
+} from "./types";
 import { createJobId } from "./types";
 import { loadSearchConfig, loadPortalsConfig } from "./config";
 import { FETCH_TIMEOUT_MS, SNIPPET_MAX_LENGTH } from "./constants";
@@ -552,6 +559,59 @@ export function filterJobs(jobs: Job[], query: string): Job[] {
     );
 }
 
+// ─── Source wiring ────────────────────────────────────────────
+
+/**
+ * Build the list of scanners to run, each paired with the source it produces.
+ *
+ * Each scanner carries its own identity. The names previously lived in a second
+ * array matched to the scanners by position, so disabling any portal shifted
+ * every name after it — an error from Greenhouse would be reported as
+ * "remoteok". Adding an ATS is now one entry here instead of two arrays that
+ * must stay in lockstep.
+ *
+ * Pure: the `run` closures are not invoked, so this is testable without
+ * network access or a mutated config file.
+ */
+export function buildScanSources(
+    portals: SearchConfigInput["portals"],
+    query: string,
+    location: string,
+): ScanSource[] {
+    const sources: ScanSource[] = [];
+
+    if (portals.api_portals) {
+        sources.push(
+            { source: "remoteok", run: () => scanRemoteOK(query, location) },
+            { source: "arbeitnow", run: () => scanArbeitnow(query, location) },
+            { source: "findwork", run: () => scanFindwork(query, location) },
+            { source: "remotive", run: () => scanRemotive(query, location) },
+            { source: "freehire", run: () => scanFreehire(query, location) },
+        );
+    }
+
+    if (portals.greenhouse) {
+        sources.push({
+            source: "greenhouse",
+            run: () => scanGreenhouse(query, location),
+        });
+    }
+    if (portals.lever) {
+        sources.push({ source: "lever", run: () => scanLever(query, location) });
+    }
+    if (portals.ashby) {
+        sources.push({ source: "ashby", run: () => scanAshby(query, location) });
+    }
+    if (portals.wellfound) {
+        sources.push({
+            source: "wellfound",
+            run: () => scanWellfound(query, location),
+        });
+    }
+
+    return sources;
+}
+
 // ─── Main scan function ───────────────────────────────────────
 
 export async function scanJobs(options: ScanOptions = {}): Promise<ScanResult> {
@@ -563,46 +623,13 @@ export async function scanJobs(options: ScanOptions = {}): Promise<ScanResult> {
 
     console.log(`Scanning with query="${query}" location="${location}"`);
 
-    const scanFns: Array<() => Promise<Job[]>> = [];
+    const sources = buildScanSources(config.portals, query, location);
 
-    if (config.portals.api_portals) {
-        scanFns.push(() => scanRemoteOK(query, location));
-        scanFns.push(() => scanArbeitnow(query, location));
-        scanFns.push(() => scanFindwork(query, location));
-        scanFns.push(() => scanRemotive(query, location));
-        scanFns.push(() => scanFreehire(query, location));
-    }
-
-    if (config.portals.greenhouse) {
-        scanFns.push(() => scanGreenhouse(query, location));
-    }
-    if (config.portals.lever) {
-        scanFns.push(() => scanLever(query, location));
-    }
-    if (config.portals.ashby) {
-        scanFns.push(() => scanAshby(query, location));
-    }
-    if (config.portals.wellfound) {
-        scanFns.push(() => scanWellfound(query, location));
-    }
-
-    const sourceNames: JobSource[] = [
-        "remoteok",
-        "arbeitnow",
-        "findwork",
-        "remotive",
-        "freehire",
-        "greenhouse",
-        "lever",
-        "ashby",
-        "wellfound",
-    ];
-
-    const results = await Promise.allSettled(scanFns.map((fn) => fn()));
+    const results = await Promise.allSettled(sources.map((s) => s.run()));
 
     for (let i = 0; i < results.length; i++) {
         const r = results[i];
-        const sourceName = sourceNames[i] || "unknown";
+        const sourceName = sources[i]!.source;
 
         if (r && r.status === "fulfilled") {
             result.jobs.push(...r.value);

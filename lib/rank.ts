@@ -5,63 +5,48 @@
  */
 
 import type { Job, RankOptions, RankResult } from "./types";
-import { SCORE_STRONG, SCORE_REVIEW } from "./constants";
+import { scoreToVerdict } from "./types";
+import { SCORE_STRONG, SCORE_REVIEW, SCORE_SENIOR_EXCLUDED } from "./constants";
+import { isSeniorRole } from "./seniority";
 
-// ─── Seniority detection ──────────────────────────────────────
+// ─── Exclude senior roles ─────────────────────────────────────
 
-const SENIOR_INDICATORS = [
-    "senior",
-    "staff",
-    "principal",
-    "lead",
-    "manager",
-    "director",
-    "vp",
-    "head of",
-    "architect",
-    "fellow",
-    "distinguished",
-    "staff engineer",
-    "principal engineer",
-    "iii",
-    "iv",
-    "v",
-    "5+ years",
-    "6+ years",
-    "7+ years",
-    "8+ years",
-];
+const SENIOR_EXCLUSION_FLAG = "Senior-level role — outside target profile";
+const SENIOR_ADVICE_FLAG =
+    "Senior/Staff/Principal title; not an entry-level or early-career role";
 
-function isSeniorRole(title: string, snippet?: string): boolean {
-    const text = `${title} ${snippet || ""}`.toLowerCase();
-    return SENIOR_INDICATORS.some((ind) => text.includes(ind));
-}
-
-// ─── Downgrade senior roles ───────────────────────────────────
-
-function downgradeSeniorRoles(jobs: Job[]): void {
+/**
+ * Exclude senior-level postings from the candidate set.
+ *
+ * The profile targets entry-level, junior and early-career roles, so a senior
+ * posting is out of scope rather than merely a weak match. Scoring is forced
+ * below any plausible inclusion threshold and the job is tagged
+ * `seniorMismatch`, which `filterForDigest` also enforces — so exclusion does
+ * not depend on the configured `score_threshold` staying where it is today.
+ *
+ * The pre-exclusion score is retained on `rawOverall` so the decision can be
+ * re-applied for free, and re-running rank is idempotent.
+ */
+function excludeSeniorRoles(jobs: Job[]): void {
     for (const job of jobs) {
-        if (
-            job.evaluation &&
-            isSeniorRole(job.title, job.snippet) &&
-            job.evaluation.overall >= SCORE_STRONG
-        ) {
-            job.evaluation.overall = Math.min(
-                job.evaluation.overall,
-                SCORE_REVIEW,
-            );
-            job.evaluation.recommendation =
-                job.evaluation.recommendation ||
-                "Seniority mismatch — review before applying";
-            if (
-                !job.evaluation.redFlags.includes(
-                    "JD appears senior-level; confirm junior/entry fit",
-                )
-            ) {
-                job.evaluation.redFlags.push(
-                    "JD appears senior-level; confirm junior/entry fit",
-                );
-            }
+        const ev = job.evaluation;
+        if (!ev) continue;
+
+        // Record the model's score once. Re-running rank must not compound.
+        if (ev.rawOverall === undefined) ev.rawOverall = ev.overall;
+
+        // Already excluded — do not append the flags twice.
+        if (ev.seniorMismatch) continue;
+
+        if (!isSeniorRole(job.title, job.snippet)) continue;
+
+        ev.seniorMismatch = true;
+        ev.overall = Math.min(ev.overall, SCORE_SENIOR_EXCLUDED);
+        // Keep the verdict consistent with the score it now reports.
+        ev.verdict = scoreToVerdict(ev.overall);
+        ev.recommendation = "Skip — senior-level role";
+        for (const flag of [SENIOR_EXCLUSION_FLAG, SENIOR_ADVICE_FLAG]) {
+            if (!ev.redFlags.includes(flag)) ev.redFlags.push(flag);
         }
     }
 }
@@ -71,7 +56,7 @@ function downgradeSeniorRoles(jobs: Job[]): void {
 export function rankJobs(jobs: Job[], options: RankOptions = {}): RankResult {
     const { minScore = SCORE_REVIEW, maxJobs = 50 } = options;
 
-    downgradeSeniorRoles(jobs);
+    excludeSeniorRoles(jobs);
 
     const result: RankResult = {
         strongMatches: [],
@@ -112,10 +97,16 @@ export function rankJobs(jobs: Job[], options: RankOptions = {}): RankResult {
 
 // ─── Filter for digest ────────────────────────────────────────
 
+/**
+ * Select the jobs that reach the email.
+ *
+ * Senior-level postings are dropped here as well, so exclusion holds even if
+ * `score_threshold` is configured low enough for their forced score to pass.
+ */
 export function filterForDigest(
     ranked: RankResult,
     maxJobs: number = 10,
 ): Job[] {
     const scored = [...ranked.strongMatches, ...ranked.worthReviewing];
-    return scored.slice(0, maxJobs);
+    return scored.filter((j) => !j.evaluation?.seniorMismatch).slice(0, maxJobs);
 }

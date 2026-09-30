@@ -69,6 +69,25 @@ export async function callCloudflareAI(
 
 // ─── Evaluation ───────────────────────────────────────────────
 
+/** Caps mirroring the prompt contract, so a verbose reply cannot bloat the email. */
+const MAX_WHY_MATCH = 3;
+const MAX_MATCHED_SKILLS = 5;
+const MAX_RED_FLAGS = 5;
+
+/**
+ * Coerce a model-supplied field to a capped array of non-empty strings.
+ * Returns [] when the field is absent or malformed — reasoning is useful but
+ * never worth failing an otherwise valid evaluation over.
+ */
+function stringList(value: unknown, max: number): string[] {
+    if (!Array.isArray(value)) return [];
+    return value
+        .filter((v): v is string => typeof v === "string")
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .slice(0, max);
+}
+
 export function buildEvaluationPrompt(prompt: AIEvaluationPrompt): string {
     return `Evaluate this job for the candidate. Return ONLY a JSON object.
 
@@ -97,8 +116,23 @@ Return JSON with these fields:
   "cultureFit": <0-5>,
   "entryLevelFit": <0-5>,
   "recommendation": "<string>",
+  "whyMatch": ["<string>"],
+  "matchedSkills": ["<string>"],
   "redFlags": ["<string>"]
 }
+
+whyMatch — 2 to 3 reasons, maximum 3. These are the only explanation the
+candidate sees, so make them specific to THIS posting:
+- Ground each one in something the job description actually says
+- "Your TypeScript and React experience covers their frontend stack"
+- "They list 4 of your 6 core skills as required"
+- Never restate the score ("strong match", "good fit") — the score is shown
+  alongside, so repeating it wastes the reader's attention
+- If there is genuinely nothing specific, return fewer items rather than filler
+
+matchedSkills — maximum 5. Only skills the candidate already lists that this job
+actually uses. Do not invent skills, and do not list a skill the job never
+mentions.
 
 Scoring guide:
 - 5: Perfect match
@@ -138,7 +172,9 @@ export function parseEvaluationResponse(
             cultureFit: parsed.cultureFit,
             entryLevelFit: parsed.entryLevelFit,
             recommendation: parsed.recommendation || "",
-            redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
+            whyMatch: stringList(parsed.whyMatch, MAX_WHY_MATCH),
+            matchedSkills: stringList(parsed.matchedSkills, MAX_MATCHED_SKILLS),
+            redFlags: stringList(parsed.redFlags, MAX_RED_FLAGS),
         };
     } catch {
         return null;

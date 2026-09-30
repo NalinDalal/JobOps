@@ -73,17 +73,15 @@ function verdictText(v: string, score: number): string {
 
 function greeting(vm: DigestViewModel): string {
     const name = vm.profile.name || "there";
-    const total = vm.summary.totalScanned;
-    const strong = vm.summary.strongMatches;
-    const review = vm.summary.worthReviewing;
-    const matches = strong + review;
+    const matches = vm.summary.strongMatches + vm.summary.worthReviewing;
+    // The numbers live in the stats row below. Restating them here made the
+    // same four figures appear twice within three lines of each other.
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
     <tr><td style="padding:0;">
       ${tinyLabel("JobOps")}
       <p style="margin:5px 0 0;font-family:${F};font-size:24px;font-weight:700;color:${S.ink};line-height:1.1;letter-spacing:-0.025em;">Your job search, distilled.</p>
-      <p style="margin:10px 0 0;font-family:${F};font-size:13px;color:${S.body};line-height:1.55;max-width:65ch;">Good morning, ${escapeHtml(name)}.</p>
-      <p style="margin:4px 0 0;font-family:${F};font-size:13px;color:${S.body};line-height:1.55;max-width:65ch;">${total} new roles matched your profile today. ${matches} are worth your time.</p>
+      <p style="margin:10px 0 0;font-family:${F};font-size:13px;color:${S.body};line-height:1.55;max-width:65ch;">Good morning, ${escapeHtml(name)}. ${matches ? `${matches} worth your time today.` : "Nothing worth your time today."}</p>
     </td></tr>
   </table>`;
 }
@@ -92,32 +90,35 @@ function stats(vm: DigestViewModel): string {
     const s = vm.summary;
     const strongColor = s.strongMatches > 0 ? S.success : S.ink;
     const reviewColor = s.worthReviewing > 0 ? S.ink : S.muted;
+
+    // Fresh only earns a column when it says something Scanned did not. When
+    // every scanned job is new (a cold start, or a quiet board) the two figures
+    // are identical and the column is pure echo.
+    const columns: Array<{ label: string; value: number; color: string }> = [
+        { label: "Scanned", value: s.totalScanned, color: S.ink },
+    ];
+    if (s.freshCount !== s.totalScanned) {
+        columns.push({ label: "Fresh", value: s.freshCount, color: S.ink });
+    }
+    columns.push(
+        { label: "Strong", value: s.strongMatches, color: strongColor },
+        { label: "To review", value: s.worthReviewing, color: reviewColor },
+    );
+
+    const width = (100 / columns.length).toFixed(4).replace(/\.?0+$/, "");
+    const cells = columns
+        .map((c) => `<td style="width:${width}%;text-align:center;padding:6px 4px;">
+            <p style="margin:0;font-family:${F};font-size:22px;font-weight:700;color:${c.color};line-height:1;letter-spacing:-0.02em;">${c.value}</p>
+            <p style="margin:6px 0 0;font-family:${F};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">${c.label}</p>
+          </td>`)
+        .join(`<td style="width:1px;background:${S.line};font-size:0;line-height:0;padding:0;">&nbsp;</td>`);
+
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td style="padding:0;">
       ${hairline()}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0;">
-        <tr>
-          <td style="width:25%;text-align:center;padding:6px 4px;">
-            <p style="margin:0;font-family:${F};font-size:22px;font-weight:700;color:${S.ink};line-height:1;letter-spacing:-0.02em;">${s.totalScanned}</p>
-            <p style="margin:6px 0 0;font-family:${F};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">Scanned</p>
-          </td>
-          <td style="width:1px;background:${S.line};font-size:0;line-height:0;padding:0;">&nbsp;</td>
-          <td style="width:25%;text-align:center;padding:6px 4px;">
-            <p style="margin:0;font-family:${F};font-size:22px;font-weight:700;color:${S.ink};line-height:1;letter-spacing:-0.02em;">${s.freshCount}</p>
-            <p style="margin:6px 0 0;font-family:${F};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">Fresh</p>
-          </td>
-          <td style="width:1px;background:${S.line};font-size:0;line-height:0;padding:0;">&nbsp;</td>
-          <td style="width:25%;text-align:center;padding:6px 4px;">
-            <p style="margin:0;font-family:${F};font-size:22px;font-weight:700;color:${strongColor};line-height:1;letter-spacing:-0.02em;">${s.strongMatches}</p>
-            <p style="margin:6px 0 0;font-family:${F};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">Strong</p>
-          </td>
-          <td style="width:1px;background:${S.line};font-size:0;line-height:0;padding:0;">&nbsp;</td>
-          <td style="width:25%;text-align:center;padding:6px 4px;">
-            <p style="margin:0;font-family:${F};font-size:22px;font-weight:700;color:${reviewColor};line-height:1;letter-spacing:-0.02em;">${s.worthReviewing}</p>
-            <p style="margin:6px 0 0;font-family:${F};font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">To review</p>
-          </td>
-        </tr>
+        <tr>${cells}</tr>
       </table>
       ${hairline()}
     </td></tr>
@@ -131,26 +132,15 @@ function featured(m: DigestViewModel["heroJob"], vm: DigestViewModel): string {
         ? `<p style="margin:10px 0 0;font-family:${F};font-size:12px;color:${S.muted};line-height:1.6;">${escapeHtml(m.whyMatch.join(" · "))}</p>`
         : "";
     const warn = m.redFlags.length
-        ? `<p style="margin:10px 0 0;font-family:${F};font-size:11px;color:${S.danger};line-height:1.6;"><span style="font-weight:700;">Watch —</span> ${escapeHtml(m.redFlags.join(" · "))}</p>`
+        ? `<p style="margin:10px 0 0;font-family:${F};font-size:11px;color:${S.danger};line-height:1.6;"><span style="font-weight:700;">Watch:</span> ${escapeHtml(m.redFlags.join(" · "))}</p>`
         : "";
     const posted = m.posted !== "Unknown" ? ` · ${escapeHtml(m.posted)}` : "";
     const comp = m.compensation ? ` · ${escapeHtml(m.compensation)}` : "";
-    const whyJobOps = vm.whyJobOps;
-    const whyLines =
-        whyJobOps?.matchReasons
-            .map(
-                (r) =>
-                    `<li style="margin:4px 0;font-family:${F};font-size:12px;color:${S.body};line-height:1.5;">${escapeHtml(r)}</li>`,
-            )
-            .join("") || "";
-    const whySection = whyLines
-        ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;border-top:1px solid ${S.subLine};padding-top:14px;">
-            <tr><td>
-              <p style="margin:0 0 8px;font-family:${F};font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${S.faint};">Why JobOps picked this</p>
-              <ul style="margin:0;padding:0 0 0 18px;">${whyLines}</ul>
-            </td></tr>
-          </table>`
-        : "";
+    // No second reasoning block here. "Why JobOps picked this" used to restate
+    // the whyMatch line and the skill tags directly above it, and its
+    // "missing requirements" were simply the complement of the matched-skill
+    // list, which says nothing about the posting.
+    const whySection = "";
     return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr><td>
@@ -170,10 +160,9 @@ function featured(m: DigestViewModel["heroJob"], vm: DigestViewModel): string {
             <tr>
               <td>
                 <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${S.accent}" style="border-radius:8px;padding:10px 16px;"><![endif]-->
-                <a href="${escapeHtml(m.url)}" style="display:inline-block;font-family:${F};font-size:12px;font-weight:600;color:#ffffff;background:${S.accent};padding:10px 16px;border-radius:8px;text-decoration:none;mso-padding-alt:10px 16px;">Apply to role →</a>
+                <a href="${escapeHtml(m.url)}" style="display:inline-block;font-family:${F};font-size:12px;font-weight:600;color:#ffffff;background:${S.accent};padding:10px 16px;border-radius:8px;text-decoration:none;mso-padding-alt:10px 16px;">Apply to ${escapeHtml(m.company)} →</a>
                 <!--[if mso]></td></tr></table><![endif]-->
               </td>
-              <td style="padding-left:14px;"><a href="${escapeHtml(m.url)}" style="font-family:${F};font-size:12px;color:${S.muted};text-decoration:underline;">View posting</a></td>
             </tr>
           </table>
         </td></tr>
@@ -211,7 +200,7 @@ function moreMatches(matches: DigestViewModel["moreJobs"]): string {
               </td>
               <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:12px;">
                 ${verdictText(m.verdict, m.score.overall)}
-                <p style="margin:10px 0 0;"><a href="${escapeHtml(m.url)}" style="font-family:${F};font-size:11px;font-weight:600;color:${S.ink};text-decoration:underline;">View</a></p>
+                <p style="margin:10px 0 0;"><a href="${escapeHtml(m.url)}" style="font-family:${F};font-size:11px;font-weight:600;color:${S.ink};text-decoration:underline;">Open ${escapeHtml(m.company)} job →</a></p>
               </td>
             </tr>
           </table>
@@ -257,10 +246,9 @@ function outreachSection(vm: DigestViewModel): string {
     const items = vm.peopleToContact
         .slice(0, 4)
         .map((c, i) => {
-            const roles =
-                c.roleCount > 1
-                    ? `${c.roleCount} roles`
-                    : escapeHtml(c.roles[0] || "");
+            // Show how many roles are open, never the title again. The job is
+            // already named above, and the referral ask is about the company.
+            const roles = `${c.roleCount} open ${c.roleCount === 1 ? "role" : "roles"}`;
             const links = c.peopleSearchUrls
                 .slice(0, 3)
                 .map(
@@ -292,14 +280,19 @@ function outreachSection(vm: DigestViewModel): string {
 
 function yourMoveSection(vm: DigestViewModel): string {
     if (!vm.yourMove.length) return "";
-    const items = vm.yourMove
-        .slice(0, 4)
+    // Keep only actions that are not about a job. "Apply to X" either
+    // restates a posting listed moments earlier, including a score its badge
+    // already shows, or points at a role the reader was never shown at all,
+    // which is worse than useless. What remains is genuinely new guidance,
+    // such as the skill gap.
+    const jobUrls = new Set(vm.topMatches.map((m) => m.url));
+    const unseen = vm.yourMove.filter((a) => !jobUrls.has(a.url));
+    if (!unseen.length) return "";
+
+    const items = unseen
+        .slice(0, 3)
         .map((a, i) => {
-            const top =
-                i === 0
-                    ? `border-top:1px solid ${S.subLine};`
-                    : `border-top:1px solid ${S.subLine};`;
-            return `<tr><td style="padding:14px 0;${top}">
+            return `<tr><td style="padding:14px 0;border-top:1px solid ${S.subLine};">
       <p style="margin:0;font-family:${F};font-size:12px;font-weight:600;color:${S.ink};"><a href="${escapeHtml(a.url)}" style="color:${S.ink};text-decoration:none;">${String(i + 1).padStart(2, "0")}  ${escapeHtml(a.label)}</a></p>
       <p style="margin:3px 0 0;font-family:${F};font-size:11px;color:${S.muted};">${escapeHtml(a.reason)}</p>
     </td></tr>`;
@@ -329,7 +322,7 @@ function accelSection(vm: DigestViewModel): string {
       <tr><td style="padding:12px 0;border-top:1px solid ${S.subLine};">
         <p style="margin:0;font-family:${F};font-size:12px;font-weight:600;color:${S.ink};"><a href="${escapeHtml(c.url)}" style="color:${S.ink};text-decoration:none;">${escapeHtml(c.name)}</a></p>
         <p style="margin:3px 0 0;font-family:${F};font-size:10.5px;color:${S.faint};">${escapeHtml((c.techStack || []).slice(0, 3).join(" · ") || "Not specified")}</p>
-        <p style="margin:6px 0 0;"><a href="${escapeHtml(c.careersUrl)}" style="font-family:${F};font-size:10.5px;color:${S.muted};text-decoration:underline;">Careers →</a></p>
+        <p style="margin:6px 0 0;"><a href="${escapeHtml(c.careersUrl)}" style="font-family:${F};font-size:10.5px;color:${S.muted};text-decoration:underline;">Open ${escapeHtml(c.name)} careers →</a></p>
       </td></tr>`,
                 )
                 .join("");
@@ -424,7 +417,7 @@ export function renderEmail(vm: DigestViewModel): string {
 
 export function renderText(vm: DigestViewModel): string {
     const L: string[] = [];
-    L.push("JOBOPS — Daily briefing");
+    L.push("JOBOPS | Daily briefing");
     L.push(vm.date.long);
     L.push("");
     L.push(
@@ -435,7 +428,7 @@ export function renderText(vm: DigestViewModel): string {
         const m = vm.heroJob;
         L.push("TODAY'S BEST MATCH");
         L.push(
-            `${m.score.overall.toFixed(1)}/5 ${m.verdict.toUpperCase()} — ${m.title} @ ${m.company}`,
+            `${m.score.overall.toFixed(1)}/5 ${m.verdict.toUpperCase()} | ${m.title} @ ${m.company}`,
         );
         L.push(
             `${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ""}`,
@@ -452,7 +445,7 @@ export function renderText(vm: DigestViewModel): string {
         for (const m of rest) {
             L.push("");
             L.push(
-                `${m.score.overall.toFixed(1)}/5 ${m.title} @ ${m.company} — ${m.verdict}`,
+                `${m.score.overall.toFixed(1)}/5 ${m.title} @ ${m.company} | ${m.verdict}`,
             );
             L.push(
                 `${m.location} · ${m.posted}${m.compensation ? ` · ${m.compensation}` : ""}`,
@@ -465,7 +458,7 @@ export function renderText(vm: DigestViewModel): string {
     if (vm.marketSignal) {
         const g = vm.marketSignal;
         L.push(
-            `ONE THING I NOTICED — ${g.skill} in ${g.frequency}% of matches (${g.count} jobs) — ${g.marketDemand} demand`,
+            `ONE THING I NOTICED: ${g.skill} in ${g.frequency}% of matches (${g.count} jobs), ${g.marketDemand} demand`,
         );
         L.push(`You: ${g.currentLevel}`);
         L.push("");
@@ -476,7 +469,7 @@ export function renderText(vm: DigestViewModel): string {
         );
         for (const c of vm.peopleToContact) {
             L.push(
-                `  ${c.company} — ${c.roleCount > 1 ? `${c.roleCount} roles` : c.roles[0] || ""}`,
+                `  ${c.company} | ${c.roleCount} open ${c.roleCount === 1 ? "role" : "roles"}`,
             );
             L.push(
                 `  ${c.peopleSearchUrls.map((u) => `${u.title}: ${u.url}`).join(" | ")}`,
@@ -487,7 +480,7 @@ export function renderText(vm: DigestViewModel): string {
     if (vm.yourMove.length) {
         L.push("YOUR MOVE");
         for (const a of vm.yourMove) {
-            L.push(`  ${a.label} — ${a.reason}`);
+            L.push(`  ${a.label}: ${a.reason}`);
             L.push(`  ${a.url}`);
         }
         L.push("");
@@ -500,12 +493,12 @@ export function renderText(vm: DigestViewModel): string {
             L.push(`  ${acc.name} (${acc.batch})`);
             for (const c of acc.companies.slice(0, 6))
                 L.push(
-                    `    - ${c.name} — ${(c.techStack || []).slice(0, 3).join(", ") || "N/A"} — ${c.careersUrl}`,
+                    `    - ${c.name} | ${(c.techStack || []).slice(0, 3).join(", ") || "N/A"} | ${c.careersUrl}`,
                 );
         }
         L.push("");
     }
-    L.push(`—`);
+    L.push(`---`);
     L.push(
         `JobOps · ${vm.footer.scanned} analyzed · ${vm.footer.filtered} surfaced${vm.footer.unscoredCount ? ` · ${vm.footer.unscoredCount} unscored` : ""}`,
     );

@@ -55,6 +55,17 @@ export type Verdict = "strong" | "review" | "maybe" | "skip";
 
 export interface JobEvaluation {
     overall: number;
+    /**
+     * Pre-exclusion score from the model, preserved so deterministic rules can
+     * be re-applied after tuning without spending another request.
+     */
+    rawOverall?: number;
+    /**
+     * Set when the posting is senior-level and therefore out of scope for an
+     * entry-level / early-career profile. Enforced by `filterForDigest`
+     * independently of the configured score threshold.
+     */
+    seniorMismatch?: boolean;
     roleFit: number;
     locationFit: number;
     growth: number;
@@ -395,6 +406,18 @@ export interface ScanResult {
     errors: string[];
 }
 
+/**
+ * A scanner paired with the source it produces.
+ *
+ * The name travels with the scanner instead of living in a parallel array
+ * matched by position, so toggling a portal off cannot shift the reported
+ * identity of every scanner after it.
+ */
+export interface ScanSource {
+    source: JobSource;
+    run: () => Promise<Job[]>;
+}
+
 // ─── Rank types ──────────────────────────────────────────────────
 
 export interface RankOptions {
@@ -568,5 +591,9 @@ export interface AIEvaluationResult {
     cultureFit: number;
     entryLevelFit?: number;
     recommendation: string;
+    /** Model-supplied reasons this posting fits, max 3. Shown in the email. */
+    whyMatch?: string[];
+    /** Model-supplied skills from the candidate's list this job uses, max 5. */
+    matchedSkills?: string[];
     redFlags: string[];
 }

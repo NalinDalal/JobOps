@@ -24,11 +24,20 @@ import {
     getProfileTargetRoles,
     ROOT,
 } from "./config";
-import { IST_OFFSET_HOURS, MS_PER_HOUR } from "./constants";
+import {
+    IST_OFFSET_HOURS,
+    MS_PER_HOUR,
+    SCORE_STRONG,
+    SCORE_REVIEW,
+    SCORE_WEAK,
+    HEURISTIC_MAX_SCORE,
+    AI_EVAL_BUDGET,
+} from "./constants";
 import { scanJobs } from "./scan";
 import { deduplicateJobs, filterSeenJobs } from "./dedup";
 import { evaluateJobs } from "./evaluate";
 import { rankJobs, filterForDigest } from "./rank";
+import { isSeniorRole } from "./seniority";
 import { researchAccelerators } from "./research";
 import type { AcceleratorCompany } from "./types";
 import { buildViewModel } from "./viewModel";
@@ -92,7 +101,7 @@ export function parseDigestArgs(argv: string[]): DigestOptions {
         mode,
         query: argVal("query", "auto"),
         max: parseInt(argVal("max", "50"), 10) || 50,
-        evaluate: parseInt(argVal("evaluate", "5"), 10) || 0,
+        evaluate: parseInt(argVal("evaluate", String(AI_EVAL_BUDGET)), 10) || 0,
         mock: argFlag("mock"),
         research: argFlag("research"),
     };
@@ -109,7 +118,11 @@ export async function main(
               mode: String(options.mode || "preview"),
               query: String(options.query || "auto"),
               max: parseInt(String(options.max || "50"), 10) || 50,
-              evaluate: parseInt(String(options.evaluate || "5"), 10) || 0,
+              evaluate:
+                  parseInt(
+                      String(options.evaluate || AI_EVAL_BUDGET),
+                      10,
+                  ) || 0,
               mock: Boolean(options.mock),
               research: Boolean(options.research),
           }
@@ -117,7 +130,7 @@ export async function main(
               mode: "preview",
               query: "auto",
               max: 50,
-              evaluate: 5,
+              evaluate: AI_EVAL_BUDGET,
               mock: false,
               research: false,
           };
@@ -125,7 +138,7 @@ export async function main(
     const env = loadEnv(root);
 
     console.log(
-        `Digest mode=${opts.mode} query="${opts.query}" max=${opts.max} evaluate=${hasCloudflareKeys(env) ? opts.evaluate : 0} mock=${opts.mock}`,
+        `Digest mode=${opts.mode} query="${opts.query}" max=${opts.max} ai_budget=${hasCloudflareKeys(env) ? opts.evaluate : 0} mock=${opts.mock}`,
     );
 
     const searchConfig = loadSearchConfig();
@@ -168,20 +181,32 @@ export async function main(
         }
     }
 
-    // Evaluate top N jobs
+    // Spend the AI budget on the best-fitting candidates, not on whichever
+    // jobs the scanner happened to return first.
+    const aiBudget = Math.min(
+        opts.evaluate,
+        hasCloudflareKeys(env) ? fresh.length : 0,
+    );
+    const prioritized = aiBudget > 0 ? prioritizeForAi(fresh) : fresh;
+
     if (hasCloudflareKeys(env) && opts.evaluate > 0) {
-        await evaluateJobs(fresh, { concurrent: opts.evaluate });
+        await evaluateJobs(prioritized, { limit: aiBudget });
+        const aiScored = fresh.filter((j) => j.evaluation).length;
+        console.log(
+            `AI-scored ${aiScored}/${fresh.length} fresh jobs (budget ${aiBudget}, best-fit first)`,
+        );
     }
 
-    // Heuristic fallback for unscored jobs (when Cloudflare not configured or top-N limit left many unscored)
+    // Heuristic fallback for anything the AI budget did not reach
+    // (no keys configured, or jobs beyond the budget).
     const unscoredBefore = fresh.filter((j) => !j.evaluation?.overall).length;
     if (unscoredBefore > 0) {
         applyHeuristicScores(fresh);
         const scored = fresh.filter((j) => j.evaluation?.overall).length;
-        if (unscoredBefore !== scored)
-            console.log(
-                `Heuristic scored ${scored - (fresh.length - unscoredBefore)} jobs (no AI keys / beyond top-N)`,
-            );
+        const heuristicOnly = scored - (fresh.length - unscoredBefore);
+        console.log(
+            `Heuristic scored ${heuristicOnly} job${heuristicOnly === 1 ? "" : "s"} (capped at ${HEURISTIC_MAX_SCORE} — below SCORE_STRONG)`,
+        );
     }
 
     // Rank and filter
@@ -313,63 +338,108 @@ export async function main(
     };
 }
 
-// ─── Heuristic scoring (no AI keys) ───────────────────────────
+// ─── Heuristic prescreen ──────────────────────────────────────
 
-function applyHeuristicScores(jobs: Job[]): void {
-    // Lightweight keyword overlap scoring when Cloudflare AI is not configured.
-    // Keeps digest useful in preview/local without keys — caps at 3.6 so AI-scored jobs still rank higher.
-    try {
-        const profile = loadActiveProfile();
-        const skills: string[] = getProfileSkills(profile)
+/**
+ * Cheap keyword-overlap pre-score, used to decide which jobs deserve the AI
+ * budget. Returns an unbounded "raw" figure on purpose: the *ordering* is what
+ * matters here, and clamping to the display ceiling before sorting would tie
+ * every decent job together and make the ordering arbitrary.
+ *
+ * Also used as the final fallback score when a job is outside the AI budget.
+ */
+function heuristicScore(
+    job: Job,
+    skills: string[],
+    targetRoles: string[],
+): number {
+    const hay =
+        `${job.title} ${job.snippet || ""} ${job.description || ""} ${(job.tags || []).join(" ")}`.toLowerCase();
+
+    let skillHits = 0;
+    for (const s of skills) if (hay.includes(s)) skillHits++;
+    const skillScore = Math.min(2, skillHits * 0.35); // 0-2
+
+    let roleBonus = 0;
+    for (const r of targetRoles) if (hay.includes(r)) roleBonus = 0.6;
+
+    // Same rule as rank.ts — previously a looser duplicate regex that matched
+    // "lead"/"manager" anywhere in the description body.
+    const seniorPenalty = isSeniorRole(job.title, job.snippet) ? 0.8 : 0;
+
+    const remoteBonus = job.remote || /remote/.test(hay) ? 0.2 : 0;
+
+    // base 3.0 so borderline jobs appear in "to review" rather than vanishing
+    return Math.max(
+        1,
+        3.0 + skillScore + roleBonus + remoteBonus - seniorPenalty,
+    );
+}
+
+function loadHeuristicInputs(): { skills: string[]; targetRoles: string[] } {
+    const profile = loadActiveProfile();
+    return {
+        skills: getProfileSkills(profile)
             .split(",")
             .map((s: string) => s.trim().toLowerCase())
-            .filter(Boolean);
-        const targetRoles = getProfileTargetRoles(profile).map((r: string) =>
+            .filter(Boolean),
+        targetRoles: getProfileTargetRoles(profile).map((r: string) =>
             r.toLowerCase(),
+        ),
+    };
+}
+
+/**
+ * Order jobs by heuristic fit without mutating them, so the AI budget can be
+ * spent on the best candidates instead of on whatever the scanner returned
+ * first.
+ */
+export function prioritizeForAi(jobs: Job[]): Job[] {
+    try {
+        const { skills, targetRoles } = loadHeuristicInputs();
+        return [...jobs].sort(
+            (a, b) =>
+                heuristicScore(b, skills, targetRoles) -
+                heuristicScore(a, skills, targetRoles),
         );
+    } catch (e) {
+        console.warn(`Heuristic ordering unavailable: ${e}`);
+        return jobs;
+    }
+}
+
+export function applyHeuristicScores(jobs: Job[]): void {
+    // Fallback for jobs the AI budget did not reach. Capped at
+    // HEURISTIC_MAX_SCORE so a keyword overlap can never outrank a real
+    // evaluation.
+    try {
+        const { skills, targetRoles } = loadHeuristicInputs();
 
         for (const job of jobs) {
             if (job.evaluation?.overall) continue;
             const hay =
                 `${job.title} ${job.snippet || ""} ${job.description || ""} ${(job.tags || []).join(" ")}`.toLowerCase();
 
-            let skillHits = 0;
-            for (const s of skills) if (hay.includes(s)) skillHits++;
-            const skillScore = Math.min(2, skillHits * 0.35); // 0-2
+            const unbounded = heuristicScore(job, skills, targetRoles);
+            const seniorPenalty = isSeniorRole(job.title, job.snippet) ? 0.8 : 0;
+            const overall = Math.min(unbounded, HEURISTIC_MAX_SCORE);
 
-            let roleBonus = 0;
-            for (const r of targetRoles) if (hay.includes(r)) roleBonus = 0.6;
-
-            let seniorPenalty = 0;
-            if (
-                /(senior|staff|principal|lead|manager|director|5\+ years|8\+ years)/.test(
-                    hay,
-                )
-            )
-                seniorPenalty = 0.8;
-
-            const remoteBonus = job.remote || /remote/.test(hay) ? 0.2 : 0;
-
-            // base 3.0 so borderline jobs appear in "to review" rather than vanishing
-            const overall = Math.max(
-                1,
-                Math.min(
-                    3.6,
-                    3.0 + skillScore + roleBonus + remoteBonus - seniorPenalty,
-                ),
-            );
             const verdict = (
-                overall >= 4
+                overall >= SCORE_STRONG
                     ? "strong"
-                    : overall >= 3.5
+                    : overall >= SCORE_REVIEW
                       ? "review"
-                      : overall >= 3
+                      : overall >= SCORE_WEAK
                         ? "maybe"
                         : "skip"
             ) as NonNullable<Job["evaluation"]>["verdict"];
 
+            const skillHits = skills.filter((s) => hay.includes(s)).length;
+            const skillScore = Math.min(2, skillHits * 0.35);
+
             job.evaluation = {
                 overall: Math.round(overall * 10) / 10,
+                rawOverall: Math.round(overall * 10) / 10,
                 roleFit: Math.round((3.0 + skillScore) * 10) / 10,
                 locationFit: job.remote ? 4 : 3,
                 growth: 3.3,

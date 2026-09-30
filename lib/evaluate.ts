@@ -18,7 +18,12 @@ import {
     getProfileTargetRoles,
     getProfileTargetLocations,
 } from "./config";
-import { SCORE_STRONG, SCORE_REVIEW, CV_TRUNCATE } from "./constants";
+import {
+    SCORE_STRONG,
+    SCORE_REVIEW,
+    CV_TRUNCATE,
+    AI_EVAL_CONCURRENCY,
+} from "./constants";
 import { loadEnv, hasCloudflareKeys } from "./config";
 import {
     callCloudflareAI,
@@ -112,8 +117,9 @@ export async function evaluateJob(job: Job): Promise<JobEvaluation | null> {
             cultureFit: parsed.cultureFit,
             verdict,
             recommendation: parsed.recommendation,
-            whyMatch: [],
-            matchedSkills: [],
+            // Model reasoning drives the email's "why this matches" section.
+            whyMatch: parsed.whyMatch || [],
+            matchedSkills: parsed.matchedSkills || [],
             redFlags: parsed.redFlags,
         };
     } catch (e) {
@@ -127,14 +133,26 @@ export async function evaluateJob(job: Job): Promise<JobEvaluation | null> {
 // ─── Batch evaluation ─────────────────────────────────────────
 
 export interface EvaluateOptions {
-    concurrent?: number;
+    /** Maximum number of jobs to send to the model. */
+    limit?: number;
+    /** Maximum number of requests in flight at once. */
+    concurrency?: number;
 }
 
+/**
+ * Evaluate the first `limit` jobs, keeping at most `concurrency` requests
+ * in flight.
+ *
+ * `limit` and `concurrency` are deliberately separate: conflating them meant
+ * the caller's job budget was silently used as the parallelism, so only a
+ * handful of jobs were ever scored by AI and the rest fell through to the
+ * heuristic scorer.
+ */
 export async function evaluateJobs(
     jobs: Job[],
     options: EvaluateOptions = {},
 ): Promise<Job[]> {
-    const { concurrent = 3 } = options;
+    const { limit = 5, concurrency = AI_EVAL_CONCURRENCY } = options;
 
     const env = loadEnv();
     if (!hasCloudflareKeys(env)) {
@@ -142,20 +160,49 @@ export async function evaluateJobs(
         return jobs;
     }
 
+    const targets = jobs.slice(0, Math.max(0, limit));
+    if (targets.length === 0) {
+        console.warn("No jobs to evaluate (limit resolved to 0)");
+        return jobs;
+    }
+
+    const workers = Math.max(1, Math.min(concurrency, targets.length));
     console.log(
-        `Evaluating top ${Math.min(jobs.length, concurrent)} jobs with Cloudflare AI...`,
+        `Evaluating ${targets.length} job${targets.length === 1 ? "" : "s"} with Cloudflare AI (${workers} concurrent)...`,
     );
 
-    const targets = jobs.slice(0, concurrent);
-    const results = await Promise.allSettled(
-        targets.map((j) => evaluateJob(j)),
-    );
+    // Worker pool over a shared cursor, so a slow request cannot stall the rest.
+    const results = new Array<JobEvaluation | null>(targets.length).fill(null);
+    let cursor = 0;
 
-    for (let i = 0; i < targets.length; i++) {
-        const r = results[i];
-        if (r && r.status === "fulfilled" && r.value) {
-            targets[i]!.evaluation = r.value;
+    const drain = async (): Promise<void> => {
+        for (;;) {
+            const i = cursor++;
+            if (i >= targets.length) return;
+            try {
+                results[i] = await evaluateJob(targets[i]!);
+            } catch (e) {
+                // evaluateJob already handles its own failures; belt and braces
+                // so one bad job cannot reject the whole batch.
+                console.error(`Evaluation failed for job index ${i}: ${e}`);
+            }
         }
+    };
+
+    await Promise.all(Array.from({ length: workers }, () => drain()));
+
+    let scored = 0;
+    for (let i = 0; i < targets.length; i++) {
+        const result = results[i];
+        if (result) {
+            targets[i]!.evaluation = result;
+            scored++;
+        }
+    }
+    if (scored < targets.length) {
+        console.warn(
+            `Only ${scored}/${targets.length} evaluations succeeded — remainder will use heuristic scoring`,
+        );
     }
 
     return jobs;

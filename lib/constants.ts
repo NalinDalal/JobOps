@@ -11,10 +11,45 @@ export const SCORE_STRONG = 4.0;
 export const SCORE_REVIEW = 3.5;
 export const SCORE_WEAK = 3.0;
 
+/**
+ * Score assigned to senior-level postings. The profile targets entry-level,
+ * junior and early-career roles, so a senior posting is not a weak match to
+ * review — it is out of scope.
+ *
+ * This must stay strictly below every `score_threshold` used for inclusion.
+ * Capping at SCORE_REVIEW instead placed the job exactly on the digest
+ * threshold, so it survived the `>= minScore` check and was emailed as a
+ * "review" candidate.
+ */
+export const SCORE_SENIOR_EXCLUDED = 1.0;
+
 // ─── Timeouts ─────────────────────────────────────────────────
 
 export const FETCH_TIMEOUT_MS = 15000;
 export const FETCH_TIMEOUT_SHORT_MS = 10000;
+
+// ─── AI evaluation ────────────────────────────────────────────
+
+/** Max Cloudflare AI requests in flight during a batch evaluation. */
+export const AI_EVAL_CONCURRENCY = 3;
+
+/**
+ * Default number of jobs to send to the AI per digest run.
+ *
+ * Exceeding this is not fatal — the remainder fall back to keyword scoring —
+ * but a keyword score can never reach SCORE_STRONG, so a job outside the AI
+ * budget cannot be reported as a strong match. Raise it if the daily token
+ * ceiling allows; override per run with `--evaluate N`.
+ */
+export const AI_EVAL_BUDGET = 25;
+
+/**
+ * Ceiling for a keyword-heuristic score.
+ *
+ * Deliberately below SCORE_STRONG: the heuristic is a prescreen for allocating
+ * the AI budget, not a verdict, and must never outrank a real evaluation.
+ */
+export const HEURISTIC_MAX_SCORE = 3.9;
 
 // ─── Truncation ───────────────────────────────────────────────
 
